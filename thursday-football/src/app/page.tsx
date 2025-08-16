@@ -102,7 +102,7 @@ export default function HomePage() {
         >
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-sm">Loading your football experience...</span>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   )
