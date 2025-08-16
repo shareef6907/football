@@ -22,18 +22,18 @@ export default function HomePage() {
     } else {
       // Small delay for the landing animation
       setTimeout(() => {
-        router.push('/login')
-      }, 2000)
+        router.push('/rate-players')
+      }, 5000)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-black via-slate-950 to-black flex items-center justify-center">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-gradient-to-br from-orange-500/10 to-pink-500/10 blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-green-500/10 to-blue-500/10 blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-gradient-to-br from-orange-500/5 to-pink-500/5 blur-3xl animate-pulse delay-2000"></div>
       </div>
 
       <motion.div
@@ -79,15 +79,15 @@ export default function HomePage() {
           transition={{ delay: 0.9, duration: 0.6 }}
           className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-slate-300"
         >
-          <div className="flex items-center space-x-2 bg-slate-800/50 px-4 py-2 rounded-full">
+          <div className="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-full">
             <Zap className="w-4 h-4 text-blue-400" />
             <span>Real-time Stats</span>
           </div>
-          <div className="flex items-center space-x-2 bg-slate-800/50 px-4 py-2 rounded-full">
+          <div className="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-full">
             <Trophy className="w-4 h-4 text-green-400" />
             <span>Team Rankings</span>
           </div>
-          <div className="flex items-center space-x-2 bg-slate-800/50 px-4 py-2 rounded-full">
+          <div className="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-full">
             <Zap className="w-4 h-4 text-orange-400" />
             <span>Auto Balancing</span>
           </div>
