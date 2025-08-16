@@ -1,0 +1,52 @@
+import { createServerClient } from '@supabase/ssr'
+import { createBrowserClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+
+export function createServerSupabaseClient() {
+  const cookieStore = cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
+}
+
+// Predefined team members
+export const TEAM_MEMBERS = [
+  'Ahmed', 'Fasin', 'Hamsheed', 'Jalal', 'Shareef', 'Shaheen', 
+  'Emaad', 'Darwish', 'Luqman', 'Nabeel', 'Jinish', 'Afzal', 
+  'Rathul', 'Madan', 'Waleed', 'Ahmed-Ateeq', 'Junaid', 
+  'Shafeer', 'Fathah', 'Nithin'
+]
+
+// Admin credentials
+export const ADMIN_CREDENTIALS = {
+  username: 'admin_captain',
+  password: 'FootballStats2025!',
+  email: 'admin@thursdayfootball.com'
+}
