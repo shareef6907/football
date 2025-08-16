@@ -143,7 +143,7 @@ export default function RegisterPage() {
                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-white transition-all duration-200"
               >
                 <option value="">Choose your name from the roster</option>
-                {TEAM_MEMBERS.map((member) => (
+                {[...TEAM_MEMBERS].sort().map((member) => (
                   <option key={member} value={member}>
                     {member}
                   </option>

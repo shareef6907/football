@@ -6,9 +6,16 @@ import { motion } from 'framer-motion'
 import { Star, Trophy, ArrowRight, CheckCircle } from 'lucide-react'
 import { TEAM_MEMBERS } from '@/lib/auth'
 
+// Sort team members alphabetically
+const SORTED_TEAM_MEMBERS = [...TEAM_MEMBERS].sort()
+
 interface PlayerRating {
   name: string
   rating: number
+}
+
+interface PlayerRatings {
+  [key: string]: number
 }
 
 export default function RatePlayersPage() {
@@ -16,31 +23,40 @@ export default function RatePlayersPage() {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0)
   const [ratings, setRatings] = useState<PlayerRating[]>([])
   const [hoveredRating, setHoveredRating] = useState(0)
+  const [selectedRating, setSelectedRating] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
+  const [playerRatings, setPlayerRatings] = useState<PlayerRatings>({})
 
-  const currentPlayer = TEAM_MEMBERS[currentPlayerIndex]
+  const currentPlayer = SORTED_TEAM_MEMBERS[currentPlayerIndex]
 
   const handleRating = (rating: number) => {
+    setSelectedRating(rating)
     const newRating = { name: currentPlayer, rating }
     setRatings([...ratings, newRating])
+    setPlayerRatings({ ...playerRatings, [currentPlayer]: rating })
 
-    if (currentPlayerIndex < TEAM_MEMBERS.length - 1) {
-      setCurrentPlayerIndex(currentPlayerIndex + 1)
-      setHoveredRating(0)
-    } else {
-      // All players rated
-      setIsComplete(true)
-      // Store ratings in localStorage for now
-      localStorage.setItem('playerRatings', JSON.stringify([...ratings, newRating]))
-      // Redirect to login after a brief celebration
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    }
+    // Delay for animation effect
+    setTimeout(() => {
+      if (currentPlayerIndex < SORTED_TEAM_MEMBERS.length - 1) {
+        setCurrentPlayerIndex(currentPlayerIndex + 1)
+        setHoveredRating(0)
+        setSelectedRating(0)
+      } else {
+        // All players rated
+        setIsComplete(true)
+        // Store ratings in localStorage for now
+        localStorage.setItem('playerRatings', JSON.stringify([...ratings, newRating]))
+        // Redirect to login after a brief celebration
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+      }
+    }, 500)
   }
 
   const skipPlayer = () => {
-    if (currentPlayerIndex < TEAM_MEMBERS.length - 1) {
+    setSelectedRating(0)
+    if (currentPlayerIndex < SORTED_TEAM_MEMBERS.length - 1) {
       setCurrentPlayerIndex(currentPlayerIndex + 1)
       setHoveredRating(0)
     } else {
@@ -93,13 +109,13 @@ export default function RatePlayersPage() {
         {/* Progress bar */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-slate-400 mb-2">
-            <span>Player {currentPlayerIndex + 1} of {TEAM_MEMBERS.length}</span>
+            <span>Player {currentPlayerIndex + 1} of {SORTED_TEAM_MEMBERS.length}</span>
             <span>{Math.round(((currentPlayerIndex) / TEAM_MEMBERS.length) * 100)}% Complete</span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${((currentPlayerIndex) / TEAM_MEMBERS.length) * 100}%` }}
+              style={{ width: `${((currentPlayerIndex) / SORTED_TEAM_MEMBERS.length) * 100}%` }}
             />
           </div>
         </div>
@@ -128,29 +144,32 @@ export default function RatePlayersPage() {
 
           {/* Rating Stars */}
           <div className="mb-8">
-            <div className="flex justify-center gap-2 mb-4">
+            <div className="flex flex-wrap justify-center gap-4 mb-4">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                <button
-                  key={rating}
-                  onClick={() => handleRating(rating)}
-                  onMouseEnter={() => setHoveredRating(rating)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  className="group relative"
-                >
-                  <Star
-                    className={`w-10 h-10 transition-all duration-200 ${
-                      rating <= hoveredRating
-                        ? 'text-yellow-400 fill-yellow-400 scale-110'
-                        : 'text-slate-600 hover:text-yellow-400'
-                    }`}
-                  />
-                  <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-slate-400">
+                <div key={rating} className="flex flex-col items-center">
+                  <button
+                    onClick={() => handleRating(rating)}
+                    onMouseEnter={() => setHoveredRating(rating)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    className="group"
+                  >
+                    <Star
+                      className={`w-12 h-12 transition-all duration-200 ${
+                        rating <= selectedRating
+                          ? 'text-yellow-400 fill-yellow-400 scale-125 animate-pulse'
+                          : rating <= hoveredRating
+                          ? 'text-yellow-400 fill-yellow-400 scale-110'
+                          : 'text-slate-600 hover:text-yellow-400'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm text-slate-400 mt-1">
                     {rating}
                   </span>
-                </button>
+                </div>
               ))}
             </div>
-            <p className="text-center text-sm text-slate-500 mt-8">
+            <p className="text-center text-sm text-slate-500 mt-6">
               Click a star to rate (1 = Poor, 10 = Excellent)
             </p>
           </div>
@@ -173,7 +192,7 @@ export default function RatePlayersPage() {
             <span className="text-slate-400 font-semibold">{ratings.length}</span> rated
           </div>
           <div>
-            <span className="text-slate-400 font-semibold">{TEAM_MEMBERS.length - currentPlayerIndex - 1}</span> remaining
+            <span className="text-slate-400 font-semibold">{SORTED_TEAM_MEMBERS.length - currentPlayerIndex - 1}</span> remaining
           </div>
           {ratings.length > 0 && (
             <div>

@@ -77,7 +77,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-slate-300"
+          className="flex flex-wrap justify-center gap-3 mb-6 text-sm text-slate-300"
         >
           <div className="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-full">
             <Zap className="w-4 h-4 text-blue-400" />
