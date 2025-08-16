@@ -46,9 +46,9 @@ export default function RatePlayersPage() {
         setIsComplete(true)
         // Store ratings in localStorage for now
         localStorage.setItem('playerRatings', JSON.stringify([...ratings, newRating]))
-        // Redirect to login after a brief celebration
+        // Redirect to rankings after a brief celebration
         setTimeout(() => {
-          router.push('/login')
+          router.push('/rankings')
         }, 2000)
       }
     }, 500)

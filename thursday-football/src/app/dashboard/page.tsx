@@ -1,365 +1,376 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/auth'
 import { motion } from 'framer-motion'
 import { 
-  Trophy, 
-  Target, 
-  Users, 
-  TrendingUp, 
-  Calendar,
-  Crown,
-  Award,
-  Zap,
-  LogOut,
-  User
+  Trophy, Target, Shield, Activity, TrendingUp, Users, 
+  Calendar, Award, BarChart3, Plus, ChevronRight, LogOut,
+  Goal, HandHelping, ShieldCheck
 } from 'lucide-react'
+import Link from 'next/link'
 
-interface User {
-  id: string
-  username: string
+interface UserData {
   display_name: string
-  email: string
-  is_admin: boolean
-  total_points: number
+  team: string
 }
 
-interface LeaderboardEntry {
-  id: string
-  display_name: string
-  total_points: number
+interface MatchStats {
   goals: number
   assists: number
-  rank: number
+  saves: number
+  wins: number
+  losses: number
+  gamesPlayed: number
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalGames: 0,
-    totalGoals: 0,
-    totalAssists: 0,
-    winRate: 0
-  })
   const router = useRouter()
   const supabase = createClient()
+  const [user, setUser] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [matchStats, setMatchStats] = useState<MatchStats>({
+    goals: 0,
+    assists: 0,
+    saves: 0,
+    wins: 0,
+    losses: 0,
+    gamesPlayed: 0
+  })
+  const [showMatchForm, setShowMatchForm] = useState(false)
+  const [matchData, setMatchData] = useState({
+    goals: 0,
+    assists: 0,
+    saves: 0,
+    teamWon: false
+  })
 
   useEffect(() => {
     checkUser()
-    loadDashboardData()
+    loadMatchStats()
   }, [])
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session) {
       router.push('/login')
       return
     }
 
-    // Get user profile from our users table
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
-
-    if (userProfile) {
-      setUser(userProfile)
-    }
+    // Get user data
+    const userName = session.user?.email?.split('@')[0] || 'Player'
+    setUser({
+      display_name: userName.charAt(0).toUpperCase() + userName.slice(1),
+      team: 'Thursday FC'
+    })
+    
+    setLoading(false)
   }
 
-  const loadDashboardData = async () => {
-    try {
-      // Load leaderboard (top 10 players by points)
-      const { data: leaderboardData } = await supabase
-        .from('users')
-        .select('id, display_name, total_points')
-        .order('total_points', { ascending: false })
-        .limit(10)
-
-      if (leaderboardData) {
-        const leaderboard = leaderboardData.map((player, index) => ({
-          ...player,
-          goals: 0, // We'll calculate this from player_stats
-          assists: 0,
-          rank: index + 1
-        }))
-        setLeaderboard(leaderboard)
+  const loadMatchStats = () => {
+    const storedStats = localStorage.getItem('matchData')
+    if (storedStats) {
+      const stats = JSON.parse(storedStats)
+      const userName = user?.display_name || ''
+      if (stats[userName]) {
+        setMatchStats(stats[userName])
       }
-
-      // Load basic stats
-      const { data: gamesData } = await supabase
-        .from('games')
-        .select('id')
-
-      const { data: goalsData } = await supabase
-        .from('player_stats')
-        .select('goals')
-
-      const { data: assistsData } = await supabase
-        .from('player_stats')
-        .select('assists')
-
-      setStats({
-        totalGames: gamesData?.length || 0,
-        totalGoals: goalsData?.reduce((sum, stat) => sum + (stat.goals || 0), 0) || 0,
-        totalAssists: assistsData?.reduce((sum, stat) => sum + (stat.assists || 0), 0) || 0,
-        winRate: 0 // Calculate later based on user's games
-      })
-
-    } catch (error) {
-      console.error('Error loading dashboard data:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
-  const handleSignOut = async () => {
+  const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
   }
 
+  const saveMatchData = () => {
+    const userName = user?.display_name || ''
+    const existingData = localStorage.getItem('matchData')
+    const allStats = existingData ? JSON.parse(existingData) : {}
+    
+    const currentStats = allStats[userName] || {
+      goals: 0,
+      assists: 0,
+      saves: 0,
+      wins: 0,
+      losses: 0,
+      gamesPlayed: 0
+    }
+
+    // Update stats
+    currentStats.goals += matchData.goals
+    currentStats.assists += matchData.assists
+    currentStats.saves += matchData.saves
+    currentStats.gamesPlayed += 1
+    if (matchData.teamWon) {
+      currentStats.wins += 1
+    } else {
+      currentStats.losses += 1
+    }
+
+    allStats[userName] = currentStats
+    localStorage.setItem('matchData', JSON.stringify(allStats))
+    
+    setMatchStats(currentStats)
+    setShowMatchForm(false)
+    setMatchData({ goals: 0, assists: 0, saves: 0, teamWon: false })
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="glass border-b border-slate-700/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-3"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center glow-blue">
-                <Trophy className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-black text-white">
+      {/* Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-950 to-black"></div>
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Thursday Football</h1>
+                  <p className="text-xs text-gray-500">Professional League</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Thursday Football</h1>
-                <p className="text-xs text-slate-400">Club Statistics & Management</p>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/rankings"
+                  className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Rankings</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
               </div>
-            </motion.div>
-
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-slate-300">
-                <User className="w-4 h-4" />
-                <span className="text-sm font-medium">{user?.display_name}</span>
-                {user?.is_admin && (
-                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">
-                    Admin
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-slate-400 hover:text-white transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.display_name}! 👋
-          </h2>
-          <p className="text-slate-400">
-            Here&apos;s what&apos;s happening with Thursday Football today.
-          </p>
-        </motion.div>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Welcome Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h2 className="text-3xl font-bold mb-2">
+              Welcome back, {user?.display_name}
+            </h2>
+            <p className="text-gray-500">
+              Track your performance and manage your statistics
+            </p>
+          </motion.div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Quick Actions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass rounded-2xl p-6 glow-blue"
+            className="mb-8"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">{user?.total_points}</span>
-            </div>
-            <h3 className="text-slate-300 font-medium">Total Points</h3>
-            <p className="text-slate-500 text-sm">Your career total</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass rounded-2xl p-6 glow-green"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
-                <Target className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">{stats.totalGoals}</span>
-            </div>
-            <h3 className="text-slate-300 font-medium">Total Goals</h3>
-            <p className="text-slate-500 text-sm">Club total scored</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="glass rounded-2xl p-6 glow-orange"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">{stats.totalGames}</span>
-            </div>
-            <h3 className="text-slate-300 font-medium">Games Played</h3>
-            <p className="text-slate-500 text-sm">Total matches</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="glass rounded-2xl p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">{stats.totalAssists}</span>
-            </div>
-            <h3 className="text-slate-300 font-medium">Total Assists</h3>
-            <p className="text-slate-500 text-sm">Club total assists</p>
-          </motion.div>
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Leaderboard */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-            className="lg:col-span-2 glass rounded-2xl p-6"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center">
-                <Crown className="w-6 h-6 mr-2 text-yellow-500" />
-                Leaderboard
-              </h3>
-              <span className="text-sm text-slate-400">Monthly rankings</span>
-            </div>
-
-            <div className="space-y-3">
-              {leaderboard.map((player, index) => (
-                <motion.div
-                  key={player.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                  className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
-                    player.id === user?.id 
-                      ? 'bg-blue-500/20 border border-blue-500/30' 
-                      : 'bg-slate-800/50 hover:bg-slate-700/50'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                      index === 0 ? 'bg-yellow-500 text-yellow-900' :
-                      index === 1 ? 'bg-gray-400 text-gray-900' :
-                      index === 2 ? 'bg-amber-600 text-amber-100' :
-                      'bg-slate-600 text-slate-300'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{player.display_name}</p>
-                      <p className="text-xs text-slate-400">{player.total_points} points</p>
-                    </div>
-                  </div>
-                  {index < 3 && (
-                    <div className="flex items-center space-x-1">
-                      {index === 0 && <Trophy className="w-5 h-5 text-yellow-500" />}
-                      {index === 1 && <Award className="w-5 h-5 text-gray-400" />}
-                      {index === 2 && <Award className="w-5 h-5 text-amber-600" />}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Quick Actions & Monthly Awards */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            className="space-y-6"
-          >
-            {/* Quick Actions */}
-            <div className="glass rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Zap className="w-6 h-6 mr-2 text-blue-500" />
-                Quick Actions
-              </h3>
-              <div className="space-y-3">
-                <button className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200">
-                  Log Game Stats
-                </button>
-                <button className="w-full p-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200">
-                  Create Teams
-                </button>
-                <button className="w-full p-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200">
-                  Rate Players
-                </button>
-                <button className="w-full p-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-all duration-200">
-                  View History
-                </button>
-              </div>
-            </div>
-
-            {/* Upcoming Games */}
-            <div className="glass rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Calendar className="w-6 h-6 mr-2 text-green-500" />
-                This Week
-              </h3>
-              <div className="space-y-3">
-                <div className="p-3 bg-slate-800/50 rounded-lg">
-                  <p className="font-medium text-white">Thursday Game</p>
-                  <p className="text-sm text-slate-400">Tomorrow • 7:00 PM</p>
-                  <p className="text-xs text-green-400 mt-1">⚡ Peak Form</p>
+            <button
+              onClick={() => setShowMatchForm(!showMatchForm)}
+              className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <Plus className="w-6 h-6" />
+                <div className="text-left">
+                  <p className="font-semibold">Record Match Performance</p>
+                  <p className="text-sm opacity-80">Add your stats from the last game</p>
                 </div>
-                <button className="w-full p-3 border border-slate-600 text-slate-300 rounded-lg font-medium hover:bg-slate-800/50 transition-all duration-200">
-                  Update Form Status
+              </div>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </motion.div>
+
+          {/* Match Form */}
+          {showMatchForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-8 p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+            >
+              <h3 className="text-xl font-semibold mb-4">Record Match Statistics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm text-gray-500 mb-2">Goals Scored</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={matchData.goals}
+                    onChange={(e) => setMatchData({...matchData, goals: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 mb-2">Assists</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={matchData.assists}
+                    onChange={(e) => setMatchData({...matchData, assists: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 mb-2">Saves (GK)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={matchData.saves}
+                    onChange={(e) => setMatchData({...matchData, saves: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 mb-2">Match Result</label>
+                  <select
+                    value={matchData.teamWon ? 'won' : 'lost'}
+                    onChange={(e) => setMatchData({...matchData, teamWon: e.target.value === 'won'})}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
+                  >
+                    <option value="won">Won</option>
+                    <option value="lost">Lost</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={saveMatchData}
+                  className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+                >
+                  Save Match Data
                 </button>
+                <button
+                  onClick={() => setShowMatchForm(false)}
+                  className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <Goal className="w-8 h-8 text-blue-400" />
+                <span className="text-xs text-gray-500">Total</span>
+              </div>
+              <p className="text-3xl font-bold mb-1">{matchStats.goals}</p>
+              <p className="text-sm text-gray-500">Goals Scored</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <HandHelping className="w-8 h-8 text-purple-400" />
+                <span className="text-xs text-gray-500">Total</span>
+              </div>
+              <p className="text-3xl font-bold mb-1">{matchStats.assists}</p>
+              <p className="text-sm text-gray-500">Assists</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <ShieldCheck className="w-8 h-8 text-green-400" />
+                <span className="text-xs text-gray-500">Total</span>
+              </div>
+              <p className="text-3xl font-bold mb-1">{matchStats.saves}</p>
+              <p className="text-sm text-gray-500">Saves</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <Trophy className="w-8 h-8 text-yellow-400" />
+                <span className="text-xs text-gray-500">W/L</span>
+              </div>
+              <p className="text-3xl font-bold mb-1">
+                {matchStats.wins}-{matchStats.losses}
+              </p>
+              <p className="text-sm text-gray-500">Win Record</p>
+            </motion.div>
+          </div>
+
+          {/* Performance Overview */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+          >
+            <h3 className="text-xl font-semibold mb-4">Performance Overview</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Games Played</p>
+                <p className="text-2xl font-bold">{matchStats.gamesPlayed}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Win Rate</p>
+                <p className="text-2xl font-bold">
+                  {matchStats.gamesPlayed > 0 
+                    ? Math.round((matchStats.wins / matchStats.gamesPlayed) * 100) 
+                    : 0}%
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Goals/Game</p>
+                <p className="text-2xl font-bold">
+                  {matchStats.gamesPlayed > 0 
+                    ? (matchStats.goals / matchStats.gamesPlayed).toFixed(1)
+                    : '0.0'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Contribution</p>
+                <p className="text-2xl font-bold">
+                  {matchStats.goals + matchStats.assists}
+                </p>
               </div>
             </div>
           </motion.div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
