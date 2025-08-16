@@ -1,121 +1,31 @@
-# CLAUDE.md - Thursday Football Project Guidelines
+# CLAUDE.md - Thursday Football Complete Project Specification
 
 ## 🎯 Project Overview
 
-**Thursday Football Club Management System** - A professional sports analytics platform for managing weekly football matches, player statistics, and team performance.
+**Thursday Football Club Management System** - A professional sports analytics platform for managing weekly football matches, player statistics, team formation, and performance tracking with monthly awards and achievements.
 
 ### Tech Stack
-- **Framework**: Next.js 15.4.6 with TypeScript
-- **Authentication**: Supabase Auth
-- **Database**: Supabase (PostgreSQL)
-- **Styling**: Tailwind CSS v4
-- **Animations**: Framer Motion
-- **Icons**: Lucide React (Professional icons only - NO EMOJIS in UI)
-- **Deployment**: Vercel
-- **Domain**: thursdayfootball.com
+- **Framework**: Next.js 14 with App Router
+- **Authentication**: Supabase Auth (email/password)
+- **Database**: Supabase (PostgreSQL) with realtime capabilities
+- **Styling**: Tailwind CSS with Hero.ui inspired components
+- **Type Safety**: TypeScript strict mode
+- **Animations**: Framer Motion with micro-interactions
+- **Deployment**: Vercel (deployment ready)
+- **PWA**: Progressive Web App capabilities
 
-### Repository
-- **GitHub**: shareef6907/football
-- **Branch**: main
-- **Auto-deploy**: Enabled on push
+## 👥 Authentication & User Management
 
-## 🎨 Design Philosophy
-
-### Million-Dollar App Aesthetic
-- **Theme**: Pure black backgrounds with gray-950 accents
-- **No childish elements**: No emojis, cartoon icons, or bright neon colors
-- **Professional only**: Corporate sports analytics platform appearance
-- **Typography**: Clean, modern, sans-serif fonts
-- **Spacing**: Generous padding and margins for premium feel
-
-### Color Palette
-```css
-- Background: black, gray-950
-- Cards: gray-950/50 with backdrop-blur
-- Borders: gray-800
-- Text Primary: white
-- Text Secondary: gray-400, gray-500
-- Accents: blue-500, purple-600 (gradients)
-- Success: green-400
-- Warning: yellow-400
-- Error: red-400
+### Admin Controls
+```javascript
+{
+  username: 'admin_captain',
+  password: 'FootballStats2025!',
+  email: 'admin@thursdayfootball.com'
+}
 ```
 
-### UI Patterns
-- **Glassmorphism**: backdrop-blur-xl with semi-transparent backgrounds
-- **Smooth animations**: Framer Motion with 200-600ms transitions
-- **Hover states**: All interactive elements must have hover effects
-- **Professional icons**: Lucide React icons only
-- **No emojis**: Zero emojis in the application UI
-
-## ⚡ Core Features
-
-### 1. Player Rating System
-- **Scale**: 1-10 stars (1 = Poor, 10 = Excellent)
-- **Access**: No login required for initial rating
-- **UI**: Golden stars with fill animation when selected
-- **Storage**: localStorage with key 'playerRatings'
-- **Completion**: Redirects to rankings page after all players rated
-
-### 2. Rankings Page
-- **Points Calculation Formula**:
-  ```
-  Total Points = (Rating × 10) + (Goals × 5) + (Assists × 3) + (Saves × 2) + (Wins × 4)
-  ```
-- **Features**:
-  - Top 3 podium with special badges
-  - Complete leaderboard table
-  - Rank change indicators (trending up/down)
-  - Professional dark theme
-
-### 3. Match Recording System
-- **Stats Tracked**:
-  - Goals scored
-  - Assists
-  - Saves (for goalkeepers)
-  - Match result (Win/Loss)
-- **Storage**: localStorage with key 'matchData'
-- **Access**: Available from dashboard after login
-
-### 4. Dashboard
-- **Professional Layout**:
-  - Dark glassmorphism cards
-  - Performance metrics
-  - Match recording form
-  - Navigation to rankings
-- **Stats Display**:
-  - Goals, Assists, Saves totals
-  - Win/Loss record
-  - Games played
-  - Win rate percentage
-  - Goals per game average
-
-## 🔄 User Flow
-
-```
-1. Landing Page (5 seconds auto-redirect)
-   ↓
-2. Rate Players Page (rate all 20 players)
-   ↓
-3. Rankings Page (view initial rankings)
-   ↓
-4. Login/Register
-   ↓
-5. Dashboard (record matches, view stats)
-   ↔
-6. Rankings (accessible from dashboard)
-```
-
-### Key Navigation Rules
-- First-time visitors MUST rate players before account creation
-- Landing page auto-redirects after 5 seconds
-- After rating completion → Rankings (not login)
-- Dashboard has quick access to Rankings
-- Logout returns to login page
-
-## 👥 Team Members
-
-### Predefined Players (20 total)
+### Predefined Team Members (20 total)
 ```javascript
 ['Ahmed', 'Fasin', 'Hamsheed', 'Jalal', 'Shareef', 'Shaheen', 
  'Emaad', 'Darwish', 'Luqman', 'Nabeel', 'Jinish', 'Afzal', 
@@ -123,161 +33,367 @@
  'Shafeer', 'Fathah', 'Nithin']
 ```
 
-### Display Rules
-- **Always sort alphabetically** in dropdowns and lists
-- Names are case-sensitive
-- No nicknames or abbreviations
+### User Flow
+1. New users MUST rate all players on first visit (anonymous)
+2. Email/password registration with Supabase Auth
+3. Dashboard access after authentication
+4. Admin panel for captain with special controls
 
-## 💾 Data Management
+## 📊 Stats Tracking System
 
-### localStorage Keys
-- `playerRatings`: Array of {name, rating} objects
-- `matchData`: Object with player stats by name
+### Point Values
+- **Goals**: 5 points each
+- **Assists**: 3 points each  
+- **Saves**: 2 points each
+- **Team Win Bonus**: 5 points for ALL winning team members
 
-### Data Structure
+### Stat Verification
+- Requires **2+ confirmations** from other players
+- Self-reported stats marked as "pending" until verified
+- Admin can override/approve any stat
+
+### Form Status (Self-Rating)
+Players can set their current form:
+- 🔴 **Injured** - Not available for selection
+- 🟡 **Slightly Injured** - Can play with limitations
+- 🟢 **Full Form** - Normal performance
+- ⚡ **Peak Form** - Exceptional condition
+
+## 🏆 Awards & Recognition
+
+### Monthly Awards (Reset every 4 weeks)
+1. **Player of the Month** 
+   - 🥇 Gold medal icon
+   - Display win count
+   - Based on total points
+
+2. **Top Goal Scorer**
+   - ⚽ Football icon
+   - Display win count
+   - Most goals in the month
+
+3. **Most Assists**
+   - 🥈 Silver medal icon
+   - Display win count
+   - Most assists in the month
+
+### Achievement System
+- **Streak Achievements**: "5 goals in a row", "10 game win streak"
+- **Milestone Achievements**: "100 career goals", "50 assists"
+- **Special Achievements**: "Hat-trick hero", "Clean sheet specialist"
+- Permanent badges displayed on profile
+
+## ⚽ Team Creation & Balancing
+
+### Team Generator Features
+- **5-a-side** team generator
+- **6-a-side** team generator
+- Switch between formats easily
+
+### Auto-Balancing Algorithm
+```
+Team Score = Σ(Player Points × 0.5 + Peer Rating × 0.3 + Form Status × 0.2)
+```
+- Considers total points from stats
+- Factors in peer ratings
+- Adjusts for current form status
+- Ensures balanced team strengths
+
+### Team History Tracking
+- Win rates for each combination
+- Best performing lineups
+- Historical team performance
+- Suggested "dream teams" based on data
+
+## ⭐ Rating System
+
+### Monthly Peer Ratings
+- **Scale**: 1-10 (10 being excellent)
+- **Reset**: Every 4 weeks
+- **Anonymous**: Ratings are private
+- **Required**: New users must complete before access
+
+### Rating Rules
+- Cannot rate yourself
+- Can update ratings once per week
+- Ratings affect team balancing
+- Historical ratings tracked
+
+## 📈 Dashboard & Analytics
+
+### Weekly Progress
+- Current week stats vs previous week
+- Progress bars for goals/assists/saves
+- Win/loss ratio
+- Form status indicator
+
+### Monthly vs All-Time Stats
+- Toggle between monthly and career stats
+- Comparison charts
+- Percentile rankings
+- Achievement progress
+
+### Live Leaderboards
+- Real-time updates
+- Countdown to monthly reset
+- Filter by: Points, Goals, Assists, Saves, Wins
+- Mobile swipe navigation
+
+### Export Functionality
+- Monthly summaries (PDF/CSV)
+- Yearly reports
+- Share to social media
+- Email reports to players
+
+## 📱 Design Requirements
+
+### Theme
+- **Primary**: Dark theme (black/gray-950)
+- **Accent Colors**: Vibrant but professional
+  - Blue-500 (primary actions)
+  - Green-400 (success/wins)
+  - Yellow-400 (achievements)
+  - Red-400 (losses/errors)
+
+### Hero.ui Inspired Components
+- Glassmorphism cards
+- Smooth gradients
+- Backdrop blur effects
+- Professional typography
+
+### Animations & Micro-interactions
+- Page transitions (300ms)
+- Hover effects on all interactive elements
+- Loading skeletons
+- Success animations for achievements
+- Smooth number counters
+
+### Mobile Optimization
+- **Mobile-first** responsive design
+- Touch-optimized controls
+- Swipe gestures for navigation
+- On-the-go stat logging
+- Offline capability with sync
+
+### PWA Capabilities
+- Install prompt
+- Offline mode
+- Push notifications for:
+  - Game reminders
+  - Stat verification requests
+  - Monthly award announcements
+- Home screen icon
+
+## 🗄️ Database Schema (Supabase)
+
+### Tables
+
+#### users
+```sql
+- id (uuid, primary key)
+- email (text, unique)
+- display_name (text)
+- role (enum: player, admin)
+- created_at (timestamp)
+- avatar_url (text)
+```
+
+#### games
+```sql
+- id (uuid, primary key)
+- date (date)
+- type (enum: 5v5, 6v6)
+- team_a (jsonb) -- player IDs
+- team_b (jsonb) -- player IDs
+- team_a_score (integer)
+- team_b_score (integer)
+- created_at (timestamp)
+```
+
+#### player_stats
+```sql
+- id (uuid, primary key)
+- game_id (uuid, foreign key)
+- player_id (uuid, foreign key)
+- goals (integer)
+- assists (integer)
+- saves (integer)
+- team_won (boolean)
+- verified (boolean, default false)
+- verified_by (jsonb) -- array of user IDs
+- created_at (timestamp)
+```
+
+#### peer_ratings
+```sql
+- id (uuid, primary key)
+- rater_id (uuid, foreign key)
+- rated_player_id (uuid, foreign key)
+- rating (integer, 1-10)
+- month_year (text) -- "2025-01"
+- created_at (timestamp)
+```
+
+#### monthly_awards
+```sql
+- id (uuid, primary key)
+- month_year (text)
+- player_of_month (uuid, foreign key)
+- top_scorer (uuid, foreign key)
+- most_assists (uuid, foreign key)
+- created_at (timestamp)
+```
+
+#### teams
+```sql
+- id (uuid, primary key)
+- game_id (uuid, foreign key)
+- players (jsonb)
+- total_points (integer)
+- won (boolean)
+- created_at (timestamp)
+```
+
+#### achievements
+```sql
+- id (uuid, primary key)
+- player_id (uuid, foreign key)
+- type (text)
+- title (text)
+- description (text)
+- icon (text)
+- earned_at (timestamp)
+```
+
+#### form_status
+```sql
+- id (uuid, primary key)
+- player_id (uuid, foreign key)
+- status (enum: injured, slightly_injured, full_form, peak_form)
+- updated_at (timestamp)
+```
+
+## 🎮 Sample Data
+
+### Previous Games (2 games)
 ```javascript
-// Player Ratings
-[{name: "Ahmed", rating: 8}, ...]
+Game 1 (Last Thursday):
+- Team A wins 5-3
+- Shareef: 2 goals, 1 assist
+- Ahmed: 1 goal, 2 assists
+- Nabeel: 3 saves (GK)
 
-// Match Data
-{
-  "PlayerName": {
-    goals: 5,
-    assists: 3,
-    saves: 0,
-    wins: 2,
-    losses: 1,
-    gamesPlayed: 3
-  }
-}
+Game 2 (2 weeks ago):
+- Team B wins 4-4 (penalties)
+- Jalal: 3 goals
+- Fasin: 2 assists
+- Luqman: 5 saves (GK)
 ```
 
-### Supabase Configuration
-- **Required Environment Variables**:
-  ```
-  NEXT_PUBLIC_SUPABASE_URL
-  NEXT_PUBLIC_SUPABASE_ANON_KEY
-  SUPABASE_SERVICE_ROLE_KEY (optional)
-  ```
+### Pre-populated Achievements
+- Shareef: "Hat-trick Hero", "10 Game Streak"
+- Ahmed: "Assist Master", "Team Player"
+- Nabeel: "Clean Sheet Specialist"
 
-## 🛠️ Development Guidelines
+### Initial Ratings
+- All players start with 5.0 average rating
+- Some players have 10-15 ratings already
 
-### Commands
-```bash
-# Development with Turbopack
-npm run dev
-
-# Production build
-npm run build
-
-# Start production server
-npm start
-
-# Linting (warnings don't block build)
-npm run lint
-```
-
-### Project Structure
-```
-thursday-football/
-├── src/
-│   ├── app/
-│   │   ├── page.tsx              # Landing page
-│   │   ├── rate-players/         # Rating system
-│   │   ├── rankings/             # Leaderboard
-│   │   ├── login/                # Authentication
-│   │   ├── register/             # User registration
-│   │   └── dashboard/            # User dashboard
-│   └── lib/
-│       ├── auth.ts               # Supabase client
-│       └── supabase.ts           # DB queries
-├── public/                       # Static assets
-└── CLAUDE.md                     # This file
-```
-
-### Configuration Files
-- **next.config.ts**: ESLint ignoreDuringBuilds: true
-- **Root Directory**: Set to 'thursday-football' in Vercel
-- **Node Version**: 22.x
-
-## 🚀 Deployment
+## 🚀 Deployment Configuration
 
 ### Vercel Settings
-- **Framework Preset**: Next.js
-- **Root Directory**: thursday-football
-- **Build Command**: npm run build
-- **Output Directory**: .next
-
-### Domain Configuration
-- **Primary**: thursdayfootball.com
-- **DNS**: Managed through Vercel nameservers
-- **SSL**: Automatic via Vercel
-
-### Environment Variables (Vercel)
-Must be set in Vercel dashboard:
-1. NEXT_PUBLIC_SUPABASE_URL
-2. NEXT_PUBLIC_SUPABASE_ANON_KEY
-3. SUPABASE_SERVICE_ROLE_KEY (Production only)
-
-## ✅ Quality Standards
-
-### Code Quality
-- TypeScript strict mode
-- ESLint configured (warnings allowed in production)
-- Component-based architecture
-- Responsive design (mobile-first)
-
-### Performance
-- Lighthouse score target: >90
-- Build size optimized with dynamic imports
-- Images optimized and lazy-loaded
-- Animations GPU-accelerated
-
-### Accessibility
-- Semantic HTML
-- ARIA labels where needed
-- Keyboard navigation support
-- Contrast ratios WCAG AA compliant
-
-## 🚫 What NOT to Do
-
-1. **Never use emojis in the UI** (only in git commits)
-2. **Never use bright neon colors** (maintain dark professional theme)
-3. **Never skip the rating phase** for new users
-4. **Never expose sensitive credentials** in code
-5. **Never use relative paths** in imports (use @/ alias)
-6. **Never ignore TypeScript errors** (fix them properly)
-7. **Never commit directly to main** without testing
-8. **Never use inline styles** (use Tailwind classes)
-
-## 📝 Git Commit Convention
-
-```
-🎨 - UI/UX improvements
-✨ - New features
-🐛 - Bug fixes
-🚀 - Performance improvements
-📝 - Documentation
-🔧 - Configuration changes
-♻️ - Refactoring
+```yaml
+Framework: Next.js
+Build Command: npm run build
+Output Directory: .next
+Install Command: npm install
+Development Command: npm run dev
+Root Directory: thursday-football
 ```
 
-## 🔐 Security Notes
+### Environment Variables
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_key
 
-- Admin credentials are stored in auth.ts (should be moved to env vars in production)
-- Supabase Row Level Security (RLS) should be enabled
-- API keys should never be committed to repository
-- Use HTTPS only for all external requests
+# App Config
+NEXT_PUBLIC_APP_URL=https://thursdayfootball.com
+NEXT_PUBLIC_MONTHLY_RESET_DAYS=28
+```
 
-## 📊 Monitoring
+## ✅ Implementation Checklist
 
-- Vercel Analytics for performance monitoring
-- Error tracking should be implemented
-- User session tracking via Supabase
-- Performance metrics in dashboard
+### Phase 1: Core Features
+- [ ] Supabase setup with all tables
+- [ ] Authentication system
+- [ ] Player rating system
+- [ ] Basic dashboard
+- [ ] Stats recording
+
+### Phase 2: Advanced Features
+- [ ] Team generator with balancing
+- [ ] Stat verification system
+- [ ] Monthly awards
+- [ ] Achievement system
+- [ ] Form status tracking
+
+### Phase 3: Polish
+- [ ] PWA implementation
+- [ ] Export functionality
+- [ ] Push notifications
+- [ ] Social sharing
+- [ ] Advanced analytics
+
+### Phase 4: Optimization
+- [ ] Performance optimization
+- [ ] SEO implementation
+- [ ] A/B testing
+- [ ] User feedback system
+- [ ] Admin panel enhancements
+
+## 📋 User Stories
+
+1. **As a player**, I want to log my stats after each game
+2. **As a player**, I want to see my ranking and progress
+3. **As a captain**, I want to generate balanced teams
+4. **As a player**, I want to track my achievements
+5. **As a player**, I want to rate my teammates anonymously
+6. **As a captain**, I want to verify reported stats
+7. **As a player**, I want to export my yearly summary
+8. **As a player**, I want to set my availability/form status
+
+## 🔐 Security Requirements
+
+- Row Level Security (RLS) on all Supabase tables
+- Rate limiting on API endpoints
+- Input validation and sanitization
+- Secure session management
+- HTTPS only
+- Environment variables for sensitive data
+- Regular security audits
+
+## 📱 Mobile App Considerations
+
+- Touch-friendly UI (minimum 44px touch targets)
+- Swipe gestures for navigation
+- Pull-to-refresh on leaderboards
+- Optimized images and lazy loading
+- Offline queue for stat submissions
+- Background sync when online
+
+## 🎨 Branding Guidelines
+
+- **Logo**: Trophy icon with "TF" text
+- **Colors**: Dark theme with blue/purple gradients
+- **Typography**: Inter or system fonts
+- **Tone**: Professional yet friendly
+- **Language**: English (with potential for Arabic support)
 
 ---
 
+**Version**: 2.0.0
 **Last Updated**: January 2025
 **Maintained By**: Thursday Football Development Team
-**Version**: 1.0.0
+**Domain**: thursdayfootball.com
