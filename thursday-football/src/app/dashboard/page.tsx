@@ -184,7 +184,7 @@ export default function DashboardPage() {
             Welcome back, {user?.display_name}! 👋
           </h2>
           <p className="text-slate-400">
-            Here's what's happening with Thursday Football today.
+            Here&apos;s what&apos;s happening with Thursday Football today.
           </p>
         </motion.div>
 
