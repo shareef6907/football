@@ -3,17 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, TEAM_MEMBERS } from '@/lib/auth'
-import { motion } from 'framer-motion'
+import { getPlayerBadges, awardMonthlyBadge, awardBallonDor, awardGoldenBoot, shouldAwardQuarterly, calculateBallonDor, calculateGoldenBoot } from '@/lib/awards'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Trophy, Target, Shield, Activity, TrendingUp, Users, 
   Calendar, Award, BarChart3, Plus, ChevronRight, LogOut,
-  Goal, HandHelping, ShieldCheck
+  Goal, HandHelping, ShieldCheck, Lock, Unlock, Clock,
+  CheckCircle, AlertCircle, XCircle, Download, FileText
 } from 'lucide-react'
 import Link from 'next/link'
 
 interface UserData {
   display_name: string
   team: string
+  isAdmin?: boolean
 }
 
 interface MatchStats {
@@ -23,6 +26,23 @@ interface MatchStats {
   wins: number
   losses: number
   gamesPlayed: number
+}
+
+interface WeeklySubmission {
+  week: string
+  goals: number
+  assists: number
+  saves: number
+  teamWon: boolean
+  formStatus: 'fully_fit' | 'slightly_injured' | 'injured'
+  submittedAt: Date
+}
+
+interface MonthlyAwards {
+  topScorer?: string
+  topAssists?: string
+  topKeeper?: string
+  month: string
 }
 
 export default function DashboardPage() {
@@ -45,11 +65,31 @@ export default function DashboardPage() {
     saves: 0,
     teamWon: false
   })
+  const [formStatus, setFormStatus] = useState<'fully_fit' | 'slightly_injured' | 'injured'>('fully_fit')
+  const [isThursdayUnlocked, setIsThursdayUnlocked] = useState(false)
+  const [hasSubmittedThisWeek, setHasSubmittedThisWeek] = useState(false)
+  const [timeUntilThursday, setTimeUntilThursday] = useState('')
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [monthlyAwards, setMonthlyAwards] = useState<MonthlyAwards | null>(null)
+  const [playerBadges, setPlayerBadges] = useState<string[]>([])
 
   useEffect(() => {
     checkUser()
-    loadMatchStats()
+    checkThursdayStatus()
+    loadMonthlyAwards()
+    checkMonthlyReset()
+    
+    const interval = setInterval(checkThursdayStatus, 60000)
+    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      loadMatchStats()
+      checkWeeklySubmission()
+      loadPlayerBadges()
+    }
+  }, [user])
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -59,14 +99,182 @@ export default function DashboardPage() {
       return
     }
 
-    // Get user data
-    const userName = session.user?.email?.split('@')[0] || 'Player'
+    const userEmail = session.user?.email || ''
+    const userName = userEmail.split('@')[0] || 'Player'
+    const displayName = userName.charAt(0).toUpperCase() + userName.slice(1)
+    
+    // Check if admin
+    const isAdmin = userEmail === 'admin@thursdayfootball.com'
+    
+    // Find matching TEAM_MEMBERS name
+    const actualPlayerName = TEAM_MEMBERS.find(name => 
+      name.toLowerCase() === displayName.toLowerCase()
+    ) || displayName
+    
     setUser({
-      display_name: userName.charAt(0).toUpperCase() + userName.slice(1),
-      team: 'Thursday FC'
+      display_name: actualPlayerName,
+      team: 'Thursday FC',
+      isAdmin
     })
     
     setLoading(false)
+  }
+
+  const checkMonthlyReset = () => {
+    const now = new Date()
+    const lastReset = localStorage.getItem('lastMonthlyReset')
+    const currentMonth = `${now.getFullYear()}-${now.getMonth() + 1}`
+    
+    if (lastReset !== currentMonth) {
+      // Before resetting, save monthly awards
+      saveMonthlyAwards()
+      
+      // Check if it's time for quarterly awards (every 4 months)
+      if (shouldAwardQuarterly()) {
+        saveQuarterlyAwards()
+      }
+      
+      // It's a new month, reset ratings and scores
+      localStorage.setItem('lastMonthlyReset', currentMonth)
+      localStorage.removeItem('playerRatings')
+      localStorage.removeItem('matchData')
+      localStorage.removeItem('weeklySubmissions')
+      localStorage.setItem('allPlayerRatings', JSON.stringify({}))
+    }
+  }
+  
+  const saveMonthlyAwards = () => {
+    const matchData = localStorage.getItem('matchData')
+    if (!matchData) return
+    
+    const matches = JSON.parse(matchData)
+    const playerStats = TEAM_MEMBERS.map(name => ({
+      name,
+      goals: matches[name]?.goals || 0,
+      assists: matches[name]?.assists || 0,
+      saves: matches[name]?.saves || 0
+    }))
+    
+    // Find monthly winners
+    const topScorer = [...playerStats].sort((a, b) => b.goals - a.goals)[0]
+    const topAssists = [...playerStats].sort((a, b) => b.assists - a.assists)[0]
+    const topKeeper = [...playerStats].sort((a, b) => b.saves - a.saves)[0]
+    
+    // Award permanent monthly badges
+    if (topScorer && topScorer.goals > 0) {
+      awardMonthlyBadge(topScorer.name, 'topScorer')
+    }
+    if (topAssists && topAssists.assists > 0) {
+      awardMonthlyBadge(topAssists.name, 'topAssists')
+    }
+    if (topKeeper && topKeeper.saves > 0) {
+      awardMonthlyBadge(topKeeper.name, 'topKeeper')
+    }
+  }
+  
+  const saveQuarterlyAwards = () => {
+    const matchData = localStorage.getItem('matchData')
+    const ratingData = localStorage.getItem('playerRatings')
+    
+    if (!matchData) return
+    
+    const matches = JSON.parse(matchData)
+    const ratings = ratingData ? JSON.parse(ratingData) : []
+    
+    // Build comprehensive player stats
+    const playerStats = TEAM_MEMBERS.map(name => {
+      const playerRating = ratings.find((r: any) => r.name === name)?.rating || 5
+      const playerMatches = matches[name] || {}
+      
+      return {
+        name,
+        rating: playerRating,
+        goals: playerMatches.goals || 0,
+        assists: playerMatches.assists || 0,
+        saves: playerMatches.saves || 0,
+        wins: playerMatches.wins || 0,
+        gamesPlayed: playerMatches.gamesPlayed || 0
+      }
+    })
+    
+    // Calculate Ballon d'Or winner (best overall performance)
+    const ballonDorWinner = calculateBallonDor(playerStats)
+    if (ballonDorWinner) {
+      awardBallonDor(ballonDorWinner)
+    }
+    
+    // Calculate Golden Boot winner (top scorer)
+    const goldenBootWinner = calculateGoldenBoot(playerStats)
+    if (goldenBootWinner) {
+      awardGoldenBoot(goldenBootWinner)
+    }
+  }
+
+  const loadMonthlyAwards = () => {
+    const awards = localStorage.getItem('monthlyAwards')
+    if (awards) {
+      const parsed = JSON.parse(awards)
+      const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      
+      if (parsed.month === lastMonth) {
+        setMonthlyAwards(parsed)
+      }
+    }
+  }
+
+  const loadPlayerBadges = () => {
+    if (!user) return
+    
+    // Get all permanent badges for this player
+    const badges = getPlayerBadges(user.display_name)
+    setPlayerBadges(badges)
+  }
+
+  const checkThursdayStatus = () => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    
+    // Thursday is day 4, unlock from Thursday to Saturday (4, 5, 6)
+    setIsThursdayUnlocked(dayOfWeek >= 4 && dayOfWeek <= 6)
+    
+    // Calculate time until next Thursday
+    let daysUntilThursday = (4 - dayOfWeek + 7) % 7
+    if (daysUntilThursday === 0 && dayOfWeek !== 4) {
+      daysUntilThursday = 7
+    }
+    
+    if (dayOfWeek >= 4 && dayOfWeek <= 6) {
+      setTimeUntilThursday('Entry window open!')
+    } else {
+      const nextThursday = new Date(now)
+      nextThursday.setDate(now.getDate() + daysUntilThursday)
+      nextThursday.setHours(0, 0, 0, 0)
+      
+      const timeDiff = nextThursday.getTime() - now.getTime()
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      
+      setTimeUntilThursday(`${days}d ${hours}h until unlock`)
+    }
+  }
+
+  const checkWeeklySubmission = () => {
+    const submissions = localStorage.getItem('weeklySubmissions')
+    if (submissions) {
+      const parsed = JSON.parse(submissions)
+      const currentWeek = getWeekIdentifier()
+      const userSubmission = parsed[user?.display_name]?.[currentWeek]
+      setHasSubmittedThisWeek(!!userSubmission)
+    }
+  }
+
+  const getWeekIdentifier = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const weekNumber = Math.ceil((now.getDate() + new Date(year, now.getMonth(), 1).getDay()) / 7)
+    return `${year}-${now.getMonth() + 1}-W${weekNumber}`
   }
 
   const loadMatchStats = () => {
@@ -82,22 +290,40 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/')
   }
 
   const saveMatchData = () => {
-    // Get the user's display name and try to match it with TEAM_MEMBERS
-    const userName = user?.display_name || ''
+    if (!user || !isThursdayUnlocked || hasSubmittedThisWeek) return
     
-    // Try to find exact match in TEAM_MEMBERS (case-insensitive)
-    const actualPlayerName = TEAM_MEMBERS.find(name => 
-      name.toLowerCase() === userName.toLowerCase()
-    ) || userName // Use the userName if no match found
+    const userName = user.display_name
+    const currentWeek = getWeekIdentifier()
     
+    // Save weekly submission
+    const submissions = localStorage.getItem('weeklySubmissions') || '{}'
+    const allSubmissions = JSON.parse(submissions)
+    
+    if (!allSubmissions[userName]) {
+      allSubmissions[userName] = {}
+    }
+    
+    allSubmissions[userName][currentWeek] = {
+      week: currentWeek,
+      goals: matchData.goals,
+      assists: matchData.assists,
+      saves: matchData.saves,
+      teamWon: matchData.teamWon,
+      formStatus,
+      submittedAt: new Date().toISOString()
+    }
+    
+    localStorage.setItem('weeklySubmissions', JSON.stringify(allSubmissions))
+    
+    // Update cumulative stats
     const existingData = localStorage.getItem('matchData')
     const allStats = existingData ? JSON.parse(existingData) : {}
     
-    const currentStats = allStats[actualPlayerName] || {
+    const currentStats = allStats[userName] || {
       goals: 0,
       assists: 0,
       saves: 0,
@@ -105,31 +331,37 @@ export default function DashboardPage() {
       losses: 0,
       gamesPlayed: 0
     }
-
-    // Update stats - handle both string and number inputs
-    const goalsToAdd = typeof matchData.goals === 'string' ? (parseInt(matchData.goals) || 0) : matchData.goals
-    const assistsToAdd = typeof matchData.assists === 'string' ? (parseInt(matchData.assists) || 0) : matchData.assists
-    const savesToAdd = typeof matchData.saves === 'string' ? (parseInt(matchData.saves) || 0) : matchData.saves
     
-    currentStats.goals += goalsToAdd
-    currentStats.assists += assistsToAdd
-    currentStats.saves += savesToAdd
-    currentStats.gamesPlayed += 1
-    if (matchData.teamWon) {
-      currentStats.wins += 1
-    } else {
-      currentStats.losses += 1
+    const updatedStats = {
+      goals: currentStats.goals + matchData.goals,
+      assists: currentStats.assists + matchData.assists,
+      saves: currentStats.saves + matchData.saves,
+      wins: currentStats.wins + (matchData.teamWon ? 1 : 0),
+      losses: currentStats.losses + (matchData.teamWon ? 0 : 1),
+      gamesPlayed: currentStats.gamesPlayed + 1
     }
-
-    allStats[actualPlayerName] = currentStats
+    
+    allStats[userName] = updatedStats
     localStorage.setItem('matchData', JSON.stringify(allStats))
     
-    setMatchStats(currentStats)
+    // Update state
+    setMatchStats(updatedStats)
+    setHasSubmittedThisWeek(true)
     setShowMatchForm(false)
-    setMatchData({ goals: 0, assists: 0, saves: 0, teamWon: false })
+    setShowSuccess(true)
     
-    // Show success message
-    alert(`Stats saved successfully for ${actualPlayerName}!\nGoals: ${goalsToAdd}, Assists: ${assistsToAdd}, Saves: ${savesToAdd}`)
+    // Reset form
+    setMatchData({ goals: 0, assists: 0, saves: 0, teamWon: false })
+    setFormStatus('fully_fit')
+    
+    setTimeout(() => {
+      setShowSuccess(false)
+    }, 3000)
+  }
+
+  const downloadMonthlyReport = () => {
+    // This will be implemented with jsPDF
+    alert('PDF download feature coming soon!')
   }
 
   if (loading) {
@@ -142,248 +374,346 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-950 to-black"></div>
-      
-      {/* Content */}
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-white" />
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Trophy className="w-8 h-8 text-yellow-400" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">
+                    {user?.display_name}
+                  </h1>
+                  {playerBadges.length > 0 && (
+                    <span className="text-xl">{playerBadges.join(' ')}</span>
+                  )}
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold">Thursday Football</h1>
-                  <p className="text-xs text-gray-500">Professional League</p>
-                </div>
+                <p className="text-sm text-gray-400">{user?.team}</p>
               </div>
-              <div className="flex items-center gap-4">
-                <Link
-                  href="/rankings"
-                  className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors flex items-center gap-2"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Rankings</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                {isThursdayUnlocked ? (
+                  <div className="flex items-center gap-2 text-green-400">
+                    <Unlock className="w-4 h-4" />
+                    <span>{timeUntilThursday}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-400">
+                    <Lock className="w-4 h-4" />
+                    <span>{timeUntilThursday}</span>
+                  </div>
+                )}
               </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Welcome Section */}
+      {/* Success Message */}
+      <AnimatePresence>
+        {showSuccess && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-green-900/20 border-b border-green-800"
           >
-            <h2 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.display_name}
-            </h2>
-            <p className="text-gray-500">
-              Track your performance and manage your statistics
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center gap-2 text-green-400">
+                <CheckCircle className="w-5 h-5" />
+                <span>Stats submitted successfully for this week!</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Admin Panel Link */}
+        {user?.isAdmin && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-orange-600 hover:bg-orange-700 transition-colors"
+            >
+              <Shield className="w-5 h-5" />
+              <span>Admin Panel</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Monthly Stats Overview */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+        >
+          <div className="bg-gray-950 rounded-xl border border-gray-800 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Goal className="w-5 h-5 text-blue-400" />
+              <span className="text-sm text-gray-400">Goals</span>
+            </div>
+            <p className="text-3xl font-bold">{matchStats.goals}</p>
+          </div>
+          <div className="bg-gray-950 rounded-xl border border-gray-800 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Target className="w-5 h-5 text-purple-400" />
+              <span className="text-sm text-gray-400">Assists</span>
+            </div>
+            <p className="text-3xl font-bold">{matchStats.assists}</p>
+          </div>
+          <div className="bg-gray-950 rounded-xl border border-gray-800 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <ShieldCheck className="w-5 h-5 text-green-400" />
+              <span className="text-sm text-gray-400">Saves</span>
+            </div>
+            <p className="text-3xl font-bold">{matchStats.saves}</p>
+          </div>
+          <div className="bg-gray-950 rounded-xl border border-gray-800 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Trophy className="w-5 h-5 text-yellow-400" />
+              <span className="text-sm text-gray-400">Win Rate</span>
+            </div>
+            <p className="text-3xl font-bold">
+              {matchStats.gamesPlayed > 0 
+                ? `${Math.round((matchStats.wins / matchStats.gamesPlayed) * 100)}%`
+                : '0%'
+              }
             </p>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8"
-          >
-            <button
-              onClick={() => setShowMatchForm(!showMatchForm)}
-              className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <Plus className="w-6 h-6" />
-                <div className="text-left">
-                  <p className="font-semibold">Record Match Performance</p>
-                  <p className="text-sm opacity-80">Add your stats from the last game</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </motion.div>
-
-          {/* Match Form */}
-          {showMatchForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mb-8 p-6 rounded-xl bg-gray-950/50 border border-gray-800"
-            >
-              <h3 className="text-xl font-semibold mb-4">Record Match Statistics</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm text-gray-500 mb-2">Goals Scored</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={matchData.goals}
-                    onChange={(e) => setMatchData({...matchData, goals: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-2">Assists</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={matchData.assists}
-                    onChange={(e) => setMatchData({...matchData, assists: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-2">Saves (GK)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={matchData.saves}
-                    onChange={(e) => setMatchData({...matchData, saves: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-2">Match Result</label>
-                  <select
-                    value={matchData.teamWon ? 'won' : 'lost'}
-                    onChange={(e) => setMatchData({...matchData, teamWon: e.target.value === 'won'})}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none"
-                  >
-                    <option value="won">Won</option>
-                    <option value="lost">Lost</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <button
-                  onClick={saveMatchData}
-                  className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
-                >
-                  Save Match Data
-                </button>
-                <button
-                  onClick={() => setShowMatchForm(false)}
-                  className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Goal className="w-8 h-8 text-blue-400" />
-                <span className="text-xs text-gray-500">Total</span>
-              </div>
-              <p className="text-3xl font-bold mb-1">{matchStats.goals}</p>
-              <p className="text-sm text-gray-500">Goals Scored</p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <HandHelping className="w-8 h-8 text-purple-400" />
-                <span className="text-xs text-gray-500">Total</span>
-              </div>
-              <p className="text-3xl font-bold mb-1">{matchStats.assists}</p>
-              <p className="text-sm text-gray-500">Assists</p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <ShieldCheck className="w-8 h-8 text-green-400" />
-                <span className="text-xs text-gray-500">Total</span>
-              </div>
-              <p className="text-3xl font-bold mb-1">{matchStats.saves}</p>
-              <p className="text-sm text-gray-500">Saves</p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Trophy className="w-8 h-8 text-yellow-400" />
-                <span className="text-xs text-gray-500">W/L</span>
-              </div>
-              <p className="text-3xl font-bold mb-1">
-                {matchStats.wins}-{matchStats.losses}
-              </p>
-              <p className="text-sm text-gray-500">Win Record</p>
-            </motion.div>
           </div>
+        </motion.div>
 
-          {/* Performance Overview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
-          >
-            <h3 className="text-xl font-semibold mb-4">Performance Overview</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Games Played</p>
-                <p className="text-2xl font-bold">{matchStats.gamesPlayed}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Win Rate</p>
-                <p className="text-2xl font-bold">
-                  {matchStats.gamesPlayed > 0 
-                    ? Math.round((matchStats.wins / matchStats.gamesPlayed) * 100) 
-                    : 0}%
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Goals/Game</p>
-                <p className="text-2xl font-bold">
-                  {matchStats.gamesPlayed > 0 
-                    ? (matchStats.goals / matchStats.gamesPlayed).toFixed(1)
-                    : '0.0'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Contribution</p>
-                <p className="text-2xl font-bold">
-                  {matchStats.goals + matchStats.assists}
-                </p>
-              </div>
+        {/* Weekly Score Entry */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <div className="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Weekly Score Entry</h2>
+              {hasSubmittedThisWeek && (
+                <span className="text-sm text-green-400 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4" />
+                  Submitted this week
+                </span>
+              )}
             </div>
-          </motion.div>
-        </div>
+
+            {!showMatchForm ? (
+              <div className="p-6">
+                <button
+                  onClick={() => setShowMatchForm(true)}
+                  disabled={!isThursdayUnlocked || hasSubmittedThisWeek}
+                  className="w-full px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>
+                    {!isThursdayUnlocked 
+                      ? 'Entry locked until Thursday'
+                      : hasSubmittedThisWeek
+                      ? 'Already submitted this week'
+                      : 'Add This Week\'s Stats'
+                    }
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-6 space-y-6">
+                {/* Form Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Current Form Status
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setFormStatus('fully_fit')}
+                      className={`p-3 rounded-lg border transition-all ${
+                        formStatus === 'fully_fit'
+                          ? 'bg-green-900/20 border-green-600 text-green-400'
+                          : 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <CheckCircle className="w-5 h-5 mx-auto mb-1" />
+                      <span className="text-sm">Fully Fit</span>
+                    </button>
+                    <button
+                      onClick={() => setFormStatus('slightly_injured')}
+                      className={`p-3 rounded-lg border transition-all ${
+                        formStatus === 'slightly_injured'
+                          ? 'bg-yellow-900/20 border-yellow-600 text-yellow-400'
+                          : 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <AlertCircle className="w-5 h-5 mx-auto mb-1" />
+                      <span className="text-sm">Slightly Injured</span>
+                    </button>
+                    <button
+                      onClick={() => setFormStatus('injured')}
+                      className={`p-3 rounded-lg border transition-all ${
+                        formStatus === 'injured'
+                          ? 'bg-red-900/20 border-red-600 text-red-400'
+                          : 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <XCircle className="w-5 h-5 mx-auto mb-1" />
+                      <span className="text-sm">Injured</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stats Input */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Goals
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={matchData.goals}
+                      onChange={(e) => setMatchData({...matchData, goals: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Assists
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={matchData.assists}
+                      onChange={(e) => setMatchData({...matchData, assists: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Saves
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={matchData.saves}
+                      onChange={(e) => setMatchData({...matchData, saves: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Team Result */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Match Result
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setMatchData({...matchData, teamWon: true})}
+                      className={`p-3 rounded-lg border transition-all ${
+                        matchData.teamWon
+                          ? 'bg-green-900/20 border-green-600 text-green-400'
+                          : 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <Trophy className="w-5 h-5 mx-auto mb-1" />
+                      <span>Team Won</span>
+                    </button>
+                    <button
+                      onClick={() => setMatchData({...matchData, teamWon: false})}
+                      className={`p-3 rounded-lg border transition-all ${
+                        !matchData.teamWon
+                          ? 'bg-red-900/20 border-red-600 text-red-400'
+                          : 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <XCircle className="w-5 h-5 mx-auto mb-1" />
+                      <span>Team Lost</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={saveMatchData}
+                    className="flex-1 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors"
+                  >
+                    Submit Stats
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMatchForm(false)
+                      setMatchData({ goals: 0, assists: 0, saves: 0, teamWon: false })
+                      setFormStatus('fully_fit')
+                    }}
+                    className="px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Monthly Report Download */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="bg-gray-950 rounded-xl border border-gray-800 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold mb-1">Monthly Report</h3>
+                <p className="text-sm text-gray-400">
+                  Download your personal progress report for this month
+                </p>
+              </div>
+              <button
+                onClick={downloadMonthlyReport}
+                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <Download className="w-5 h-5" />
+                <span>Download PDF</span>
+              </button>
+            </div>
+
+            {/* Quick Links */}
+            <div className="mt-6 pt-6 border-t border-gray-800 flex gap-4">
+              <Link
+                href="/rankings"
+                className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+              >
+                <Award className="w-4 h-4" />
+                <span>View Rankings</span>
+              </Link>
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+              >
+                <Users className="w-4 h-4" />
+                <span>Rate Players</span>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   )

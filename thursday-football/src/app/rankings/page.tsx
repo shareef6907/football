@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, TrendingUp, TrendingDown, Minus, Award, Target, Shield, Star, Medal } from 'lucide-react'
 import { TEAM_MEMBERS } from '@/lib/auth'
+import { getPlayerBadges } from '@/lib/awards'
 
 interface PlayerStats {
   name: string
@@ -16,29 +17,58 @@ interface PlayerStats {
   points: number
   rank: number
   previousRank: number
+  badges?: string[]
+}
+
+interface MonthlyAwards {
+  topScorer?: string
+  topAssists?: string
+  topKeeper?: string
+  month: string
 }
 
 export default function RankingsPage() {
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [showPodium, setShowPodium] = useState(false)
+  const [monthlyAwards, setMonthlyAwards] = useState<MonthlyAwards | null>(null)
 
   useEffect(() => {
     loadRankings()
+    checkEndOfMonth()
+    loadMonthlyAwards()
+    saveMonthlyAwards()
   }, [])
+
+  const checkEndOfMonth = () => {
+    const today = new Date()
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    const daysUntilEndOfMonth = lastDayOfMonth.getDate() - today.getDate()
+    
+    // Show podium only in the last 3 days of the month
+    setShowPodium(daysUntilEndOfMonth <= 3)
+  }
 
   const loadRankings = () => {
     // Get ratings from localStorage
     const storedRatings = localStorage.getItem('playerRatings')
     const ratings = storedRatings ? JSON.parse(storedRatings) : []
     
-    // Get match data from localStorage (will be added later)
+    // Get match data from localStorage
     const matchData = localStorage.getItem('matchData')
     const matches = matchData ? JSON.parse(matchData) : {}
+
+    // Get last month's awards
+    const awards = localStorage.getItem('monthlyAwards')
+    const lastMonthAwards = awards ? JSON.parse(awards) : null
 
     // Calculate stats for each player
     const stats: PlayerStats[] = TEAM_MEMBERS.map((name) => {
       const playerRating = ratings.find((r: any) => r.name === name)?.rating || 5
       const playerMatches = matches[name] || {}
+      
+      // Get all permanent badges for this player
+      const badges = getPlayerBadges(name)
       
       // Calculate total points
       const points = calculatePoints({
@@ -59,7 +89,8 @@ export default function RankingsPage() {
         gamesPlayed: playerMatches.gamesPlayed || 0,
         points,
         rank: 0,
-        previousRank: playerMatches.previousRank || 0
+        previousRank: playerMatches.previousRank || 0,
+        badges
       }
     })
 
@@ -71,6 +102,39 @@ export default function RankingsPage() {
 
     setPlayerStats(stats)
     setLoading(false)
+  }
+
+  const loadMonthlyAwards = () => {
+    const awards = localStorage.getItem('monthlyAwards')
+    if (awards) {
+      setMonthlyAwards(JSON.parse(awards))
+    }
+  }
+
+  const saveMonthlyAwards = () => {
+    // Check if it's the end of the month
+    const today = new Date()
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    const daysUntilEndOfMonth = lastDayOfMonth.getDate() - today.getDate()
+    
+    if (daysUntilEndOfMonth <= 3 && playerStats.length > 0) {
+      // Find top performers
+      const topScorer = [...playerStats].sort((a, b) => b.goals - a.goals)[0]
+      const topAssists = [...playerStats].sort((a, b) => b.assists - a.assists)[0]
+      const topKeeper = [...playerStats].sort((a, b) => b.saves - a.saves)[0]
+      
+      const currentMonth = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      
+      const awards: MonthlyAwards = {
+        topScorer: topScorer?.name,
+        topAssists: topAssists?.name,
+        topKeeper: topKeeper?.name,
+        month: currentMonth
+      }
+      
+      localStorage.setItem('monthlyAwards', JSON.stringify(awards))
+      setMonthlyAwards(awards)
+    }
   }
 
   const calculatePoints = (stats: {
@@ -139,12 +203,13 @@ export default function RankingsPage() {
           </div>
         </div>
 
-        {/* Top 3 Podium Section - Clearly Separated */}
-        <div className="bg-gradient-to-b from-gray-900/20 to-transparent py-16 mb-8">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-            <h2 className="text-center text-3xl font-bold mb-12 text-gray-300">🏆 Podium Finishers 🏆</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-              {playerStats.slice(0, 3).map((player, index) => {
+        {/* Top 3 Podium Section - Only shown at end of month */}
+        {showPodium && (
+          <div className="bg-gradient-to-b from-gray-900/20 to-transparent py-16 mb-8">
+            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+              <h2 className="text-center text-3xl font-bold mb-12 text-gray-300">🏆 Podium Finishers 🏆</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+                {playerStats.slice(0, 3).map((player, index) => {
                 const badge = getRankBadge(player.rank)
                 return (
                   <motion.div
@@ -217,11 +282,14 @@ export default function RankingsPage() {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Separator Line */}
-        <div className="max-w-7xl mx-auto w-full px-6 mb-8">
-          <div className="bg-gradient-to-r from-transparent via-gray-700 to-transparent h-px"></div>
-        </div>
+        {/* Separator Line - Only show when podium is visible */}
+        {showPodium && (
+          <div className="max-w-7xl mx-auto w-full px-6 mb-8">
+            <div className="bg-gradient-to-r from-transparent via-gray-700 to-transparent h-px"></div>
+          </div>
+        )}
 
         {/* Full Rankings Table */}
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 pb-16 w-full flex-1">
@@ -264,7 +332,12 @@ export default function RankingsPage() {
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-lg font-medium">{player.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-lg font-medium">{player.name}</div>
+                            {player.badges && player.badges.length > 0 && (
+                              <span className="text-lg">{player.badges.join(' ')}</span>
+                            )}
+                          </div>
                           {player.gamesPlayed > 0 && (
                             <div className="text-xs text-gray-500">{player.gamesPlayed} games</div>
                           )}
