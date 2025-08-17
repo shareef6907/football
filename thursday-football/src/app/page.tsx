@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/auth'
 import { TEAM_MEMBERS } from '@/lib/auth'
-import { motion } from 'framer-motion'
-import { Trophy, Star, Target, Shield, Users, LogIn, UserCog, ChevronRight, Award, TrendingUp, Goal } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Trophy, Star, Target, Shield, LogIn, UserCog, ChevronRight, Goal, Users, Zap, Award } from 'lucide-react'
 
 interface PlayerStats {
   name: string
@@ -28,6 +28,7 @@ export default function HomePage() {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [activeSection, setActiveSection] = useState<'stats' | 'login'>('stats')
 
   useEffect(() => {
     checkAuthAndLoadStats()
@@ -41,7 +42,6 @@ export default function HomePage() {
       return
     }
 
-    // Load top players
     loadTopPlayers()
     setLoading(false)
   }
@@ -82,7 +82,7 @@ export default function HomePage() {
       player.rank = index + 1
     })
 
-    setTopPlayers(stats.slice(0, 5))
+    setTopPlayers(stats.slice(0, 3))
   }
 
   const calculatePoints = (stats: {
@@ -127,380 +127,378 @@ export default function HomePage() {
     )
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      {/* Background gradient */}
-      <div className="fixed inset-0">
+    <div className="min-h-screen w-full bg-black text-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-black"></div>
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-br from-green-500/10 to-blue-500/10 blur-3xl animate-pulse delay-1000"></div>
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-48 -right-48 w-96 h-96 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.3, 1],
+            rotate: [360, 180, 0]
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute -bottom-48 -left-48 w-96 h-96 rounded-full bg-gradient-to-br from-green-500/10 to-blue-500/10 blur-3xl"
+        />
       </div>
 
-      {/* Content */}
+      {/* Main Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Trophy className="w-7 h-7 text-white" />
+        {/* Hero Header */}
+        <motion.header 
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100 }}
+          className="w-full py-8 px-8 lg:px-16"
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              <motion.div 
+                className="flex items-center gap-6"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/25">
+                  <Trophy className="w-9 h-9 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Thursday Football</h1>
-                  <p className="text-xs text-gray-400">Professional Club Management</p>
+                  <h1 className="text-4xl font-black bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Thursday Football
+                  </h1>
+                  <p className="text-sm text-gray-400 mt-1">Elite Competition Platform</p>
                 </div>
-              </div>
-              <Link
-                href="/rate-players"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 font-medium"
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Star className="w-4 h-4" />
-                <span>Rate Players</span>
-              </Link>
+                <Link
+                  href="/rate-players"
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-3 font-bold text-lg shadow-2xl shadow-purple-500/25"
+                >
+                  <Star className="w-5 h-5" />
+                  <span>Rate Players</span>
+                </Link>
+              </motion.div>
             </div>
           </div>
-        </header>
+        </motion.header>
 
-        {/* Main Content */}
-        <main className="flex-1">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
-            <div className="grid lg:grid-cols-2 gap-12">
-              {/* Left Column - Top Players */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
+        {/* Main Content Area */}
+        <main className="flex-1 w-full px-8 lg:px-16 py-12">
+          <div className="max-w-7xl mx-auto">
+            {/* Toggle Buttons */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center gap-4 mb-12"
+            >
+              <button
+                onClick={() => setActiveSection('stats')}
+                className={`px-8 py-3 rounded-xl font-semibold transition-all ${
+                  activeSection === 'stats' 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-purple-500/25' 
+                    : 'bg-gray-900 hover:bg-gray-800'
+                }`}
               >
-                <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
-                  <Trophy className="w-8 h-8 text-yellow-400" />
-                  Top Players This Month
-                </h2>
+                <Trophy className="w-5 h-5 inline mr-2" />
+                Top Players
+              </button>
+              <button
+                onClick={() => setActiveSection('login')}
+                className={`px-8 py-3 rounded-xl font-semibold transition-all ${
+                  activeSection === 'login' 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-purple-500/25' 
+                    : 'bg-gray-900 hover:bg-gray-800'
+                }`}
+              >
+                <LogIn className="w-5 h-5 inline mr-2" />
+                Player Login
+              </button>
+            </motion.div>
 
-                <div className="space-y-4">
+            <AnimatePresence mode="wait">
+              {activeSection === 'stats' ? (
+                /* Top Players Section */
+                <motion.div
+                  key="stats"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className="grid lg:grid-cols-3 gap-8 mb-16"
+                >
                   {topPlayers.map((player, index) => (
                     <motion.div
                       key={player.name}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-all"
+                      variants={itemVariants}
+                      whileHover={{ 
+                        y: -10,
+                        transition: { type: "spring", stiffness: 300 }
+                      }}
+                      className="relative"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`
-                            w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold
-                            ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600' :
-                              index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                              index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                              'bg-gradient-to-br from-gray-700 to-gray-800'}
-                          `}>
-                            #{player.rank}
+                      <div className={`
+                        h-full bg-gradient-to-br p-1 rounded-3xl shadow-2xl
+                        ${index === 0 ? 'from-yellow-400 to-amber-600 shadow-yellow-500/30' :
+                          index === 1 ? 'from-gray-300 to-gray-500 shadow-gray-400/30' :
+                          'from-orange-400 to-orange-600 shadow-orange-500/30'}
+                      `}>
+                        <div className="bg-gray-950 rounded-3xl p-10 h-full backdrop-blur-xl">
+                          {/* Rank Badge */}
+                          <div className="flex justify-center mb-8">
+                            <motion.div 
+                              animate={{ rotate: [0, 360] }}
+                              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                              className={`
+                                w-24 h-24 rounded-full flex items-center justify-center text-4xl font-black
+                                bg-gradient-to-br shadow-lg
+                                ${index === 0 ? 'from-yellow-400 to-amber-600 shadow-yellow-500/50' :
+                                  index === 1 ? 'from-gray-300 to-gray-500 shadow-gray-400/50' :
+                                  'from-orange-400 to-orange-600 shadow-orange-500/50'}
+                              `}
+                            >
+                              #{player.rank}
+                            </motion.div>
                           </div>
-                          <div>
-                            <p className="text-xl font-semibold">{player.name}</p>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                {player.rating}/10
-                              </span>
-                              <span>Goals: {player.goals}</span>
-                              <span>Assists: {player.assists}</span>
+
+                          {/* Player Info */}
+                          <div className="text-center mb-8">
+                            <p className="text-sm text-gray-400 uppercase tracking-[0.3em] mb-3">
+                              {index === 0 ? 'CHAMPION' : index === 1 ? 'RUNNER-UP' : 'THIRD PLACE'}
+                            </p>
+                            <p className="text-3xl font-bold">{player.name}</p>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="space-y-6">
+                            <div className="text-center p-4 bg-gray-900/50 rounded-xl">
+                              <p className="text-5xl font-black">{player.points}</p>
+                              <p className="text-sm text-gray-400 mt-2">Total Points</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="text-center p-3 bg-gray-900/50 rounded-lg">
+                                <p className="text-2xl font-bold">{player.goals}</p>
+                                <p className="text-xs text-gray-400">Goals</p>
+                              </div>
+                              <div className="text-center p-3 bg-gray-900/50 rounded-lg">
+                                <p className="text-2xl font-bold">{player.assists}</p>
+                                <p className="text-xs text-gray-400">Assists</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-1 p-3 bg-gray-900/50 rounded-lg">
+                              <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                              <span className="text-xl font-bold">{player.rating}/10</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold">{player.points}</p>
-                          <p className="text-xs text-gray-400">Points</p>
                         </div>
                       </div>
                     </motion.div>
                   ))}
-                </div>
-
-                <Link
-                  href="/rankings"
-                  className="mt-6 w-full px-6 py-4 rounded-xl bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-all flex items-center justify-between group inline-flex"
-                >
-                  <span className="font-medium">View Complete Rankings</span>
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </motion.div>
-
-              {/* Right Column - Login */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
-                  <LogIn className="w-8 h-8 text-blue-400" />
-                  Player Login
-                </h2>
-
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                  <form onSubmit={handleLogin} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-colors"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Password
-                      </label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-colors"
-                        placeholder="Enter your password"
-                        required
-                      />
-                    </div>
-
-                    {loginError && (
-                      <div className="p-3 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-sm">
-                        {loginError}
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isLoggingIn}
-                      className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isLoggingIn ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          <span>Signing in...</span>
-                        </>
-                      ) : (
-                        <>
-                          <LogIn className="w-5 h-5" />
-                          <span>Sign In</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-
-                  <div className="mt-6 pt-6 border-t border-gray-800 text-center">
-                    <p className="text-sm text-gray-400 mb-3">Don't have an account?</p>
-                    <Link
-                      href="/login"
-                      className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                    >
-                      Create one here →
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Admin Login Button */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mt-6"
-                >
-                  <Link
-                    href="/login?admin=true"
-                    className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 hover:from-gray-800 hover:to-gray-700 transition-all flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <UserCog className="w-5 h-5 text-orange-400" />
-                      <span className="font-medium">Admin Access</span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
                 </motion.div>
-              </motion.div>
-            </div>
+              ) : (
+                /* Login Section */
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="max-w-md mx-auto"
+                >
+                  <motion.div 
+                    className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-3xl p-10 shadow-2xl"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <h2 className="text-3xl font-bold mb-8 text-center">Player Login</h2>
+                    
+                    <form onSubmit={handleLogin} className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full px-5 py-4 rounded-xl bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-all text-lg"
+                          placeholder="Enter your email"
+                          required
+                        />
+                      </div>
 
-            {/* Detailed Points System Section */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full px-5 py-4 rounded-xl bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-all text-lg"
+                          placeholder="Enter your password"
+                          required
+                        />
+                      </div>
+
+                      {loginError && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-4 rounded-xl bg-red-900/20 border border-red-800 text-red-400"
+                        >
+                          {loginError}
+                        </motion.div>
+                      )}
+
+                      <motion.button
+                        type="submit"
+                        disabled={isLoggingIn}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full px-6 py-5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all font-bold text-lg flex items-center justify-center gap-3 disabled:opacity-50 shadow-2xl shadow-purple-500/25"
+                      >
+                        {isLoggingIn ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            <span>Signing in...</span>
+                          </>
+                        ) : (
+                          <>
+                            <LogIn className="w-5 h-5" />
+                            <span>Sign In</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </form>
+
+                    <div className="mt-8 pt-8 border-t border-gray-800 text-center">
+                      <p className="text-gray-400 mb-4">Don't have an account?</p>
+                      <Link
+                        href="/login"
+                        className="text-blue-400 hover:text-blue-300 transition-colors font-semibold text-lg"
+                      >
+                        Create one here →
+                      </Link>
+                    </div>
+                  </motion.div>
+
+                  {/* Admin Button */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-6"
+                  >
+                    <Link
+                      href="/login?admin=true"
+                      className="w-full px-8 py-5 rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 hover:from-gray-800 hover:to-gray-700 transition-all flex items-center justify-between group shadow-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <UserCog className="w-6 h-6 text-orange-400" />
+                        <span className="font-bold text-lg">Admin Access</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* View Rankings Button */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="text-center"
+            >
+              <Link
+                href="/rankings"
+                className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-all font-bold text-lg group shadow-xl"
+              >
+                <Award className="w-6 h-6 text-yellow-400" />
+                <span>View Complete Rankings</span>
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </motion.div>
+
+            {/* Points System - Simplified */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-16 py-12 border-t border-gray-800"
+              transition={{ delay: 0.6 }}
+              className="mt-20 py-12 border-t border-gray-800"
             >
-              <h2 className="text-3xl font-bold mb-12 text-center">
-                📊 How Points Work
-              </h2>
+              <h3 className="text-2xl font-bold mb-8 text-center">Points System</h3>
               
-              <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-                {/* Left Column - Points Breakdown */}
-                <div className="space-y-8">
-                  {/* Individual Performance */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-blue-400">Individual Performance Points</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">⚽</span>
-                          <span className="text-lg">Goals</span>
-                        </div>
-                        <span className="text-2xl font-bold text-white">5 points each</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">🎯</span>
-                          <span className="text-lg">Assists</span>
-                        </div>
-                        <span className="text-2xl font-bold text-white">3 points each</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">🥅</span>
-                          <span className="text-lg">Saves</span>
-                        </div>
-                        <span className="text-2xl font-bold text-white">2 points each</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Team Performance */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-green-400">Team Performance Points</h4>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">🏆</span>
-                        <span className="text-lg">Team Win</span>
-                      </div>
-                      <span className="text-2xl font-bold text-white">5 points for all</span>
-                    </div>
-                    <p className="text-sm text-gray-400 mt-3">All positions benefit equally from team success</p>
-                  </div>
-
-                  {/* Monthly Awards */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-yellow-400">Monthly Awards (Every 4 Weeks)</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">🥇</span>
-                        <div>
-                          <p className="font-semibold">Player of the Month</p>
-                          <p className="text-sm text-gray-400">Highest total points accumulated</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">⚽</span>
-                        <div>
-                          <p className="font-semibold">Top Goal Scorer</p>
-                          <p className="text-sm text-gray-400">Most goals scored in the month</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">🥈</span>
-                        <div>
-                          <p className="font-semibold">Most Assists</p>
-                          <p className="text-sm text-gray-400">Highest number of assists in the month</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Rules & Features */}
-                <div className="space-y-8">
-                  {/* Game Rules */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-purple-400">Game Rules</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="font-semibold mb-2">📊 Stat Verification</p>
-                        <p className="text-sm text-gray-400">All stats require confirmation from 2+ players</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold mb-2">🎯 Self Rating</p>
-                        <p className="text-sm text-gray-400">Update your form status (Injured/Slightly Injured/Full Form/Peak Form)</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold mb-2">⭐ Peer Ratings</p>
-                        <p className="text-sm text-gray-400">Rate teammates 1-10 each month (anonymous)</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold mb-2">⚖️ Team Balancing</p>
-                        <p className="text-sm text-gray-400">Auto-generated teams based on points, ratings, and current form</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Achievements */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-orange-400">Achievements & Streaks</h4>
-                    <ul className="space-y-3 text-sm">
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-400">✓</span>
-                        <span>Unlock special achievements for consistent performance</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-400">✓</span>
-                        <span>Track winning streaks and personal milestones</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-400">✓</span>
-                        <span>Weekly progress monitoring toward monthly goals</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Fair Play */}
-                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
-                    <h4 className="text-xl font-bold mb-6 text-red-400">Fair Play</h4>
-                    <ul className="space-y-3 text-sm">
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-400">•</span>
-                        <span>Honest stat reporting keeps the competition fun for everyone</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-400">•</span>
-                        <span>Monthly rating resets ensure current form is reflected</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-400">•</span>
-                        <span>Team balancing algorithm creates competitive matches</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Formula */}
-              <div className="mt-12 text-center">
-                <div className="inline-block bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl px-8 py-4">
-                  <p className="text-lg font-mono font-bold text-white">
-                    Total Points = (Rating × 10) + (Goals × 5) + (Assists × 3) + (Saves × 2) + (Wins × 4)
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
+                {[
+                  { icon: Star, label: 'Rating', value: '×10', color: 'text-yellow-400' },
+                  { icon: Goal, label: 'Goals', value: '×5', color: 'text-blue-400' },
+                  { icon: Target, label: 'Assists', value: '×3', color: 'text-purple-400' },
+                  { icon: Shield, label: 'Saves', value: '×2', color: 'text-green-400' },
+                  { icon: Trophy, label: 'Wins', value: '×4', color: 'text-orange-400' }
+                ].map(({ icon: Icon, label, value, color }, index) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                    whileHover={{ scale: 1.1 }}
+                    className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-6 text-center"
+                  >
+                    <Icon className={`w-10 h-10 ${color} mx-auto mb-3`} />
+                    <p className="text-2xl font-bold mb-1">{value}</p>
+                    <p className="text-sm text-gray-400">{label}</p>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           </div>
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-gray-800 bg-black/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-6">
+        <footer className="w-full border-t border-gray-800 bg-black/50 backdrop-blur-xl">
+          <div className="max-w-7xl mx-auto px-8 lg:px-16 py-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <p className="text-sm text-gray-400">
                 © 2025 Thursday Football Club. All rights reserved.
               </p>
-              <div className="flex items-center gap-6 text-sm text-gray-400">
-                <Link href="/rankings" className="hover:text-white transition-colors">
-                  Rankings
-                </Link>
-                <Link href="/rate-players" className="hover:text-white transition-colors">
-                  Rate Players
-                </Link>
-                <a href="https://thursdayfootball.com" className="hover:text-white transition-colors">
+              <div className="flex items-center gap-8 text-sm">
+                <a href="https://thursdayfootball.com" className="text-gray-400 hover:text-white transition-colors">
                   Official Website
                 </a>
               </div>

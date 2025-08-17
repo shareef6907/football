@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/auth'
+import { createClient, TEAM_MEMBERS } from '@/lib/auth'
 import { motion } from 'framer-motion'
 import { 
   Trophy, Target, Shield, Activity, TrendingUp, Users, 
@@ -86,11 +86,18 @@ export default function DashboardPage() {
   }
 
   const saveMatchData = () => {
+    // Get the user's display name and try to match it with TEAM_MEMBERS
     const userName = user?.display_name || ''
+    
+    // Try to find exact match in TEAM_MEMBERS (case-insensitive)
+    const actualPlayerName = TEAM_MEMBERS.find(name => 
+      name.toLowerCase() === userName.toLowerCase()
+    ) || userName // Use the userName if no match found
+    
     const existingData = localStorage.getItem('matchData')
     const allStats = existingData ? JSON.parse(existingData) : {}
     
-    const currentStats = allStats[userName] || {
+    const currentStats = allStats[actualPlayerName] || {
       goals: 0,
       assists: 0,
       saves: 0,
@@ -99,10 +106,14 @@ export default function DashboardPage() {
       gamesPlayed: 0
     }
 
-    // Update stats
-    currentStats.goals += matchData.goals
-    currentStats.assists += matchData.assists
-    currentStats.saves += matchData.saves
+    // Update stats - handle both string and number inputs
+    const goalsToAdd = typeof matchData.goals === 'string' ? (parseInt(matchData.goals) || 0) : matchData.goals
+    const assistsToAdd = typeof matchData.assists === 'string' ? (parseInt(matchData.assists) || 0) : matchData.assists
+    const savesToAdd = typeof matchData.saves === 'string' ? (parseInt(matchData.saves) || 0) : matchData.saves
+    
+    currentStats.goals += goalsToAdd
+    currentStats.assists += assistsToAdd
+    currentStats.saves += savesToAdd
     currentStats.gamesPlayed += 1
     if (matchData.teamWon) {
       currentStats.wins += 1
@@ -110,12 +121,15 @@ export default function DashboardPage() {
       currentStats.losses += 1
     }
 
-    allStats[userName] = currentStats
+    allStats[actualPlayerName] = currentStats
     localStorage.setItem('matchData', JSON.stringify(allStats))
     
     setMatchStats(currentStats)
     setShowMatchForm(false)
     setMatchData({ goals: 0, assists: 0, saves: 0, teamWon: false })
+    
+    // Show success message
+    alert(`Stats saved successfully for ${actualPlayerName}!\nGoals: ${goalsToAdd}, Assists: ${assistsToAdd}, Saves: ${savesToAdd}`)
   }
 
   if (loading) {
