@@ -261,11 +261,13 @@ export default function DashboardPage() {
   }
 
   const checkWeeklySubmission = () => {
+    if (!user) return
+    
     const submissions = localStorage.getItem('weeklySubmissions')
     if (submissions) {
       const parsed = JSON.parse(submissions)
       const currentWeek = getWeekIdentifier()
-      const userSubmission = parsed[user?.display_name]?.[currentWeek]
+      const userSubmission = parsed[user.display_name]?.[currentWeek]
       setHasSubmittedThisWeek(!!userSubmission)
     }
   }
