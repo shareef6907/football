@@ -39,18 +39,65 @@
 3. Dashboard access after authentication
 4. Admin panel for captain with special controls
 
-## 📊 Stats Tracking System
+## 📊 How Points Work
 
-### Point Values
-- **Goals**: 5 points each
-- **Assists**: 3 points each  
-- **Saves**: 2 points each
-- **Team Win Bonus**: 5 points for ALL winning team members
+### Individual Performance Points
+- ⚽ **Goals**: 5 points each
+- 🎯 **Assists**: 3 points each  
+- 🥅 **Saves**: 2 points each
 
-### Stat Verification
-- Requires **2+ confirmations** from other players
+### Team Performance Points
+- 🏆 **Team Win**: 5 points for every player on the winning team
+- All positions benefit equally from team success
+
+### Monthly Awards (Every 4 Weeks)
+- 🥇 **Player of the Month**: Highest total points accumulated
+- ⚽ **Top Goal Scorer**: Most goals scored in the month
+- 🥈 **Most Assists**: Highest number of assists in the month
+
+### Recognition System
+- **Gold Medal** 🥇 with number = Player of the Month wins
+- **Football Icon** ⚽ with number = Top Goal Scorer wins
+- **Silver Medal** 🥈 with number = Most Assists wins
+- Badges display permanently on your profile
+
+### Game Rules
+
+#### Stat Verification
+- All stats require confirmation from **2+ players**
 - Self-reported stats marked as "pending" until verified
 - Admin can override/approve any stat
+
+#### Self Rating
+- Update your form status:
+  - 🔴 **Injured** - Not available for selection
+  - 🟡 **Slightly Injured** - Can play with limitations
+  - 🟢 **Full Form** - Normal performance
+  - ⚡ **Peak Form** - Exceptional condition
+
+#### Peer Ratings
+- Rate teammates **1-10** each month (anonymous)
+- Cannot rate yourself
+- Ratings affect team balancing
+
+#### Team Balancing
+- Auto-generated teams based on points, ratings, and current form
+- Algorithm ensures competitive matches
+
+### Achievements & Streaks
+- Unlock special achievements for consistent performance
+- Track winning streaks and personal milestones
+- Weekly progress monitoring toward monthly goals
+- Examples:
+  - "5 goals in a row"
+  - "10 game win streak"
+  - "Hat-trick hero"
+  - "Clean sheet specialist"
+
+### Fair Play
+- **Honest stat reporting** keeps the competition fun for everyone
+- **Monthly rating resets** ensure current form is reflected
+- **Team balancing algorithm** creates competitive matches
 
 ### Form Status (Self-Rating)
 Players can set their current form:

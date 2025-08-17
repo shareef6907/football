@@ -325,52 +325,163 @@ export default function HomePage() {
               </motion.div>
             </div>
 
-            {/* Points System Section */}
+            {/* Detailed Points System Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="mt-16 py-12 border-t border-gray-800"
             >
-              <h3 className="text-2xl font-bold mb-8 text-center">
-                ⚽ Points Calculation System ⚽
-              </h3>
+              <h2 className="text-3xl font-bold mb-12 text-center">
+                📊 How Points Work
+              </h2>
               
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-4xl mx-auto">
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-xl p-6 text-center">
-                  <Star className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-                  <p className="text-2xl font-bold mb-1">×10</p>
-                  <p className="text-sm text-gray-400">Peer Rating</p>
+              <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                {/* Left Column - Points Breakdown */}
+                <div className="space-y-8">
+                  {/* Individual Performance */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-blue-400">Individual Performance Points</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">⚽</span>
+                          <span className="text-lg">Goals</span>
+                        </div>
+                        <span className="text-2xl font-bold text-white">5 points each</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🎯</span>
+                          <span className="text-lg">Assists</span>
+                        </div>
+                        <span className="text-2xl font-bold text-white">3 points each</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🥅</span>
+                          <span className="text-lg">Saves</span>
+                        </div>
+                        <span className="text-2xl font-bold text-white">2 points each</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Performance */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-green-400">Team Performance Points</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🏆</span>
+                        <span className="text-lg">Team Win</span>
+                      </div>
+                      <span className="text-2xl font-bold text-white">5 points for all</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-3">All positions benefit equally from team success</p>
+                  </div>
+
+                  {/* Monthly Awards */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-yellow-400">Monthly Awards (Every 4 Weeks)</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">🥇</span>
+                        <div>
+                          <p className="font-semibold">Player of the Month</p>
+                          <p className="text-sm text-gray-400">Highest total points accumulated</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">⚽</span>
+                        <div>
+                          <p className="font-semibold">Top Goal Scorer</p>
+                          <p className="text-sm text-gray-400">Most goals scored in the month</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">🥈</span>
+                        <div>
+                          <p className="font-semibold">Most Assists</p>
+                          <p className="text-sm text-gray-400">Highest number of assists in the month</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-xl p-6 text-center">
-                  <Goal className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-                  <p className="text-2xl font-bold mb-1">×5</p>
-                  <p className="text-sm text-gray-400">Goals</p>
-                </div>
-                
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-xl p-6 text-center">
-                  <Target className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                  <p className="text-2xl font-bold mb-1">×3</p>
-                  <p className="text-sm text-gray-400">Assists</p>
-                </div>
-                
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-xl p-6 text-center">
-                  <Shield className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                  <p className="text-2xl font-bold mb-1">×2</p>
-                  <p className="text-sm text-gray-400">Saves</p>
-                </div>
-                
-                <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-xl p-6 text-center">
-                  <Trophy className="w-8 h-8 text-orange-400 mx-auto mb-3" />
-                  <p className="text-2xl font-bold mb-1">×4</p>
-                  <p className="text-sm text-gray-400">Wins</p>
+
+                {/* Right Column - Rules & Features */}
+                <div className="space-y-8">
+                  {/* Game Rules */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-purple-400">Game Rules</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="font-semibold mb-2">📊 Stat Verification</p>
+                        <p className="text-sm text-gray-400">All stats require confirmation from 2+ players</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-2">🎯 Self Rating</p>
+                        <p className="text-sm text-gray-400">Update your form status (Injured/Slightly Injured/Full Form/Peak Form)</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-2">⭐ Peer Ratings</p>
+                        <p className="text-sm text-gray-400">Rate teammates 1-10 each month (anonymous)</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-2">⚖️ Team Balancing</p>
+                        <p className="text-sm text-gray-400">Auto-generated teams based on points, ratings, and current form</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Achievements */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-orange-400">Achievements & Streaks</h4>
+                    <ul className="space-y-3 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-400">✓</span>
+                        <span>Unlock special achievements for consistent performance</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-400">✓</span>
+                        <span>Track winning streaks and personal milestones</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-400">✓</span>
+                        <span>Weekly progress monitoring toward monthly goals</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Fair Play */}
+                  <div className="bg-gray-950/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8">
+                    <h4 className="text-xl font-bold mb-6 text-red-400">Fair Play</h4>
+                    <ul className="space-y-3 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400">•</span>
+                        <span>Honest stat reporting keeps the competition fun for everyone</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400">•</span>
+                        <span>Monthly rating resets ensure current form is reflected</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400">•</span>
+                        <span>Team balancing algorithm creates competitive matches</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
-              <p className="text-center text-gray-400 mt-8 text-sm">
-                Total Points = (Rating × 10) + (Goals × 5) + (Assists × 3) + (Saves × 2) + (Wins × 4)
-              </p>
+              {/* Formula */}
+              <div className="mt-12 text-center">
+                <div className="inline-block bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl px-8 py-4">
+                  <p className="text-lg font-mono font-bold text-white">
+                    Total Points = (Rating × 10) + (Goals × 5) + (Assists × 3) + (Saves × 2) + (Wins × 4)
+                  </p>
+                </div>
+              </div>
             </motion.div>
           </div>
         </main>
