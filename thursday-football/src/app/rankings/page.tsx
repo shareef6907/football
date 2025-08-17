@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, TrendingUp, TrendingDown, Minus, Award, Target, Shield, Star } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown, Minus, Award, Target, Shield, Star, Medal } from 'lucide-react'
 import { TEAM_MEMBERS } from '@/lib/auth'
 
 interface PlayerStats {
@@ -100,10 +100,9 @@ export default function RankingsPage() {
   }
 
   const getRankBadge = (rank: number) => {
-    if (rank === 1) return { icon: Trophy, color: 'from-yellow-400 to-amber-600', label: 'Champion' }
-    if (rank === 2) return { icon: Award, color: 'from-gray-300 to-gray-500', label: 'Runner-up' }
-    if (rank === 3) return { icon: Award, color: 'from-orange-400 to-orange-600', label: 'Third Place' }
-    if (rank <= 5) return { icon: Star, color: 'from-purple-400 to-purple-600', label: 'Top 5' }
+    if (rank === 1) return { icon: Trophy, color: 'from-yellow-400 to-amber-600', label: 'CHAMPION', bgGlow: 'shadow-yellow-500/50' }
+    if (rank === 2) return { icon: Medal, color: 'from-gray-300 to-gray-500', label: 'RUNNER-UP', bgGlow: 'shadow-gray-400/50' }
+    if (rank === 3) return { icon: Award, color: 'from-orange-400 to-orange-600', label: 'THIRD PLACE', bgGlow: 'shadow-orange-500/50' }
     return null
   }
 
@@ -116,100 +115,134 @@ export default function RankingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
       {/* Background gradient */}
       <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-950 to-black"></div>
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <div className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
                   Player Rankings
                 </h1>
-                <p className="text-gray-500 mt-1">Thursday Football League Standings</p>
+                <p className="text-gray-400 mt-2 text-lg">Thursday Football League Standings</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-500">Season 2025</p>
-                <p className="text-xs text-gray-600">Updated: {new Date().toLocaleDateString()}</p>
+                <p className="text-sm text-gray-400">Season 2025</p>
+                <p className="text-xs text-gray-500">Updated: {new Date().toLocaleDateString()}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Top 3 Podium */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {playerStats.slice(0, 3).map((player, index) => {
-              const badge = getRankBadge(player.rank)
-              return (
-                <motion.div
-                  key={player.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`relative ${index === 0 ? 'md:order-2' : index === 1 ? 'md:order-1' : 'md:order-3'}`}
-                >
-                  <div className={`bg-gradient-to-br ${badge?.color} p-0.5 rounded-2xl ${index === 0 ? 'transform md:scale-110' : ''}`}>
-                    <div className="bg-gray-950 rounded-2xl p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          {badge && <badge.icon className="w-8 h-8 text-white" />}
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wider">{badge?.label}</p>
-                            <p className="text-2xl font-bold">{player.name}</p>
+        {/* Top 3 Podium Section - Clearly Separated */}
+        <div className="bg-gradient-to-b from-gray-900/20 to-transparent py-16 mb-8">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+            <h2 className="text-center text-3xl font-bold mb-12 text-gray-300">🏆 Podium Finishers 🏆</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+              {playerStats.slice(0, 3).map((player, index) => {
+                const badge = getRankBadge(player.rank)
+                return (
+                  <motion.div
+                    key={player.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`relative ${index === 0 ? 'md:order-2' : index === 1 ? 'md:order-1' : 'md:order-3'}`}
+                  >
+                    <div className={`
+                      ${index === 0 ? 'transform md:scale-110 md:-mt-8' : ''}
+                      ${index === 1 ? 'md:mt-8' : ''}
+                      ${index === 2 ? 'md:mt-12' : ''}
+                    `}>
+                      <div className={`bg-gradient-to-br ${badge?.color} p-1 rounded-3xl shadow-2xl ${badge?.bgGlow}`}>
+                        <div className="bg-gray-950 rounded-3xl p-10">
+                          {/* Podium Number and Icon */}
+                          <div className="flex flex-col items-center text-center mb-8">
+                            <div className={`
+                              ${index === 0 ? 'text-6xl' : 'text-5xl'}
+                              font-black mb-4
+                              ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-300' : 'text-orange-400'}
+                            `}>
+                              #{player.rank}
+                            </div>
+                            {badge && <badge.icon className={`${index === 0 ? 'w-20 h-20' : 'w-16 h-16'} mb-4`} />}
+                            <p className="text-sm text-gray-400 uppercase tracking-[0.3em] mb-3">{badge?.label}</p>
+                            <p className="text-3xl font-bold">{player.name}</p>
                           </div>
-                        </div>
-                        <div className="text-3xl font-bold text-gray-600">#{player.rank}</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Points</span>
-                          <span className="font-bold text-xl">{player.points}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Rating</span>
-                          <span>{player.rating}/10</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-800">
-                          <div>
-                            <p className="text-xs text-gray-500">Goals</p>
-                            <p className="font-semibold">{player.goals}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Assists</p>
-                            <p className="font-semibold">{player.assists}</p>
+
+                          {/* Stats */}
+                          <div className="space-y-6">
+                            <div className="bg-gradient-to-r from-transparent via-gray-800 to-transparent h-px"></div>
+                            
+                            {/* Points */}
+                            <div className="text-center">
+                              <p className="text-5xl font-black text-white">{player.points}</p>
+                              <p className="text-sm text-gray-400 mt-1">Total Points</p>
+                            </div>
+
+                            {/* Rating */}
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                <span className="text-2xl font-bold">{player.rating}/10</span>
+                              </div>
+                              <p className="text-sm text-gray-400">Peer Rating</p>
+                            </div>
+
+                            <div className="bg-gradient-to-r from-transparent via-gray-800 to-transparent h-px"></div>
+
+                            {/* Goals and Assists */}
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="text-center">
+                                <p className="text-2xl font-bold">{player.goals}</p>
+                                <p className="text-xs text-gray-400 uppercase">Goals</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-2xl font-bold">{player.assists}</p>
+                                <p className="text-xs text-gray-400 uppercase">Assists</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )
-            })}
+                  </motion.div>
+                )
+              })}
+            </div>
           </div>
+        </div>
 
-          {/* Full Rankings Table */}
-          <div className="bg-gray-950/50 backdrop-blur-xl rounded-2xl border border-gray-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-800">
-              <h2 className="text-xl font-semibold">Complete Rankings</h2>
+        {/* Separator Line */}
+        <div className="max-w-7xl mx-auto w-full px-6 mb-8">
+          <div className="bg-gradient-to-r from-transparent via-gray-700 to-transparent h-px"></div>
+        </div>
+
+        {/* Full Rankings Table */}
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 pb-16 w-full flex-1">
+          <div className="bg-gray-950/50 backdrop-blur-xl rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
+            <div className="px-10 py-8 border-b border-gray-800 bg-gradient-to-r from-gray-900/50 to-gray-950/50">
+              <h2 className="text-3xl font-bold">Complete Rankings</h2>
+              <p className="text-gray-400 mt-2">All players sorted by total points</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Goals</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Assists</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saves</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Wins</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Change</th>
+                  <tr className="border-b border-gray-800 bg-gray-900/30">
+                    <th className="px-8 py-6 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
+                    <th className="px-8 py-6 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Player</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Rating</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Goals</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Assists</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Saves</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Wins</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Points</th>
+                    <th className="px-8 py-6 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Change</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -222,37 +255,37 @@ export default function RankingsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.02 }}
-                        className="hover:bg-gray-900/50 transition-colors"
+                        className="hover:bg-gray-900/50 transition-all duration-200"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-gray-400">#{player.rank}</span>
-                            {badge && <badge.icon className="w-4 h-4 text-yellow-400" />}
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl font-bold text-gray-300">#{player.rank}</span>
+                            {badge && <badge.icon className="w-5 h-5 text-yellow-400" />}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium">{player.name}</div>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-lg font-medium">{player.name}</div>
                           {player.gamesPlayed > 0 && (
                             <div className="text-xs text-gray-500">{player.gamesPlayed} games</div>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-8 py-6 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                            <span>{player.rating}</span>
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                            <span className="text-lg">{player.rating}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">{player.goals}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">{player.assists}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">{player.saves}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">{player.wins}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span className="text-lg font-bold">{player.points}</span>
+                        <td className="px-8 py-6 whitespace-nowrap text-center text-lg">{player.goals}</td>
+                        <td className="px-8 py-6 whitespace-nowrap text-center text-lg">{player.assists}</td>
+                        <td className="px-8 py-6 whitespace-nowrap text-center text-lg">{player.saves}</td>
+                        <td className="px-8 py-6 whitespace-nowrap text-center text-lg">{player.wins}</td>
+                        <td className="px-8 py-6 whitespace-nowrap text-center">
+                          <span className="text-2xl font-bold text-white">{player.points}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-8 py-6 whitespace-nowrap text-center">
                           <div className={`flex items-center justify-center gap-1 ${rankChange.color}`}>
                             <rankChange.icon className="w-4 h-4" />
-                            <span className="text-sm">{rankChange.text}</span>
+                            <span className="text-sm font-medium">{rankChange.text}</span>
                           </div>
                         </td>
                       </motion.tr>

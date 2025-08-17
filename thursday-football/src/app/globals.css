@@ -49,6 +49,8 @@
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
+  width: 100%;
 }
 
 body {
@@ -57,6 +59,28 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
   overflow-x: hidden;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Ensure fullscreen on all devices */
+#__next {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Remove default margins on mobile */
+@media (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 }
 
 /* Custom scrollbar */

@@ -277,7 +277,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <Goal className="w-8 h-8 text-blue-400" />
@@ -291,7 +291,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <HandHelping className="w-8 h-8 text-purple-400" />
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <ShieldCheck className="w-8 h-8 text-green-400" />
@@ -319,7 +319,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="p-6 rounded-xl bg-gray-950/50 border border-gray-800"
+              className="p-8 rounded-2xl bg-gray-950/50 border border-gray-800 backdrop-blur-xl shadow-xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <Trophy className="w-8 h-8 text-yellow-400" />
