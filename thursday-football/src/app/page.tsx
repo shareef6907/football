@@ -11,7 +11,7 @@ import {
   Trophy, Star, Target, Shield, LogIn, UserCog, 
   Goal, Users, Award, TrendingUp, Calendar,
   Lock, Unlock, Clock, Download, CheckCircle,
-  Medal, Activity
+  Medal, Activity, Sparkles, Zap
 } from 'lucide-react'
 
 interface PlayerRating {
@@ -137,6 +137,14 @@ export default function HomePage() {
     })
 
     setLeaders({ topScorer, topAssists, topKeeper, topRanked })
+    
+    // Update rankings whenever ratings change
+    updateRankings()
+  }
+
+  const updateRankings = () => {
+    // Force rankings page to update by dispatching a custom event
+    window.dispatchEvent(new Event('ratingsUpdated'))
   }
 
   const calculatePoints = (stats: {
@@ -169,7 +177,7 @@ export default function HomePage() {
     }
     
     if (dayOfWeek >= 4 && dayOfWeek <= 6) {
-      setTimeUntilThursday('Unlocked for score entry!')
+      setTimeUntilThursday('🔓 Entry Open!')
     } else {
       const nextThursday = new Date(now)
       nextThursday.setDate(now.getDate() + daysUntilThursday)
@@ -179,7 +187,7 @@ export default function HomePage() {
       const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
       const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
       
-      setTimeUntilThursday(`${days}d ${hours}h until unlock`)
+      setTimeUntilThursday(`🔒 ${days}d ${hours}h`)
     }
   }
 
@@ -210,6 +218,7 @@ export default function HomePage() {
     setHasRated(true)
     setShowRatingSuccess(true)
     loadPlayerRatings()
+    loadLeaders() // Update leaders and rankings in real-time
     
     setTimeout(() => {
       setShowRatingSuccess(false)
@@ -236,51 +245,90 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <Sparkles className="w-16 h-16 text-yellow-400" />
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Trophy className="w-8 h-8 text-yellow-400" />
-              <h1 className="text-2xl font-bold">Thursday Football</h1>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 text-white">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            scale: [1, 1.5, 1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{ duration: 20, repeat: Infinity }}
+          className="absolute -top-20 -left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            rotate: [360, 180, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity }}
+          className="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"
+        />
+      </div>
+
+      {/* Header - Centered and Bigger */}
+      <header className="relative z-10 pt-16 pb-32">
+        <div className="text-center">
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", bounce: 0.5 }}
+            className="inline-block"
+          >
+            <div className="flex items-center justify-center gap-6 mb-8">
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Trophy className="w-24 h-24 text-yellow-400 drop-shadow-2xl" />
+              </motion.div>
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <h1 className="text-8xl md:text-9xl font-black bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent animate-pulse drop-shadow-2xl">
+              Thursday Football
+            </h1>
+            <p className="text-2xl text-gray-300 mt-6 font-semibold">Elite Competition League</p>
+            
+            {/* Thursday Status */}
+            <motion.div 
+              className="mt-6 inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-xl border border-purple-500/50"
+              whileHover={{ scale: 1.05 }}
+            >
               {isThursdayUnlocked ? (
-                <div className="flex items-center gap-2 text-green-400">
-                  <Unlock className="w-4 h-4" />
-                  <span>Entry Open</span>
-                </div>
+                <Unlock className="w-6 h-6 text-green-400 animate-bounce" />
               ) : (
-                <div className="flex items-center gap-2 text-red-400">
-                  <Lock className="w-4 h-4" />
-                  <span>{timeUntilThursday}</span>
-                </div>
+                <Lock className="w-6 h-6 text-red-400" />
               )}
-            </div>
-          </div>
+              <span className="text-lg font-semibold">{timeUntilThursday}</span>
+            </motion.div>
+          </motion.div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Section 1: Player Ratings Table */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+        {/* Section 1: Player Ratings Table - Centered */}
         <motion.section 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          transition={{ delay: 0.2 }}
+          className="mb-32"
         >
-          <div className="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-800">
-              <h2 className="text-xl font-bold">Rate All Players</h2>
-              <p className="text-gray-400 text-sm mt-1">
-                {hasRated ? 'You have rated all players. You can update your ratings anytime.' : 'Please rate all players from 1-10 based on their overall performance'}
+          <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl shadow-purple-500/20 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 px-8 py-8 border-b border-purple-500/30">
+              <h2 className="text-4xl font-bold text-center">⭐ Rate All Players</h2>
+              <p className="text-gray-300 text-center mt-3 text-xl">
+                {hasRated ? '✅ Ratings submitted! You can update anytime.' : 'Rate each player from 1-10 stars'}
               </p>
             </div>
 
@@ -291,11 +339,11 @@ export default function HomePage() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="bg-green-900/20 border-b border-green-800 px-6 py-3"
+                  className="bg-gradient-to-r from-green-600/30 to-green-500/30 border-b border-green-500/50 px-8 py-4"
                 >
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Ratings submitted successfully!</span>
+                  <div className="flex items-center justify-center gap-3 text-green-400">
+                    <CheckCircle className="w-7 h-7 animate-bounce" />
+                    <span className="text-xl font-semibold">Ratings submitted successfully! 🎉</span>
                   </div>
                 </motion.div>
               )}
@@ -304,564 +352,500 @@ export default function HomePage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase">Avg Rating</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase">Your Rating</th>
+                  <tr className="border-b border-purple-500/30">
+                    <th className="px-8 py-6 text-left text-lg font-bold text-gray-300 uppercase tracking-wider">Player</th>
+                    <th className="px-8 py-6 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Avg Rating</th>
+                    <th className="px-8 py-6 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Your Rating</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-purple-500/20">
                   {playerRatings.map((player) => (
-                    <tr key={player.name} className="hover:bg-gray-900/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium">{player.name}</div>
-                          <div className="text-xs text-gray-500">{player.totalRatings} ratings</div>
+                    <motion.tr 
+                      key={player.name} 
+                      className="hover:bg-purple-500/10 transition-all"
+                      whileHover={{ scale: 1.01 }}
+                    >
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="text-xl font-semibold">{player.name}</div>
+                            <div className="text-base text-gray-400">{player.totalRatings} ratings</div>
+                          </div>
+                          {getPlayerBadges(player.name).length > 0 && (
+                            <span className="text-xl animate-pulse">{getPlayerBadges(player.name).join(' ')}</span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                          <span className="font-semibold">{player.rating}</span>
+                      <td className="px-8 py-7 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Star className="w-7 h-7 text-yellow-400 fill-yellow-400" />
+                          <span className="text-3xl font-bold text-yellow-400">{player.rating}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-8 py-7">
                         <div className="flex items-center justify-center gap-1">
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                            <button
+                            <motion.button
                               key={rating}
                               onClick={() => handleRatingChange(player.name, rating)}
-                              className="group p-0.5"
+                              className="group p-1"
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.9 }}
                             >
                               <Star
-                                className={`w-5 h-5 transition-all ${
+                                className={`w-8 h-8 transition-all ${
                                   rating <= (userRatings[player.name] || 0)
-                                    ? 'text-yellow-400 fill-yellow-400'
+                                    ? 'text-yellow-400 fill-yellow-400 drop-shadow-glow'
                                     : 'text-gray-600 hover:text-yellow-400'
                                 }`}
                               />
-                            </button>
+                            </motion.button>
                           ))}
-                          <span className="ml-2 text-sm text-gray-400 w-8">
+                          <span className="ml-4 text-2xl font-bold text-yellow-400 w-12">
                             {userRatings[player.name] || '-'}
                           </span>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            <div className="px-6 py-4 border-t border-gray-800">
-              <button
-                onClick={submitRatings}
-                disabled={Object.keys(userRatings).length < TEAM_MEMBERS.length}
-                className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-              >
-                {hasRated ? 'Update Ratings' : 'Submit All Ratings'} ({Object.keys(userRatings).length}/{TEAM_MEMBERS.length})
-              </button>
-            </div>
+          {/* Submit Button - Centered and Animated */}
+          <div className="mt-12 text-center">
+            <motion.button
+              onClick={submitRatings}
+              disabled={Object.keys(userRatings).length < TEAM_MEMBERS.length}
+              className="relative px-16 py-8 text-3xl font-bold rounded-3xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group shadow-2xl"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-gradient-x" />
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-gradient-x blur-xl opacity-50" />
+              <span className="relative flex items-center gap-4">
+                <Sparkles className="w-10 h-10" />
+                {hasRated ? 'Update Ratings' : 'Submit All Ratings'} 
+                <span className="text-xl">({Object.keys(userRatings).length}/{TEAM_MEMBERS.length})</span>
+              </span>
+            </motion.button>
           </div>
         </motion.section>
 
-        {/* Section 2: Login Form */}
+        {/* Section 2: Login and Leaders - Side by Side with Space */}
         <motion.section 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-12"
+          transition={{ delay: 0.3 }}
+          className="mb-32"
         >
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-16">
             {/* Login Form */}
-            <div className="bg-gray-950 rounded-xl border border-gray-800 p-6">
-              <h2 className="text-xl font-bold mb-4">Player Login</h2>
-              <form onSubmit={handleLogin} className="space-y-4">
+            <motion.div 
+              className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 backdrop-blur-xl rounded-3xl border border-blue-500/30 shadow-2xl shadow-blue-500/20 p-8"
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-3xl font-bold mb-6 text-center">🔐 Player Login</h2>
+              <form onSubmit={handleLogin} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-base font-medium text-gray-300 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Enter your email"
+                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/50 border border-blue-500/50 focus:border-blue-400 outline-none transition-all"
+                    placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-base font-medium text-gray-300 mb-2">
                     Password
                   </label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Enter your password"
+                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/50 border border-blue-500/50 focus:border-blue-400 outline-none transition-all"
+                    placeholder="••••••••"
                     required
                   />
                 </div>
                 {loginError && (
-                  <div className="p-3 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-sm">
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400"
+                  >
                     {loginError}
-                  </div>
+                  </motion.div>
                 )}
-                <button
+                <motion.button
                   type="submit"
                   disabled={isLoggingIn}
-                  className="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-6 py-4 text-xl font-bold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {isLoggingIn ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <motion.div 
+                        className="w-6 h-6 border-3 border-white border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
                       <span>Signing in...</span>
                     </>
                   ) : (
                     <>
-                      <LogIn className="w-4 h-4" />
+                      <LogIn className="w-6 h-6" />
                       <span>Sign In</span>
                     </>
                   )}
-                </button>
+                </motion.button>
               </form>
-              <div className="mt-4 pt-4 border-t border-gray-800">
-                <Link href="/register" className="text-blue-400 hover:text-blue-300 text-sm">
-                  Don't have an account? Register here →
+              <div className="mt-6 pt-6 border-t border-blue-500/30 text-center">
+                <Link href="/register" className="text-blue-400 hover:text-blue-300 text-lg font-semibold">
+                  Create Account →
                 </Link>
               </div>
-              <div className="mt-4">
-                <Link
-                  href="/login?admin=true"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-700 transition-colors"
-                >
-                  <UserCog className="w-4 h-4 text-orange-400" />
-                  <span>Admin Access</span>
-                </Link>
-              </div>
-            </div>
+            </motion.div>
 
             {/* Current Month Leaders */}
-            <div className="bg-gray-950 rounded-xl border border-gray-800 p-6">
-              <h2 className="text-xl font-bold mb-4">Current Month Leaders</h2>
+            <motion.div 
+              className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl shadow-purple-500/20 p-8"
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-3xl font-bold mb-6 text-center">🏆 Current Leaders</h2>
               {leaders && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Goal className="w-5 h-5 text-blue-400" />
-                      <div>
-                        <p className="text-xs text-gray-400">Top Scorer</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{leaders.topScorer.name}</p>
-                          {getPlayerBadges(leaders.topScorer.name).length > 0 && (
-                            <span className="text-sm">{getPlayerBadges(leaders.topScorer.name).join(' ')}</span>
-                          )}
+                  {[
+                    { icon: Goal, label: 'Top Scorer', data: leaders.topScorer, value: 'goals', color: 'from-blue-500 to-cyan-500' },
+                    { icon: Target, label: 'Most Assists', data: leaders.topAssists, value: 'assists', color: 'from-purple-500 to-pink-500' },
+                    { icon: Shield, label: 'Top Keeper', data: leaders.topKeeper, value: 'saves', color: 'from-green-500 to-emerald-500' },
+                    { icon: Trophy, label: 'Highest Points', data: leaders.topRanked, value: 'points', color: 'from-yellow-500 to-orange-500' }
+                  ].map(({ icon: Icon, label, data, value, color }) => (
+                    <motion.div 
+                      key={label}
+                      className={`bg-gradient-to-r ${color} p-0.5 rounded-2xl`}
+                      whileHover={{ scale: 1.03 }}
+                    >
+                      <div className="bg-black/80 rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Icon className="w-8 h-8" />
+                          <div>
+                            <p className="text-sm text-gray-300">{label}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xl font-bold">{data.name}</p>
+                              {getPlayerBadges(data.name).length > 0 && (
+                                <span className="text-lg">{getPlayerBadges(data.name).join(' ')}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
+                        <span className="text-3xl font-black">
+                          {(data as any)[value]}
+                          {value === 'points' && ' pts'}
+                        </span>
                       </div>
-                    </div>
-                    <span className="text-xl font-bold">{leaders.topScorer.goals}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Target className="w-5 h-5 text-purple-400" />
-                      <div>
-                        <p className="text-xs text-gray-400">Most Assists</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{leaders.topAssists.name}</p>
-                          {getPlayerBadges(leaders.topAssists.name).length > 0 && (
-                            <span className="text-sm">{getPlayerBadges(leaders.topAssists.name).join(' ')}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xl font-bold">{leaders.topAssists.assists}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Shield className="w-5 h-5 text-green-400" />
-                      <div>
-                        <p className="text-xs text-gray-400">Top Keeper</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{leaders.topKeeper.name}</p>
-                          {getPlayerBadges(leaders.topKeeper.name).length > 0 && (
-                            <span className="text-sm">{getPlayerBadges(leaders.topKeeper.name).join(' ')}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xl font-bold">{leaders.topKeeper.saves}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Trophy className="w-5 h-5 text-yellow-400" />
-                      <div>
-                        <p className="text-xs text-gray-400">Highest Ranking</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{leaders.topRanked.name}</p>
-                          {getPlayerBadges(leaders.topRanked.name).length > 0 && (
-                            <span className="text-sm">{getPlayerBadges(leaders.topRanked.name).join(' ')}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xl font-bold">{leaders.topRanked.points} pts</span>
-                  </div>
+                    </motion.div>
+                  ))}
                 </div>
               )}
-              <div className="mt-4 pt-4 border-t border-gray-800">
+              <div className="mt-6 pt-6 border-t border-purple-500/30">
                 <Link
                   href="/rankings"
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-700 transition-colors"
+                  className="flex items-center justify-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all text-lg font-semibold"
                 >
-                  <Award className="w-4 h-4" />
+                  <Award className="w-6 h-6" />
                   <span>View Full Rankings</span>
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </div>
         </motion.section>
 
-        {/* Section 3: Scoring Rules */}
+        {/* Section 3: How Points Work - More Space and Visual */}
         <motion.section 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-12"
+          transition={{ delay: 0.4 }}
+          className="mb-32"
         >
-          <div className="bg-gray-950 rounded-xl border border-gray-800 p-6">
-            <h2 className="text-xl font-bold mb-6">How Points Work</h2>
+          <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-3xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/20 p-10">
+            <h2 className="text-4xl font-bold mb-10 text-center">⚡ How Points Work</h2>
             
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
               {[
-                { icon: Star, label: 'Peer Rating', value: '×10 points', color: 'text-yellow-400', desc: 'Monthly peer ratings' },
-                { icon: Goal, label: 'Goals', value: '×5 points', color: 'text-blue-400', desc: 'Goals scored' },
-                { icon: Target, label: 'Assists', value: '×3 points', color: 'text-purple-400', desc: 'Assists made' },
-                { icon: Shield, label: 'Saves', value: '×2 points', color: 'text-green-400', desc: 'Goalkeeper saves' },
-                { icon: Trophy, label: 'Team Win', value: '×5 points', color: 'text-orange-400', desc: 'Winning team bonus' }
+                { icon: Star, label: 'Peer Rating', value: '×10', color: 'from-yellow-400 to-orange-500', desc: 'Monthly ratings' },
+                { icon: Goal, label: 'Goals', value: '×5', color: 'from-blue-400 to-cyan-500', desc: 'Goals scored' },
+                { icon: Target, label: 'Assists', value: '×3', color: 'from-purple-400 to-pink-500', desc: 'Assists made' },
+                { icon: Shield, label: 'Saves', value: '×2', color: 'from-green-400 to-emerald-500', desc: 'Keeper saves' },
+                { icon: Trophy, label: 'Team Win', value: '×5', color: 'from-orange-400 to-red-500', desc: 'Victory bonus' }
               ].map(({ icon: Icon, label, value, color, desc }) => (
-                <div key={label} className="bg-gray-900 rounded-lg p-4 text-center">
-                  <Icon className={`w-8 h-8 ${color} mx-auto mb-2`} />
-                  <p className="font-bold text-lg">{value}</p>
-                  <p className="text-sm text-gray-400">{label}</p>
-                  <p className="text-xs text-gray-500 mt-1">{desc}</p>
-                </div>
+                <motion.div 
+                  key={label} 
+                  className="relative group"
+                  whileHover={{ scale: 1.1, y: -10 }}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`relative bg-gradient-to-br ${color} p-0.5 rounded-2xl`}>
+                    <div className="bg-black/90 rounded-2xl p-6 text-center h-full">
+                      <Icon className="w-12 h-12 mx-auto mb-3" />
+                      <p className="text-3xl font-black mb-2">{value}</p>
+                      <p className="text-base font-semibold">{label}</p>
+                      <p className="text-sm text-gray-300 mt-1">{desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
               ))}
             </div>
 
-            <div className="bg-gray-900 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Trust-Based System
-              </h3>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span>Players self-report their stats honestly after each Thursday game</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span>Score entry unlocks every Thursday and remains open until Saturday</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span>One submission per week - make sure your stats are accurate</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span>Admin can review and correct any discrepancies if needed</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span>Monthly awards and personal progress reports available for download</span>
-                </li>
-              </ul>
-            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <motion.div 
+                className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl p-6 border border-cyan-500/30"
+                whileHover={{ scale: 1.02 }}
+              >
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <Zap className="w-8 h-8 text-cyan-400" />
+                  Monthly Awards
+                </h3>
+                <div className="space-y-3 text-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚽</span>
+                    <span>Top Scorer Badge</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🥇</span>
+                    <span>Most Assists Badge</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🧤</span>
+                    <span>Best Keeper Badge</span>
+                  </div>
+                </div>
+              </motion.div>
 
-            <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-400">
-                <strong>Monthly Reset:</strong> Rankings and awards reset on the last day of each month. 
-                Download your personal report before the reset!
-              </p>
-            </div>
-            
-            <div className="mt-4 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-800 rounded-lg">
-              <h4 className="font-semibold mb-2 text-purple-400">🏆 Prestigious Awards</h4>
-              <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">⚽️🏆</span>
-                  <div>
-                    <p className="font-semibold text-white">Ballon d'Or</p>
-                    <p className="text-xs text-gray-400">Best overall performance every 4 months</p>
+              <motion.div 
+                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-purple-500/30"
+                whileHover={{ scale: 1.02 }}
+              >
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <Medal className="w-8 h-8 text-purple-400" />
+                  Quarterly Awards
+                </h3>
+                <div className="space-y-3 text-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚽️🏆</span>
+                    <span>Ballon d'Or (Best Overall)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">👟</span>
+                    <span>Golden Boot (Top Scorer)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <span>Every 4 months</span>
                   </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">👟</span>
-                  <div>
-                    <p className="font-semibold text-white">Golden Boot</p>
-                    <p className="text-xs text-gray-400">Top scorer every 4 months</p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-3">
-                * Quarterly awards are permanent badges that stay with you forever!
-              </p>
+              </motion.div>
             </div>
           </div>
         </motion.section>
 
-        {/* Complete Rules Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
+        {/* Rules Section - Comprehensive and Beautiful */}
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-16 mb-8"
+          transition={{ delay: 0.5 }}
+          className="mb-32"
         >
-          <div className="relative">
-            {/* Floating effect background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 blur-3xl" />
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-xl rounded-3xl border border-gray-700/30 shadow-2xl shadow-gray-900/20 p-10">
+            <h2 className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
             
-            <div className="relative bg-gradient-to-br from-gray-950/90 to-gray-900/90 backdrop-blur-xl rounded-3xl border border-gray-800 overflow-hidden">
-              {/* Header with gradient */}
-              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 px-8 py-6 border-b border-gray-800">
-                <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  📜 Thursday Football Official Rules & Guidelines
-                </h2>
-                <p className="text-center text-gray-400 mt-2">Everything you need to know about our league</p>
-              </div>
-
-              <div className="p-8">
-                {/* Rules Grid */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  
-                  {/* 1. Game Schedule */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-blue-500/20">
-                        <Calendar className="w-6 h-6 text-blue-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Game Schedule</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Rule Cards */}
+              {[
+                {
+                  icon: Calendar,
+                  title: "Entry Window",
+                  rules: [
+                    "Submissions open Thursday 12:00 AM",
+                    "Closes Saturday 11:59 PM",
+                    "One submission per week only",
+                    "Cannot edit after submission"
+                  ],
+                  color: "from-blue-500 to-cyan-500"
+                },
+                {
+                  icon: Star,
+                  title: "Rating System",
+                  rules: [
+                    "Rate all players 1-10 stars",
+                    "Ratings affect monthly rankings",
+                    "Can update ratings anytime",
+                    "Average rating displayed publicly"
+                  ],
+                  color: "from-yellow-500 to-orange-500"
+                },
+                {
+                  icon: Trophy,
+                  title: "Points Calculation",
+                  rules: [
+                    "Peer Rating: ×10 points",
+                    "Goals Scored: ×5 points",
+                    "Assists Made: ×3 points",
+                    "Saves (Keeper): ×2 points",
+                    "Team Win: +5 bonus points"
+                  ],
+                  color: "from-purple-500 to-pink-500"
+                },
+                {
+                  icon: Award,
+                  title: "Monthly Awards",
+                  rules: [
+                    "⚽ Top Scorer Badge",
+                    "🥇 Most Assists Badge",
+                    "🧤 Best Keeper Badge",
+                    "Badges are permanent",
+                    "Reset scores monthly"
+                  ],
+                  color: "from-green-500 to-emerald-500"
+                },
+                {
+                  icon: Medal,
+                  title: "Quarterly Awards",
+                  rules: [
+                    "⚽️🏆 Ballon d'Or (Every 4 months)",
+                    "👟 Golden Boot (Top scorer)",
+                    "Based on overall performance",
+                    "Prestigious permanent badges"
+                  ],
+                  color: "from-red-500 to-pink-500"
+                },
+                {
+                  icon: Activity,
+                  title: "Form Status",
+                  rules: [
+                    "Track your fitness level",
+                    "Fully Fit: Peak condition",
+                    "Slightly Injured: Minor issues",
+                    "Injured: Unable to play fully"
+                  ],
+                  color: "from-indigo-500 to-purple-500"
+                },
+                {
+                  icon: Shield,
+                  title: "Fair Play",
+                  rules: [
+                    "Submit honest scores only",
+                    "No false entries allowed",
+                    "Admin reviews suspicious data",
+                    "Violations may result in ban"
+                  ],
+                  color: "from-orange-500 to-red-500"
+                },
+                {
+                  icon: Users,
+                  title: "Eligibility",
+                  rules: [
+                    "Must be registered player",
+                    "Play Thursday matches only",
+                    "Active participation required",
+                    "20 total league players"
+                  ],
+                  color: "from-teal-500 to-cyan-500"
+                },
+                {
+                  icon: Download,
+                  title: "Reports",
+                  rules: [
+                    "Monthly PDF reports available",
+                    "Track personal progress",
+                    "Compare with previous months",
+                    "Download anytime from dashboard"
+                  ],
+                  color: "from-gray-500 to-gray-600"
+                }
+              ].map(({ icon: Icon, title, rules, color }) => (
+                <motion.div
+                  key={title}
+                  className="relative group"
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity`} />
+                  <div className="relative bg-black/60 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6 h-full">
+                    <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${color} mb-4`}>
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Games every Thursday evening</li>
-                      <li>• Score entry window: Thu-Sat</li>
-                      <li>• One submission per week allowed</li>
-                      <li>• Late entries not accepted</li>
+                    <h3 className="text-xl font-bold mb-4">{title}</h3>
+                    <ul className="space-y-2">
+                      {rules.map((rule, index) => (
+                        <li key={index} className="flex items-start gap-2 text-gray-300">
+                          <span className="text-gray-500 mt-1">•</span>
+                          <span className="text-sm">{rule}</span>
+                        </li>
+                      ))}
                     </ul>
-                  </motion.div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
 
-                  {/* 2. Scoring System */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-yellow-500/20">
-                        <Trophy className="w-6 h-6 text-yellow-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Point System</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Peer Rating: ×10 points</li>
-                      <li>• Goals: ×5 points each</li>
-                      <li>• Assists: ×3 points each</li>
-                      <li>• Saves: ×2 points each</li>
-                      <li>• Team Win: +5 points bonus</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 3. Player Ratings */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-purple-500/20">
-                        <Star className="w-6 h-6 text-purple-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Rating Rules</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Rate all players 1-10 stars</li>
-                      <li>• Ratings reset monthly</li>
-                      <li>• Anonymous ratings only</li>
-                      <li>• Cannot rate yourself</li>
-                      <li>• Update anytime during month</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 4. Monthly Awards */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-green-500/20">
-                        <Award className="w-6 h-6 text-green-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Monthly Awards</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>⚽ Top Scorer badge</li>
-                      <li>🥇 Most Assists badge</li>
-                      <li>🧤 Best Keeper badge</li>
-                      <li>• Awards on last day of month</li>
-                      <li>• Badges are permanent</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 5. Quarterly Awards */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-orange-500/20">
-                        <Medal className="w-6 h-6 text-orange-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Quarterly Awards</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>⚽️🏆 Ballon d'Or (Best Overall)</li>
-                      <li>👟 Golden Boot (Top Scorer)</li>
-                      <li>• Awarded every 4 months</li>
-                      <li>• April, August, December</li>
-                      <li>• Permanent legacy badges</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 6. Form Status */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-red-500/20">
-                        <Activity className="w-6 h-6 text-red-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Player Form</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>✅ Fully Fit - Ready to play</li>
-                      <li>⚠️ Slightly Injured - Limited</li>
-                      <li>❌ Injured - Cannot play</li>
-                      <li>• Update weekly with stats</li>
-                      <li>• Affects team selection</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 7. Trust System */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-cyan-500/20">
-                        <Shield className="w-6 h-6 text-cyan-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Fair Play</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Self-report stats honestly</li>
-                      <li>• Admin reviews all entries</li>
-                      <li>• False stats will be corrected</li>
-                      <li>• Respect the honor system</li>
-                      <li>• Build trust with teammates</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 8. Data & Reports */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-indigo-500/20">
-                        <Download className="w-6 h-6 text-indigo-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Reports</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Monthly PDF reports</li>
-                      <li>• Personal progress tracking</li>
-                      <li>• Form status history</li>
-                      <li>• Download before reset</li>
-                      <li>• Stats reset monthly</li>
-                    </ul>
-                  </motion.div>
-
-                  {/* 9. Important Dates */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 border border-gray-700 shadow-xl"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-pink-500/20">
-                        <Clock className="w-6 h-6 text-pink-400" />
-                      </div>
-                      <h3 className="font-bold text-lg">Key Dates</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-gray-300">
-                      <li>• Thursday: Game day</li>
-                      <li>• Thu-Sat: Score entry open</li>
-                      <li>• Month end: Awards & reset</li>
-                      <li>• Every 4 months: Quarterly awards</li>
-                      <li>• Anytime: Update ratings</li>
-                    </ul>
-                  </motion.div>
-
-                </div>
-
-                {/* Bottom Summary Cards */}
-                <div className="grid md:grid-cols-2 gap-6 mt-8">
-                  <motion.div 
-                    whileHover={{ scale: 1.01 }}
-                    className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-6 border border-blue-800/50"
-                  >
-                    <h4 className="font-bold text-lg mb-3 text-blue-400">🎯 Quick Summary</h4>
-                    <p className="text-sm text-gray-300 leading-relaxed">
-                      Play every Thursday, submit your stats within 3 days, rate your teammates honestly, 
-                      and compete for monthly and quarterly awards. All stats reset monthly but your badges 
-                      are permanent. Download your report before month end!
-                    </p>
-                  </motion.div>
-
-                  <motion.div 
-                    whileHover={{ scale: 1.01 }}
-                    className="bg-gradient-to-r from-green-900/30 to-cyan-900/30 rounded-2xl p-6 border border-green-800/50"
-                  >
-                    <h4 className="font-bold text-lg mb-3 text-green-400">💡 Pro Tips</h4>
-                    <p className="text-sm text-gray-300 leading-relaxed">
-                      Submit stats early on Thursday for accuracy. Update your form status to help with 
-                      team selection. Rate players fairly to improve team balance. Check rankings regularly 
-                      to track your progress toward awards!
-                    </p>
-                  </motion.div>
-                </div>
-              </div>
+            <div className="mt-12 p-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-2xl border border-blue-500/30">
+              <p className="text-center text-lg text-gray-300">
+                <span className="font-bold text-blue-400">Important:</span> All players must maintain good sportsmanship. 
+                The league is based on trust and honest reporting. Enjoy the competition and have fun! ⚽
+              </p>
             </div>
           </div>
         </motion.section>
 
-        {/* Admin Access Button */}
+        {/* Admin Access Button - Big and Centered */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="text-center pb-8"
+          transition={{ delay: 0.6 }}
+          className="text-center mb-20"
         >
-          <Link
-            href="/login?admin=true"
-            className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all shadow-2xl shadow-orange-500/25"
-          >
-            <UserCog className="w-6 h-6" />
-            <span className="text-lg font-bold">Admin Access</span>
+          <Link href="/admin">
+            <motion.button
+              className="relative px-16 py-8 text-2xl font-bold rounded-3xl overflow-hidden group"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 animate-gradient-x" />
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 animate-gradient-x blur-xl opacity-50" />
+              <span className="relative flex items-center gap-4">
+                <UserCog className="w-10 h-10" />
+                Admin Access
+              </span>
+            </motion.button>
           </Link>
         </motion.div>
       </div>
+
+      <style jsx>{`
+        @keyframes gradient-x {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        .animate-gradient-x {
+          animation: gradient-x 3s ease infinite;
+          background-size: 200% 200%;
+        }
+        .drop-shadow-glow {
+          filter: drop-shadow(0 0 10px currentColor);
+        }
+      `}</style>
     </div>
   )
 }
