@@ -257,8 +257,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 text-white">
-      {/* Animated Background */}
+    <div className="min-h-screen bg-black text-white">
+      {/* Animated Background with subtle glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
@@ -266,7 +266,7 @@ export default function HomePage() {
             rotate: [0, 180, 360],
           }}
           transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-20 -left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"
+          className="absolute -top-20 -left-20 w-96 h-96 bg-gradient-to-r from-violet-600/10 to-indigo-600/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{
@@ -274,7 +274,7 @@ export default function HomePage() {
             rotate: [360, 180, 0],
           }}
           transition={{ duration: 25, repeat: Infinity }}
-          className="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"
+          className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-r from-cyan-600/10 to-blue-600/10 rounded-full blur-3xl"
         />
       </div>
 
@@ -295,14 +295,14 @@ export default function HomePage() {
                 <Trophy className="w-24 h-24 text-yellow-400 drop-shadow-2xl" />
               </motion.div>
             </div>
-            <h1 className="text-8xl md:text-9xl font-black bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent animate-pulse drop-shadow-2xl">
+            <h1 className="text-8xl md:text-9xl font-black bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x drop-shadow-2xl">
               Thursday Football
             </h1>
-            <p className="text-2xl text-gray-300 mt-6 font-semibold">Elite Competition League</p>
+            <p className="text-2xl bg-gradient-to-r from-gray-400 to-gray-200 bg-clip-text text-transparent mt-6 font-semibold">Elite Competition League</p>
             
             {/* Thursday Status */}
             <motion.div 
-              className="mt-6 inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-xl border border-purple-500/50"
+              className="mt-6 inline-flex items-center gap-3 px-6 py-3 rounded-full bg-black/60 backdrop-blur-xl border border-white/20"
               whileHover={{ scale: 1.05 }}
             >
               {isThursdayUnlocked ? (
@@ -310,7 +310,7 @@ export default function HomePage() {
               ) : (
                 <Lock className="w-6 h-6 text-red-400" />
               )}
-              <span className="text-lg font-semibold">{timeUntilThursday}</span>
+              <span className="text-lg font-semibold text-white">{timeUntilThursday}</span>
             </motion.div>
           </motion.div>
         </div>
@@ -324,10 +324,10 @@ export default function HomePage() {
           transition={{ delay: 0.2 }}
           className="mb-32"
         >
-          <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl shadow-purple-500/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 px-8 py-8 border-b border-purple-500/30">
-              <h2 className="text-4xl font-bold text-center">⭐ Rate All Players</h2>
-              <p className="text-gray-300 text-center mt-3 text-xl">
+          <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+            <div className="bg-black/60 px-8 py-8 border-b border-white/10">
+              <h2 className="text-4xl font-bold text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">⭐ Rate All Players</h2>
+              <p className="text-gray-400 text-center mt-3 text-xl">
                 {hasRated ? '✅ Ratings submitted! You can update anytime.' : 'Rate each player from 1-10 stars'}
               </p>
             </div>
@@ -339,7 +339,7 @@ export default function HomePage() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="bg-gradient-to-r from-green-600/30 to-green-500/30 border-b border-green-500/50 px-8 py-4"
+                  className="bg-black/60 border-b border-green-400/30 px-8 py-4"
                 >
                   <div className="flex items-center justify-center gap-3 text-green-400">
                     <CheckCircle className="w-7 h-7 animate-bounce" />
@@ -352,24 +352,24 @@ export default function HomePage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-purple-500/30">
-                    <th className="px-8 py-6 text-left text-lg font-bold text-gray-300 uppercase tracking-wider">Player</th>
-                    <th className="px-8 py-6 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Avg Rating</th>
-                    <th className="px-8 py-6 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Your Rating</th>
+                  <tr className="border-b border-white/10">
+                    <th className="px-8 py-6 text-left text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent uppercase tracking-wider">Player</th>
+                    <th className="px-8 py-6 text-center text-lg font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent uppercase tracking-wider">Avg Rating</th>
+                    <th className="px-8 py-6 text-center text-lg font-bold bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent uppercase tracking-wider">Your Rating</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-purple-500/20">
+                <tbody className="divide-y divide-white/5">
                   {playerRatings.map((player) => (
                     <motion.tr 
                       key={player.name} 
-                      className="hover:bg-purple-500/10 transition-all"
+                      className="hover:bg-white/5 transition-all"
                       whileHover={{ scale: 1.01 }}
                     >
                       <td className="px-8 py-7">
                         <div className="flex items-center gap-3">
                           <div>
-                            <div className="text-xl font-semibold">{player.name}</div>
-                            <div className="text-base text-gray-400">{player.totalRatings} ratings</div>
+                            <div className="text-xl font-semibold text-white">{player.name}</div>
+                            <div className="text-base text-gray-500">{player.totalRatings} ratings</div>
                           </div>
                           {getPlayerBadges(player.name).length > 0 && (
                             <span className="text-xl animate-pulse">{getPlayerBadges(player.name).join(' ')}</span>
@@ -443,33 +443,33 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-16">
             {/* Login Form */}
             <motion.div 
-              className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 backdrop-blur-xl rounded-3xl border border-blue-500/30 shadow-2xl shadow-blue-500/20 p-8"
+              className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8"
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-3xl font-bold mb-6 text-center">🔐 Player Login</h2>
+              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">🔐 Player Login</h2>
               <form onSubmit={handleLogin} className="space-y-6">
                 <div>
-                  <label className="block text-base font-medium text-gray-300 mb-2">
+                  <label className="block text-base font-medium text-gray-400 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/50 border border-blue-500/50 focus:border-blue-400 outline-none transition-all"
+                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
                     placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium text-gray-300 mb-2">
+                  <label className="block text-base font-medium text-gray-400 mb-2">
                     Password
                   </label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/50 border border-blue-500/50 focus:border-blue-400 outline-none transition-all"
+                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
                     placeholder="••••••••"
                     required
                   />
@@ -478,7 +478,7 @@ export default function HomePage() {
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400"
+                    className="p-4 rounded-xl bg-black/60 border border-red-400/30 text-red-400"
                   >
                     {loginError}
                   </motion.div>
@@ -516,10 +516,10 @@ export default function HomePage() {
 
             {/* Current Month Leaders */}
             <motion.div 
-              className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl shadow-purple-500/20 p-8"
+              className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8"
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-3xl font-bold mb-6 text-center">🏆 Current Leaders</h2>
+              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">🏆 Current Leaders</h2>
               {leaders && (
                 <div className="space-y-4">
                   {[
@@ -533,13 +533,13 @@ export default function HomePage() {
                       className={`bg-gradient-to-r ${color} p-0.5 rounded-2xl`}
                       whileHover={{ scale: 1.03 }}
                     >
-                      <div className="bg-black/80 rounded-2xl p-4 flex items-center justify-between">
+                      <div className="bg-black rounded-2xl p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <Icon className="w-8 h-8" />
                           <div>
-                            <p className="text-sm text-gray-300">{label}</p>
+                            <p className="text-sm text-gray-500">{label}</p>
                             <div className="flex items-center gap-2">
-                              <p className="text-xl font-bold">{data.name}</p>
+                              <p className="text-xl font-bold text-white">{data.name}</p>
                               {getPlayerBadges(data.name).length > 0 && (
                                 <span className="text-lg">{getPlayerBadges(data.name).join(' ')}</span>
                               )}
@@ -575,8 +575,8 @@ export default function HomePage() {
           transition={{ delay: 0.4 }}
           className="mb-32"
         >
-          <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-3xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/20 p-10">
-            <h2 className="text-4xl font-bold mb-10 text-center">⚡ How Points Work</h2>
+          <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10">
+            <h2 className="text-4xl font-bold mb-10 text-center bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">⚡ How Points Work</h2>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
               {[
@@ -591,13 +591,13 @@ export default function HomePage() {
                   className="relative group"
                   whileHover={{ scale: 1.1, y: -10 }}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity`} />
                   <div className={`relative bg-gradient-to-br ${color} p-0.5 rounded-2xl`}>
-                    <div className="bg-black/90 rounded-2xl p-6 text-center h-full">
+                    <div className="bg-black rounded-2xl p-6 text-center h-full">
                       <Icon className="w-12 h-12 mx-auto mb-3" />
                       <p className="text-3xl font-black mb-2">{value}</p>
-                      <p className="text-base font-semibold">{label}</p>
-                      <p className="text-sm text-gray-300 mt-1">{desc}</p>
+                      <p className="text-base font-semibold text-white">{label}</p>
+                      <p className="text-sm text-gray-500 mt-1">{desc}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -606,49 +606,49 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-2 gap-8">
               <motion.div 
-                className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl p-6 border border-cyan-500/30"
+                className="bg-black/60 rounded-2xl p-6 border border-cyan-400/20"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
                   <Zap className="w-8 h-8 text-cyan-400" />
-                  Monthly Awards
+                  <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Monthly Awards</span>
                 </h3>
                 <div className="space-y-3 text-lg">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⚽</span>
-                    <span>Top Scorer Badge</span>
+                    <span className="text-gray-300">Top Scorer Badge</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🥇</span>
-                    <span>Most Assists Badge</span>
+                    <span className="text-gray-300">Most Assists Badge</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🧤</span>
-                    <span>Best Keeper Badge</span>
+                    <span className="text-gray-300">Best Keeper Badge</span>
                   </div>
                 </div>
               </motion.div>
 
               <motion.div 
-                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-purple-500/30"
+                className="bg-black/60 rounded-2xl p-6 border border-purple-400/20"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
                   <Medal className="w-8 h-8 text-purple-400" />
-                  Quarterly Awards
+                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Quarterly Awards</span>
                 </h3>
                 <div className="space-y-3 text-lg">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⚽️🏆</span>
-                    <span>Ballon d'Or (Best Overall)</span>
+                    <span className="text-gray-300">Ballon d'Or (Best Overall)</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">👟</span>
-                    <span>Golden Boot (Top Scorer)</span>
+                    <span className="text-gray-300">Golden Boot (Top Scorer)</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🎯</span>
-                    <span>Every 4 months</span>
+                    <span className="text-gray-300">Every 4 months</span>
                   </div>
                 </div>
               </motion.div>
@@ -663,8 +663,8 @@ export default function HomePage() {
           transition={{ delay: 0.5 }}
           className="mb-32"
         >
-          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-xl rounded-3xl border border-gray-700/30 shadow-2xl shadow-gray-900/20 p-10">
-            <h2 className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
+          <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10">
+            <h2 className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Rule Cards */}
@@ -777,17 +777,17 @@ export default function HomePage() {
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity`} />
-                  <div className="relative bg-black/60 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6 h-full">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-10 group-hover:opacity-20 transition-opacity`} />
+                  <div className="relative bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 h-full">
                     <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${color} mb-4`}>
                       <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold mb-4">{title}</h3>
+                    <h3 className="text-xl font-bold mb-4 text-white">{title}</h3>
                     <ul className="space-y-2">
                       {rules.map((rule, index) => (
-                        <li key={index} className="flex items-start gap-2 text-gray-300">
-                          <span className="text-gray-500 mt-1">•</span>
-                          <span className="text-sm">{rule}</span>
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-gray-600 mt-1">•</span>
+                          <span className="text-sm text-gray-400">{rule}</span>
                         </li>
                       ))}
                     </ul>
@@ -796,10 +796,11 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="mt-12 p-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-2xl border border-blue-500/30">
-              <p className="text-center text-lg text-gray-300">
-                <span className="font-bold text-blue-400">Important:</span> All players must maintain good sportsmanship. 
-                The league is based on trust and honest reporting. Enjoy the competition and have fun! ⚽
+            <div className="mt-12 p-6 bg-black/60 rounded-2xl border border-white/10">
+              <p className="text-center text-lg">
+                <span className="font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Important:</span>
+                <span className="text-gray-400"> All players must maintain good sportsmanship. 
+                The league is based on trust and honest reporting. Enjoy the competition and have fun! ⚽</span>
               </p>
             </div>
           </div>
