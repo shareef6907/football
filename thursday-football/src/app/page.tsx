@@ -753,7 +753,8 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 space-y-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+        <div className="space-y-16 md:space-y-24 lg:space-y-32">
         {/* Monthly Rating Popup */}
         <AnimatePresence>
           {showMonthlyRatingPopup && (
@@ -813,6 +814,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="mt-16 md:mt-20 lg:mt-24"
         >
           <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
             <h2 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
@@ -871,6 +873,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
+          className="mt-24 md:mt-32 lg:mt-40"
         >
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Previous & Next Games */}
@@ -1168,9 +1171,9 @@ export default function HomePage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="px-8 py-6 text-left text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent uppercase tracking-wider">Player</th>
-                    <th className="px-8 py-6 text-center text-lg font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent uppercase tracking-wider">Avg Rating</th>
-                    <th className="px-8 py-6 text-center text-lg font-bold bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent uppercase tracking-wider">Your Rating</th>
+                    <th className="px-2 sm:px-4 md:px-8 py-6 text-left text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent uppercase tracking-wider">Player</th>
+                    <th className="px-2 sm:px-4 md:px-8 py-6 text-center text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent uppercase tracking-wider">Avg Rating</th>
+                    <th className="px-2 sm:px-4 md:px-8 py-6 text-center text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent uppercase tracking-wider">Your Rating</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -1180,43 +1183,45 @@ export default function HomePage() {
                       className="hover:bg-white/5 transition-all"
                       whileHover={{ scale: 1.01 }}
                     >
-                      <td className="px-8 py-7">
+                      <td className="px-2 sm:px-4 md:px-8 py-7">
                         <div className="flex items-center gap-3">
                           <div>
-                            <div className="text-xl font-semibold text-white">{player.name}</div>
-                            <div className="text-base text-gray-500">{player.totalRatings} ratings</div>
+                            <div className="text-lg sm:text-xl font-semibold text-white">{player.name}</div>
+                            <div className="text-sm sm:text-base text-gray-500">{player.totalRatings} ratings</div>
                           </div>
                           {getPlayerBadges(player.name).length > 0 && (
                             <span className="text-xl animate-pulse">{getPlayerBadges(player.name).join(' ')}</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-8 py-7 text-center">
+                      <td className="px-2 sm:px-4 md:px-8 py-7 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <Star className="w-7 h-7 text-yellow-400 fill-yellow-400" />
-                          <span className="text-3xl font-bold text-yellow-400">{player.rating}</span>
+                          <Star className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-yellow-400 fill-yellow-400" />
+                          <span className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-400">{player.rating}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-7">
-                        <div className="flex items-center justify-center gap-1">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                            <motion.button
-                              key={rating}
-                              onClick={() => handleRatingChange(player.name, rating)}
-                              className="group p-1"
-                              whileHover={{ scale: 1.2 }}
-                              whileTap={{ scale: 0.9 }}
-                            >
-                              <Star
-                                className={`w-8 h-8 transition-all ${
-                                  rating <= (userRatings[player.name] || 0)
-                                    ? 'text-yellow-400 fill-yellow-400 drop-shadow-glow'
-                                    : 'text-gray-600 hover:text-yellow-400'
-                                }`}
-                              />
-                            </motion.button>
-                          ))}
-                          <span className="ml-4 text-2xl font-bold text-yellow-400 w-12">
+                      <td className="px-2 sm:px-4 md:px-8 py-7">
+                        <div className="flex items-center justify-center gap-0.5 sm:gap-1 overflow-x-visible">
+                          <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap sm:flex-nowrap justify-center">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+                              <motion.button
+                                key={rating}
+                                onClick={() => handleRatingChange(player.name, rating)}
+                                className="group p-0.5 sm:p-1 flex-shrink-0"
+                                whileHover={{ scale: 1.2 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Star
+                                  className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 transition-all ${
+                                    rating <= (userRatings[player.name] || 0)
+                                      ? 'text-yellow-400 fill-yellow-400 drop-shadow-glow'
+                                      : 'text-gray-600 hover:text-yellow-400'
+                                  }`}
+                                />
+                              </motion.button>
+                            ))}
+                          </div>
+                          <span className="ml-2 sm:ml-4 text-lg sm:text-xl md:text-2xl font-bold text-yellow-400 w-8 sm:w-12 flex-shrink-0">
                             {userRatings[player.name] || '-'}
                           </span>
                         </div>
@@ -1253,6 +1258,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
+          className="mt-24 md:mt-32 lg:mt-40"
         >
           <div className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
@@ -1442,6 +1448,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
+          className="mt-24 md:mt-32 lg:mt-40"
         >
           <div className="grid md:grid-cols-2 gap-20">
             {/* Login Form */}
@@ -1576,6 +1583,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="mt-24 md:mt-32 lg:mt-40"
         >
           <div className="bg-gradient-to-br from-violet-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-4xl font-bold mb-10 text-center bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">⚡ How Points Work</h2>
@@ -1677,6 +1685,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
+          className="mt-24 md:mt-32 lg:mt-40"
         >
           <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
@@ -1826,7 +1835,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="text-center"
+          className="text-center mt-24 md:mt-32 lg:mt-40"
         >
           <Link href="/admin">
             <motion.button
@@ -1843,6 +1852,7 @@ export default function HomePage() {
             </motion.button>
           </Link>
         </motion.div>
+        </div>
       </div>
 
       <style jsx>{`
