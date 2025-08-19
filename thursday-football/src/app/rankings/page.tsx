@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, TrendingUp, TrendingDown, Minus, Award, Target, Shield, Star, Medal } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown, Minus, Award, Target, Shield, Star, Medal, Activity } from 'lucide-react'
 import { TEAM_MEMBERS } from '@/lib/auth'
 import { getPlayerBadges } from '@/lib/awards'
 
@@ -32,12 +32,68 @@ export default function RankingsPage() {
   const [loading, setLoading] = useState(true)
   const [showPodium, setShowPodium] = useState(false)
   const [monthlyAwards, setMonthlyAwards] = useState<MonthlyAwards | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string>('')
 
   useEffect(() => {
     loadRankings()
     checkEndOfMonth()
     loadMonthlyAwards()
     saveMonthlyAwards()
+    
+    // Listen for all types of updates from other components
+    const handleRatingsUpdate = () => {
+      console.log('Rankings updating due to ratings change')
+      setIsRefreshing(true)
+      loadRankings()
+      loadMonthlyAwards()
+      setLastUpdated(new Date().toLocaleTimeString())
+      setTimeout(() => setIsRefreshing(false), 1000)
+    }
+    
+    const handlePlayerStatsUpdate = (event: CustomEvent) => {
+      console.log('Rankings updating due to player stats change:', event.detail)
+      setIsRefreshing(true)
+      loadRankings()
+      loadMonthlyAwards()
+      setLastUpdated(new Date().toLocaleTimeString())
+      setTimeout(() => setIsRefreshing(false), 1000)
+    }
+    
+    const handleDataUpdate = (event: CustomEvent) => {
+      console.log('Rankings updating due to data change:', event.detail)
+      setIsRefreshing(true)
+      loadRankings()
+      loadMonthlyAwards()
+      setLastUpdated(new Date().toLocaleTimeString())
+      setTimeout(() => setIsRefreshing(false), 1000)
+    }
+    
+    const handleAdminAction = (event: CustomEvent) => {
+      console.log('Rankings updating due to admin action:', event.detail)
+      setIsRefreshing(true)
+      loadRankings()
+      loadMonthlyAwards()
+      setLastUpdated(new Date().toLocaleTimeString())
+      setTimeout(() => setIsRefreshing(false), 1000)
+    }
+    
+    // Set up comprehensive event listeners for real-time updates
+    window.addEventListener('ratingsUpdated', handleRatingsUpdate)
+    window.addEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
+    window.addEventListener('dataUpdated', handleDataUpdate as EventListener)
+    window.addEventListener('adminAction', handleAdminAction as EventListener)
+    
+    // Set up interval for real-time updates every 15 seconds for ultra-responsive feel
+    const interval = setInterval(handleRatingsUpdate, 15000)
+    
+    return () => {
+      window.removeEventListener('ratingsUpdated', handleRatingsUpdate)
+      window.removeEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
+      window.removeEventListener('dataUpdated', handleDataUpdate as EventListener)
+      window.removeEventListener('adminAction', handleAdminAction as EventListener)
+      clearInterval(interval)
+    }
   }, [])
 
   const checkEndOfMonth = () => {
@@ -197,7 +253,19 @@ export default function RankingsPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-400">Season 2025</p>
-                <p className="text-xs text-gray-500">Updated: {new Date().toLocaleDateString()}</p>
+                <div className="flex items-center gap-2">
+                  {isRefreshing && (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Activity className="w-3 h-3 text-green-400" />
+                    </motion.div>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    {isRefreshing ? 'Updating...' : `Last updated: ${lastUpdated || new Date().toLocaleTimeString()}`}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

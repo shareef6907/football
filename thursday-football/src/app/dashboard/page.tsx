@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, TEAM_MEMBERS } from '@/lib/auth'
 import { getPlayerBadges, awardMonthlyBadge, awardBallonDor, awardGoldenBoot, shouldAwardQuarterly, calculateBallonDor, calculateGoldenBoot } from '@/lib/awards'
+import { RealTimeEvents } from '@/lib/realtime'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Trophy, Target, Shield, Activity, TrendingUp, Users, 
@@ -233,31 +234,9 @@ export default function DashboardPage() {
   }
 
   const checkThursdayStatus = () => {
-    const now = new Date()
-    const dayOfWeek = now.getDay()
-    
-    // Thursday is day 4, unlock from Thursday to Saturday (4, 5, 6)
-    setIsThursdayUnlocked(dayOfWeek >= 4 && dayOfWeek <= 6)
-    
-    // Calculate time until next Thursday
-    let daysUntilThursday = (4 - dayOfWeek + 7) % 7
-    if (daysUntilThursday === 0 && dayOfWeek !== 4) {
-      daysUntilThursday = 7
-    }
-    
-    if (dayOfWeek >= 4 && dayOfWeek <= 6) {
-      setTimeUntilThursday('Entry window open!')
-    } else {
-      const nextThursday = new Date(now)
-      nextThursday.setDate(now.getDate() + daysUntilThursday)
-      nextThursday.setHours(0, 0, 0, 0)
-      
-      const timeDiff = nextThursday.getTime() - now.getTime()
-      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      
-      setTimeUntilThursday(`${days}d ${hours}h until unlock`)
-    }
+    // Players can now submit anytime during the week
+    setIsThursdayUnlocked(true)
+    setTimeUntilThursday('✅ Submissions Always Open')
   }
 
   const checkWeeklySubmission = () => {
@@ -273,10 +252,12 @@ export default function DashboardPage() {
   }
 
   const getWeekIdentifier = () => {
+    // Get previous week identifier since players submit for previous week's game
     const now = new Date()
-    const year = now.getFullYear()
-    const weekNumber = Math.ceil((now.getDate() + new Date(year, now.getMonth(), 1).getDay()) / 7)
-    return `${year}-${now.getMonth() + 1}-W${weekNumber}`
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const year = lastWeek.getFullYear()
+    const weekNumber = Math.ceil((lastWeek.getDate() + new Date(year, lastWeek.getMonth(), 1).getDay()) / 7)
+    return `${year}-${lastWeek.getMonth() + 1}-W${weekNumber}`
   }
 
   const loadMatchStats = () => {
@@ -296,7 +277,7 @@ export default function DashboardPage() {
   }
 
   const saveMatchData = () => {
-    if (!user || !isThursdayUnlocked || hasSubmittedThisWeek) return
+    if (!user || hasSubmittedThisWeek) return
     
     const userName = user.display_name
     const currentWeek = getWeekIdentifier()
@@ -359,6 +340,14 @@ export default function DashboardPage() {
     setTimeout(() => {
       setShowSuccess(false)
     }, 3000)
+    
+    // Dispatch real-time update events using centralized system
+    RealTimeEvents.dispatchPlayerStatsUpdate('dashboard', userName, updatedStats)
+    RealTimeEvents.getInstance().dispatch('dataUpdated', 'dashboard', { 
+      type: 'player-stats',
+      player: userName,
+      stats: updatedStats
+    })
   }
 
   const downloadMonthlyReport = () => {
@@ -396,17 +385,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
-                {isThursdayUnlocked ? (
-                  <div className="flex items-center gap-2 text-green-400">
-                    <Unlock className="w-4 h-4" />
-                    <span>{timeUntilThursday}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-red-400">
-                    <Lock className="w-4 h-4" />
-                    <span>{timeUntilThursday}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-green-400">
+                  <Unlock className="w-4 h-4" />
+                  <span>{timeUntilThursday}</span>
+                </div>
               </div>
               <button
                 onClick={handleLogout}
@@ -508,11 +490,14 @@ export default function DashboardPage() {
         >
           <div className="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Weekly Score Entry</h2>
+              <div>
+                <h2 className="text-xl font-bold">Previous Week Score Entry</h2>
+                <p className="text-sm text-gray-400 mt-1">Submit scores for last week's game • One submission per week</p>
+              </div>
               {hasSubmittedThisWeek && (
                 <span className="text-sm text-green-400 flex items-center gap-1">
                   <CheckCircle className="w-4 h-4" />
-                  Submitted this week
+                  Submitted for previous week
                 </span>
               )}
             </div>
@@ -521,16 +506,14 @@ export default function DashboardPage() {
               <div className="p-6">
                 <button
                   onClick={() => setShowMatchForm(true)}
-                  disabled={!isThursdayUnlocked || hasSubmittedThisWeek}
+                  disabled={hasSubmittedThisWeek}
                   className="w-full px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
                   <span>
-                    {!isThursdayUnlocked 
-                      ? 'Entry locked until Thursday'
-                      : hasSubmittedThisWeek
-                      ? 'Already submitted this week'
-                      : 'Add This Week\'s Stats'
+                    {hasSubmittedThisWeek
+                      ? 'Already submitted for previous week'
+                      : 'Add Previous Week\'s Stats'
                     }
                   </span>
                 </button>
