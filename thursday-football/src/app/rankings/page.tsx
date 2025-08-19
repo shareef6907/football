@@ -36,6 +36,7 @@ export default function RankingsPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('')
 
   useEffect(() => {
+    console.log('🚀 Rankings page mounted - loading initial data')
     loadRankings()
     checkEndOfMonth()
     loadMonthlyAwards()
@@ -43,7 +44,7 @@ export default function RankingsPage() {
     
     // Listen for all types of updates from other components
     const handleRatingsUpdate = () => {
-      console.log('Rankings updating due to ratings change')
+      console.log('🔔 Rankings updating due to ratings change')
       setIsRefreshing(true)
       loadRankings()
       loadMonthlyAwards()
@@ -87,11 +88,36 @@ export default function RankingsPage() {
     // Set up interval for real-time updates every 15 seconds for ultra-responsive feel
     const interval = setInterval(handleRatingsUpdate, 15000)
     
+    // Also listen for page visibility changes to refresh when user returns to rankings
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('👁️ Rankings page became visible - refreshing data')
+        handleRatingsUpdate()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleRatingsUpdate)
+    
+    // Add keyboard shortcut to force refresh (Ctrl+R or Cmd+R)
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault()
+        console.log('🔄 Force refresh triggered by keyboard')
+        handleRatingsUpdate()
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyPress)
+    
     return () => {
       window.removeEventListener('ratingsUpdated', handleRatingsUpdate)
       window.removeEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
       window.removeEventListener('dataUpdated', handleDataUpdate as EventListener)
       window.removeEventListener('adminAction', handleAdminAction as EventListener)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleRatingsUpdate)
+      document.removeEventListener('keydown', handleKeyPress)
       clearInterval(interval)
     }
   }, [])
@@ -106,13 +132,22 @@ export default function RankingsPage() {
   }
 
   const loadRankings = () => {
+    console.log('🔄 Loading rankings...')
+    
     // Get ratings from localStorage
     const storedRatings = localStorage.getItem('playerRatings')
     const ratings = storedRatings ? JSON.parse(storedRatings) : []
+    console.log('📊 Loaded ratings:', ratings)
     
     // Get match data from localStorage
     const matchData = localStorage.getItem('matchData')
     const matches = matchData ? JSON.parse(matchData) : {}
+    console.log('⚽ Loaded match data:', matches)
+    
+    // Debug: Check localStorage keys
+    console.log('🔍 All localStorage keys:', Object.keys(localStorage))
+    console.log('🔍 Raw matchData string:', localStorage.getItem('matchData'))
+    console.log('🔍 Parsed matches object structure:', Object.keys(matches))
 
     // Get last month's awards
     const awards = localStorage.getItem('monthlyAwards')
@@ -122,6 +157,15 @@ export default function RankingsPage() {
     const stats: PlayerStats[] = TEAM_MEMBERS.map((name) => {
       const playerRating = ratings.find((r: any) => r.name === name)?.rating || 5
       const playerMatches = matches[name] || {}
+      
+      console.log(`👤 ${name}:`)
+      console.log(`  • Rating: ${playerRating}`)
+      console.log(`  • Match data exists: ${!!matches[name]}`)
+      console.log(`  • Match data:`, playerMatches)
+      console.log(`  • Goals: ${playerMatches.goals || 0}`)
+      console.log(`  • Assists: ${playerMatches.assists || 0}`)
+      console.log(`  • Saves: ${playerMatches.saves || 0}`)
+      console.log(`  • Wins: ${playerMatches.wins || 0}`)
       
       // Get all permanent badges for this player
       const badges = getPlayerBadges(name)
@@ -134,6 +178,8 @@ export default function RankingsPage() {
         saves: playerMatches.saves || 0,
         wins: playerMatches.wins || 0
       })
+      
+      console.log(`💯 ${name} total points: ${points}`)
 
       return {
         name,
@@ -253,7 +299,20 @@ export default function RankingsPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-400">Season 2025</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      console.log('🔄 Manual refresh button clicked')
+                      setIsRefreshing(true)
+                      loadRankings()
+                      loadMonthlyAwards()
+                      setLastUpdated(new Date().toLocaleTimeString())
+                      setTimeout(() => setIsRefreshing(false), 1000)
+                    }}
+                    className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                  >
+                    Refresh
+                  </button>
                   {isRefreshing && (
                     <motion.div
                       animate={{ rotate: 360 }}
