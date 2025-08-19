@@ -34,6 +34,7 @@ export default function RankingsPage() {
   const [monthlyAwards, setMonthlyAwards] = useState<MonthlyAwards | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [debugMessage, setDebugMessage] = useState<string>('')
 
   useEffect(() => {
     console.log('🚀 Rankings page mounted - loading initial data')
@@ -54,11 +55,15 @@ export default function RankingsPage() {
     
     const handlePlayerStatsUpdate = (event: CustomEvent) => {
       console.log('Rankings updating due to player stats change:', event.detail)
+      setDebugMessage(`📊 Stats updated: ${event.detail?.player || 'unknown'} at ${new Date().toLocaleTimeString()}`)
       setIsRefreshing(true)
       loadRankings()
       loadMonthlyAwards()
       setLastUpdated(new Date().toLocaleTimeString())
-      setTimeout(() => setIsRefreshing(false), 1000)
+      setTimeout(() => {
+        setIsRefreshing(false)
+        setDebugMessage('')
+      }, 3000)
     }
     
     const handleDataUpdate = (event: CustomEvent) => {
@@ -424,6 +429,26 @@ export default function RankingsPage() {
             <div className="px-10 py-8 border-b border-gray-800 bg-gradient-to-r from-gray-900/50 to-gray-950/50">
               <h2 className="text-3xl font-bold">Complete Rankings</h2>
               <p className="text-gray-400 mt-2">All players sorted by total points</p>
+              
+              {/* Debug message */}
+              {debugMessage && (
+                <div className="mt-3 p-2 bg-green-900/20 border border-green-800 rounded text-xs text-green-400">
+                  {debugMessage}
+                </div>
+              )}
+              
+              {/* Debug info - show localStorage data */}
+              <div className="mt-4 p-3 bg-red-900/20 border border-red-800 rounded-lg text-xs">
+                <details>
+                  <summary className="text-red-400 cursor-pointer">Debug: localStorage Data</summary>
+                  <div className="mt-2 space-y-1 text-gray-300">
+                    <div>matchData keys: {localStorage.getItem('matchData') ? Object.keys(JSON.parse(localStorage.getItem('matchData') || '{}')).join(', ') : 'No data'}</div>
+                    <div>Raw matchData: {localStorage.getItem('matchData')?.substring(0, 200)}...</div>
+                    <div>playerStats count: {playerStats.length}</div>
+                    <div>Last refresh: {lastUpdated}</div>
+                  </div>
+                </details>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
