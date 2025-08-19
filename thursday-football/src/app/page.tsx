@@ -79,6 +79,7 @@ export default function HomePage() {
   const [generatedTeams, setGeneratedTeams] = useState<{teamA: string[], teamB: string[]} | null>(null)
   const [monthlyBalancedTeams, setMonthlyBalancedTeams] = useState<BalancedTeam | null>(null)
   const [playersWithStats, setPlayersWithStats] = useState<PlayerWithStats[]>([])
+  const [countdownTime, setCountdownTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   useEffect(() => {
     checkAuthAndLoadData()
@@ -123,11 +124,44 @@ export default function HomePage() {
     window.addEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
     window.addEventListener('dataUpdated', handleRealTimeUpdates as EventListener)
 
-    // Update Thursday status every minute
-    const interval = setInterval(checkThursdayStatus, 60000)
+    // Update Thursday status every minute  
+    const statusInterval = setInterval(checkThursdayStatus, 60000)
+    
+    // Update countdown every second for accurate timing
+    const updateCountdown = () => {
+      const now = new Date()
+      const nextThursday = getNextThursday()
+      
+      // Set time to 8:00 PM Bahrain time (UTC+3)
+      const bahrainOffset = 3 * 60 // Bahrain is UTC+3 (3 hours * 60 minutes)
+      const localOffset = now.getTimezoneOffset() // Local timezone offset in minutes
+      const timezoneDifference = bahrainOffset + localOffset // Total difference
+      
+      // Set to 8:00 PM and adjust for timezone
+      nextThursday.setHours(20, 0, 0, 0) // 8:00 PM
+      nextThursday.setMinutes(nextThursday.getMinutes() - timezoneDifference)
+      
+      const timeDiff = nextThursday.getTime() - now.getTime()
+      
+      if (timeDiff > 0) {
+        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
+        
+        setCountdownTime({ days, hours, minutes, seconds })
+      } else {
+        setCountdownTime({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+      }
+    }
+    
+    // Update countdown immediately and then every second
+    updateCountdown()
+    const countdownInterval = setInterval(updateCountdown, 1000)
     
     return () => {
-      clearInterval(interval)
+      clearInterval(statusInterval)
+      clearInterval(countdownInterval)
       window.removeEventListener('ratingsUpdated', handleRealTimeUpdates as EventListener)
       window.removeEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
       window.removeEventListener('dataUpdated', handleRealTimeUpdates as EventListener)
@@ -544,13 +578,13 @@ export default function HomePage() {
                   scale: [1, 1.2, 1]
                 }}
                 transition={{ 
-                  rotate: { duration: 4, repeat: Infinity, ease: "linear" },
+                  rotate: { duration: 3, repeat: Infinity, ease: "linear" },
                   scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                 }}
                 className="relative"
               >
-                <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-xl animate-pulse" />
-                <Trophy className="w-24 h-24 text-yellow-400 drop-shadow-2xl relative z-10" />
+                <div className="absolute inset-0 bg-white/20 rounded-full blur-2xl animate-pulse" />
+                <div className="text-8xl relative z-10 drop-shadow-2xl">⚽</div>
               </motion.div>
             </div>
             <motion.h1 
@@ -679,7 +713,7 @@ export default function HomePage() {
                     </motion.div>
                   </div>
                   
-                  {/* Countdown Timer */}
+                  {/* Countdown Timer - Accurate to 8pm Bahrain Time */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -688,18 +722,29 @@ export default function HomePage() {
                   >
                     <p className="text-lg text-gray-300 mb-2">Time until next game:</p>
                     <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
-                      {['Days', 'Hours', 'Mins', 'Secs'].map((unit, index) => (
+                      {[
+                        { unit: 'Days', value: countdownTime.days },
+                        { unit: 'Hours', value: countdownTime.hours },
+                        { unit: 'Mins', value: countdownTime.minutes },
+                        { unit: 'Secs', value: countdownTime.seconds }
+                      ].map(({ unit, value }, index) => (
                         <div key={unit} className="bg-black/60 rounded-xl p-3 border border-green-400/20">
-                          <p className="text-2xl font-bold text-white">
-                            {unit === 'Days' ? Math.floor((getNextThursday().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) :
-                             unit === 'Hours' ? Math.floor(((getNextThursday().getTime() - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)) :
-                             unit === 'Mins' ? Math.floor(((getNextThursday().getTime() - new Date().getTime()) % (1000 * 60 * 60)) / (1000 * 60)) :
-                             Math.floor(((getNextThursday().getTime() - new Date().getTime()) % (1000 * 60)) / 1000)}
-                          </p>
+                          <motion.p 
+                            className="text-2xl font-bold text-white"
+                            key={value} // Re-animate when value changes
+                            initial={{ scale: 1.2, opacity: 0.8 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {value.toString().padStart(2, '0')}
+                          </motion.p>
                           <p className="text-xs text-gray-400 uppercase tracking-wide">{unit}</p>
                         </div>
                       ))}
                     </div>
+                    <p className="text-sm text-gray-400 mt-3 text-center">
+                      🇧🇭 Countdown to 8:00 PM Bahrain Time
+                    </p>
                   </motion.div>
                 </div>
               </div>
@@ -906,10 +951,91 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* Player Selection Grid */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-lg font-semibold text-gray-300">Select Available Players</label>
+                    <div className="flex gap-2">
+                      <motion.button
+                        onClick={() => setAvailablePlayers(TEAM_MEMBERS)}
+                        className="px-3 py-1 rounded-lg bg-green-600/20 text-green-400 text-sm hover:bg-green-600/30 transition-all"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        Select All
+                      </motion.button>
+                      <motion.button
+                        onClick={() => setAvailablePlayers([])}
+                        className="px-3 py-1 rounded-lg bg-red-600/20 text-red-400 text-sm hover:bg-red-600/30 transition-all"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        Clear All
+                      </motion.button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto custom-scrollbar">
+                    {TEAM_MEMBERS.map((player, index) => {
+                      const isSelected = availablePlayers.includes(player)
+                      const playerStats = playersWithStats.find(p => p.name === player)
+                      const playerBadges = getPlayerBadges(player)
+                      
+                      return (
+                        <motion.button
+                          key={player}
+                          onClick={() => {
+                            if (isSelected) {
+                              setAvailablePlayers(prev => prev.filter(p => p !== player))
+                            } else {
+                              setAvailablePlayers(prev => [...prev, player])
+                            }
+                          }}
+                          className={`p-3 rounded-xl border transition-all text-left ${
+                            isSelected
+                              ? 'bg-green-600/20 border-green-400/50 text-white'
+                              : 'bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                          }`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold">{player}</div>
+                              {playerStats && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                  <span className="text-xs text-gray-400">{playerStats.rating}</span>
+                                </div>
+                              )}
+                              {playerBadges.length > 0 && (
+                                <div className="text-xs mt-1">{playerBadges.join(' ')}</div>
+                              )}
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 transition-all ${
+                              isSelected 
+                                ? 'bg-green-400 border-green-400' 
+                                : 'border-gray-400'
+                            }`}>
+                              {isSelected && (
+                                <CheckCircle className="w-3 h-3 text-white m-0.5" />
+                              )}
+                            </div>
+                          </div>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Available Players Count */}
                 <div className="text-center">
-                  <p className="text-gray-400 mb-2">Available Players</p>
+                  <p className="text-gray-400 mb-2">Selected Players</p>
                   <p className="text-3xl font-bold text-white">{availablePlayers.length}</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Need {teamSize * 2} players minimum for {teamSize}v{teamSize}
+                  </p>
                 </div>
 
                 {/* Generate Button */}
@@ -921,7 +1047,7 @@ export default function HomePage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Shuffle className="w-6 h-6 inline mr-2" />
-                  Generate Teams
+                  Generate Teams ({availablePlayers.length} players)
                 </motion.button>
 
                 {/* Generated Teams Display */}
