@@ -63,6 +63,7 @@ export default function HomePage() {
   const [userRatings, setUserRatings] = useState<{[key: string]: number}>({})
   const [hasRated, setHasRated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<string>('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -173,8 +174,16 @@ export default function HomePage() {
     const { data: { session } } = await supabase.auth.getSession()
     
     if (session) {
-      router.push('/dashboard')
-      return
+      // Set current user 
+      const userEmail = session.user?.email || ''
+      const userName = userEmail.split('@')[0] || 'Player'
+      const displayName = userName.charAt(0).toUpperCase() + userName.slice(1)
+      const actualPlayerName = TEAM_MEMBERS.find(name => 
+        name.toLowerCase() === displayName.toLowerCase()
+      ) || displayName
+      setCurrentUser(actualPlayerName)
+      
+      // Don't redirect, allow viewing homepage with profile editing
     }
 
     loadPlayerRatings()
@@ -818,15 +827,31 @@ export default function HomePage() {
           className="mt-16 md:mt-20 lg:mt-24"
         >
           <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
-            <PlayerProfileCarousel />
-            <div className="text-center mt-8">
-              <Link
-                href="/rankings"
-                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all text-lg font-semibold"
-              >
-                <Trophy className="w-6 h-6" />
-                View All Rankings
-              </Link>
+            <PlayerProfileCarousel currentUserName={currentUser} />
+            <div className="text-center mt-8 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/rankings"
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all text-lg font-semibold"
+                >
+                  <Trophy className="w-6 h-6" />
+                  View All Rankings
+                </Link>
+                {currentUser && (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transition-all text-lg font-semibold"
+                  >
+                    <UserCog className="w-6 h-6" />
+                    My Dashboard
+                  </Link>
+                )}
+              </div>
+              {currentUser && (
+                <p className="text-sm text-gray-400">
+                  Welcome back, {currentUser}! Click on your profile card to edit your info.
+                </p>
+              )}
             </div>
           </div>
         </motion.section>

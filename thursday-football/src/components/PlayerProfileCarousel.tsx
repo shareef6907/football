@@ -25,13 +25,29 @@ interface PlayerProfile {
   attributes: string[]
 }
 
-export default function PlayerProfileCarousel() {
+interface PlayerProfileCarouselProps {
+  currentUserName?: string
+}
+
+export default function PlayerProfileCarousel({ currentUserName }: PlayerProfileCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [players, setPlayers] = useState<PlayerProfile[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadPlayerProfiles()
+    
+    // Listen for profile updates from dashboard
+    const handleProfileUpdate = (event: CustomEvent) => {
+      console.log('Profile update received:', event.detail)
+      loadPlayerProfiles() // Reload all profiles when any profile is updated
+    }
+    
+    window.addEventListener('profileUpdated', handleProfileUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate as EventListener)
+    }
   }, [])
 
   const loadPlayerProfiles = () => {
@@ -46,6 +62,10 @@ export default function PlayerProfileCarousel() {
     // Get player images from localStorage
     const storedImages = localStorage.getItem('playerImages')
     const images = storedImages ? JSON.parse(storedImages) : {}
+    
+    // Get stored profile data from localStorage
+    const storedProfiles = localStorage.getItem('playerProfiles')
+    const profilesData = storedProfiles ? JSON.parse(storedProfiles) : {}
 
     const profiles: PlayerProfile[] = TEAM_MEMBERS.map((name, index) => {
       const playerRating = ratings.find((r: any) => r.name === name)?.rating || 5
@@ -61,8 +81,9 @@ export default function PlayerProfileCarousel() {
         wins: playerMatches.wins || 0
       })
 
-      // Sample player data - can be customized per player
-      const playerData = getPlayerData(name, index)
+      // Get stored profile data or default
+      const storedProfile = profilesData[name]
+      const defaultData = getPlayerData(name, index)
 
       return {
         name,
@@ -74,13 +95,13 @@ export default function PlayerProfileCarousel() {
         gamesPlayed: playerMatches.gamesPlayed || 0,
         points,
         badges,
-        image: images[name] || playerData.defaultImage,
-        position: playerData.position,
-        age: playerData.age,
-        height: playerData.height,
-        weight: playerData.weight,
-        shirtNumber: playerData.shirtNumber,
-        attributes: playerData.attributes
+        image: images[name] || defaultData.defaultImage,
+        position: storedProfile?.position || defaultData.position,
+        age: storedProfile?.age || defaultData.age,
+        height: storedProfile?.height || defaultData.height,
+        weight: storedProfile?.weight || defaultData.weight,
+        shirtNumber: storedProfile?.shirtNumber || defaultData.shirtNumber,
+        attributes: storedProfile?.attributes || defaultData.attributes
       }
     })
 
@@ -223,20 +244,22 @@ export default function PlayerProfileCarousel() {
                   </div>
                 )}
                 
-                {/* Image upload button */}
-                <label className="absolute top-1 right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors">
-                  <Upload className="w-3 h-3 text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        handleImageUpload(currentPlayer.name, e.target.files[0])
-                      }
-                    }}
-                  />
-                </label>
+                {/* Image upload button - only for current user */}
+                {currentUserName === currentPlayer.name && (
+                  <label className="absolute top-1 right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors">
+                    <Upload className="w-3 h-3 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleImageUpload(currentPlayer.name, e.target.files[0])
+                        }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
 

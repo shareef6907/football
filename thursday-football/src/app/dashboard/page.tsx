@@ -10,7 +10,8 @@ import {
   Trophy, Target, Shield, Activity, TrendingUp, Users, 
   Calendar, Award, BarChart3, Plus, ChevronRight, LogOut,
   Goal, HandHelping, ShieldCheck, Lock, Unlock, Clock,
-  CheckCircle, AlertCircle, XCircle, Download, FileText
+  CheckCircle, AlertCircle, XCircle, Download, FileText,
+  User, Upload, Camera, Edit3, Save, X
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -73,12 +74,23 @@ export default function DashboardPage() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [monthlyAwards, setMonthlyAwards] = useState<MonthlyAwards | null>(null)
   const [playerBadges, setPlayerBadges] = useState<string[]>([])
+  const [showProfileEdit, setShowProfileEdit] = useState(false)
+  const [profileImage, setProfileImage] = useState<string>('')
+  const [profileData, setProfileData] = useState({
+    age: 25,
+    height: '5.8 FT',
+    weight: '70KG',
+    position: 'MIDFIELDER',
+    shirtNumber: 1,
+    attributes: ['PASSING', 'VISION', 'CREATING ASSISTS']
+  })
 
   useEffect(() => {
     checkUser()
     checkThursdayStatus()
     loadMonthlyAwards()
     checkMonthlyReset()
+    loadProfileData()
     
     const interval = setInterval(checkThursdayStatus, 60000)
     return () => clearInterval(interval)
@@ -89,6 +101,7 @@ export default function DashboardPage() {
       loadMatchStats()
       checkWeeklySubmission()
       loadPlayerBadges()
+      loadProfileData()
     }
   }, [user])
 
@@ -355,6 +368,65 @@ export default function DashboardPage() {
     alert('PDF download feature coming soon!')
   }
 
+  const loadProfileData = () => {
+    if (!user?.display_name) return
+    
+    // Load profile image
+    const storedImages = localStorage.getItem('playerImages')
+    const images = storedImages ? JSON.parse(storedImages) : {}
+    setProfileImage(images[user.display_name] || '')
+    
+    // Load profile data
+    const storedProfiles = localStorage.getItem('playerProfiles')
+    const profiles = storedProfiles ? JSON.parse(storedProfiles) : {}
+    
+    if (profiles[user.display_name]) {
+      setProfileData(profiles[user.display_name])
+    }
+  }
+
+  const handleImageUpload = (file: File) => {
+    if (!user?.display_name) return
+    
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string
+      
+      // Store in localStorage for both playerImages and playerProfiles
+      const storedImages = localStorage.getItem('playerImages')
+      const images = storedImages ? JSON.parse(storedImages) : {}
+      images[user.display_name] = imageUrl
+      localStorage.setItem('playerImages', JSON.stringify(images))
+      
+      setProfileImage(imageUrl)
+      
+      // Dispatch update to refresh homepage carousel
+      RealTimeEvents.getInstance().dispatch('profileUpdated', 'dashboard', {
+        player: user.display_name,
+        image: imageUrl
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const saveProfileData = () => {
+    if (!user?.display_name) return
+    
+    const storedProfiles = localStorage.getItem('playerProfiles')
+    const profiles = storedProfiles ? JSON.parse(storedProfiles) : {}
+    
+    profiles[user.display_name] = profileData
+    localStorage.setItem('playerProfiles', JSON.stringify(profiles))
+    
+    setShowProfileEdit(false)
+    
+    // Dispatch update to refresh homepage carousel
+    RealTimeEvents.getInstance().dispatch('profileUpdated', 'dashboard', {
+      player: user.display_name,
+      profile: profileData
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -371,6 +443,28 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Trophy className="w-8 h-8 text-yellow-400" />
+              
+              {/* Profile Picture */}
+              <div className="relative">
+                {profileImage ? (
+                  <img 
+                    src={profileImage} 
+                    alt={user?.display_name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gray-700 border-2 border-gray-600 flex items-center justify-center">
+                    <User className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowProfileEdit(true)}
+                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
+                >
+                  <Edit3 className="w-2.5 h-2.5 text-white" />
+                </button>
+              </div>
+              
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold">
@@ -699,6 +793,160 @@ export default function DashboardPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Profile Edit Modal */}
+        <AnimatePresence>
+          {showProfileEdit && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowProfileEdit(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-gray-950 rounded-2xl border border-gray-800 p-6 w-full max-w-md"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold">Edit Profile</h3>
+                  <button
+                    onClick={() => setShowProfileEdit(false)}
+                    className="p-1 hover:bg-gray-800 rounded"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Profile Image Upload */}
+                <div className="text-center mb-6">
+                  <div className="relative inline-block">
+                    {profileImage ? (
+                      <img 
+                        src={profileImage} 
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-blue-400"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-700 border-4 border-gray-600 flex items-center justify-center">
+                        <User className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                    <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors">
+                      <Camera className="w-4 h-4 text-white" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleImageUpload(e.target.files[0])
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">Click camera to change photo</p>
+                </div>
+
+                {/* Profile Form */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Age</label>
+                      <input
+                        type="number"
+                        value={profileData.age}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, age: parseInt(e.target.value) || 25 }))}
+                        className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Shirt #</label>
+                      <input
+                        type="number"
+                        value={profileData.shirtNumber}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, shirtNumber: parseInt(e.target.value) || 1 }))}
+                        className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Height</label>
+                      <input
+                        type="text"
+                        value={profileData.height}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, height: e.target.value }))}
+                        placeholder="5.8 FT"
+                        className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Weight</label>
+                      <input
+                        type="text"
+                        value={profileData.weight}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, weight: e.target.value }))}
+                        placeholder="70KG"
+                        className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Position</label>
+                    <select
+                      value={profileData.position}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
+                      className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="FORWARD">Forward</option>
+                      <option value="MIDFIELDER">Midfielder</option>
+                      <option value="DEFENDER">Defender</option>
+                      <option value="GOALKEEPER">Goalkeeper</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Top Attributes (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={profileData.attributes.join(', ')}
+                      onChange={(e) => setProfileData(prev => ({ 
+                        ...prev, 
+                        attributes: e.target.value.split(',').map(attr => attr.trim().toUpperCase()).filter(Boolean)
+                      }))}
+                      placeholder="PASSING, VISION, CREATING ASSISTS"
+                      className="w-full px-3 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={saveProfileData}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Profile
+                  </button>
+                  <button
+                    onClick={() => setShowProfileEdit(false)}
+                    className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

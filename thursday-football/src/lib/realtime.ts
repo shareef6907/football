@@ -8,6 +8,7 @@ export type EventType =
   | 'dataUpdated'
   | 'teamGenerated'
   | 'monthlyReset'
+  | 'profileUpdated'
 
 export interface UpdateEvent {
   type: EventType
