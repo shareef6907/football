@@ -7,6 +7,7 @@ import { createClient } from '@/lib/auth'
 import { TEAM_MEMBERS } from '@/lib/auth'
 import { getPlayerBadges } from '@/lib/awards'
 import { RealTimeEvents } from '@/lib/realtime'
+import PlayerProfileCarousel from '@/components/PlayerProfileCarousel'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Trophy, Star, Target, Shield, LogIn, UserCog, 
@@ -809,7 +810,7 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* Section 1: Overall Player Ratings Dashboard */}
+        {/* Section 1: Player Profile Carousel */}
         <motion.section 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -817,45 +818,7 @@ export default function HomePage() {
           className="mt-16 md:mt-20 lg:mt-24"
         >
           <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
-            <h2 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              🌟 Overall Player Ratings
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {playerRatings.slice(0, 8).map((player, index) => (
-                <motion.div
-                  key={player.name}
-                  className="relative group"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -10 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="relative bg-black/60 backdrop-blur-xl rounded-2xl p-6 border border-white/10 text-center">
-                    <div className="text-2xl font-bold text-white mb-2">{player.name}</div>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                      </motion.div>
-                      <span className="text-2xl font-bold text-yellow-400">{player.rating}</span>
-                    </div>
-                    <div className="text-sm text-gray-500">{player.totalRatings} ratings</div>
-                    {getPlayerBadges(player.name).length > 0 && (
-                      <motion.div 
-                        className="mt-3 text-xl"
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        {getPlayerBadges(player.name).join(' ')}
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <PlayerProfileCarousel />
             <div className="text-center mt-8">
               <Link
                 href="/rankings"
