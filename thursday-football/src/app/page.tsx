@@ -856,12 +856,12 @@ export default function HomePage() {
           </div>
         </motion.section>
 
-        {/* Section 2: Games & Team Generator */}
+        {/* Section 3: Games & Team Generator */}
         <motion.section 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mt-24 md:mt-32 lg:mt-40"
+          transition={{ delay: 0.2 }}
+          className="mt-32 md:mt-40 lg:mt-48"
         >
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Previous & Next Games */}
@@ -1117,12 +1117,13 @@ export default function HomePage() {
           </div>
         </motion.section>
 
-        {/* Section 3: Player Ratings Table - Centered */}
+        {/* Section 2: Player Ratings Table - Centered */}
         <motion.section 
           id="rating-section"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.15 }}
+          className="mt-32 md:mt-40 lg:mt-48"
         >
           <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
             <div className="bg-black/60 px-8 py-8 border-b border-white/10">
