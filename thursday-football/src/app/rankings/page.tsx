@@ -294,7 +294,7 @@ export default function RankingsPage() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <div className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
+          <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-8">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
@@ -424,7 +424,7 @@ export default function RankingsPage() {
         )}
 
         {/* Full Rankings Table */}
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 pb-16 w-full flex-1">
+        <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 pb-16 flex-1">
           <div className="bg-gray-950/50 backdrop-blur-xl rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
             <div className="px-10 py-8 border-b border-gray-800 bg-gradient-to-r from-gray-900/50 to-gray-950/50">
               <h2 className="text-3xl font-bold">Complete Rankings</h2>
@@ -442,10 +442,11 @@ export default function RankingsPage() {
                 <details>
                   <summary className="text-red-400 cursor-pointer">Debug: localStorage Data</summary>
                   <div className="mt-2 space-y-1 text-gray-300">
-                    <div>matchData keys: {localStorage.getItem('matchData') ? Object.keys(JSON.parse(localStorage.getItem('matchData') || '{}')).join(', ') : 'No data'}</div>
-                    <div>Raw matchData: {localStorage.getItem('matchData')?.substring(0, 200)}...</div>
+                    <div>matchData keys: {typeof window !== 'undefined' && localStorage.getItem('matchData') ? Object.keys(JSON.parse(localStorage.getItem('matchData') || '{}')).join(', ') : 'No data'}</div>
+                    <div>Raw matchData: {typeof window !== 'undefined' ? localStorage.getItem('matchData')?.substring(0, 200) : 'Loading...'}...</div>
                     <div>playerStats count: {playerStats.length}</div>
                     <div>Last refresh: {lastUpdated}</div>
+                    <div>Window defined: {typeof window !== 'undefined' ? 'Yes' : 'No'}</div>
                   </div>
                 </details>
               </div>

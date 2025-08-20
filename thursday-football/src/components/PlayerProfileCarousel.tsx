@@ -214,14 +214,14 @@ export default function PlayerProfileCarousel({ currentUserName }: PlayerProfile
       </div>
 
       {/* Player Card */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden flex justify-center">
         <motion.div
           key={currentIndex}
           initial={{ opacity: 0, x: 300 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -300 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="w-full max-w-md mx-auto"
+          className="w-full max-w-md"
         >
           <div className="relative bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-3xl overflow-hidden shadow-2xl">
             {/* Header with club logo */}

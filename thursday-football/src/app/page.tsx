@@ -640,7 +640,7 @@ export default function HomePage() {
         transition={{ delay: 0.7, type: "spring", bounce: 0.4 }}
         className="relative z-20 -mt-16 mb-16"
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-6xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity" />
             <div className="relative bg-gradient-to-r from-green-600/30 to-emerald-600/30 backdrop-blur-xl rounded-3xl border border-green-400/30 p-8 text-center overflow-hidden">
@@ -763,8 +763,8 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
-        <div className="space-y-16 md:space-y-24 lg:space-y-32">
+      <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 pb-32">
+        <div className="space-y-32 md:space-y-40 lg:space-y-48">
         {/* Monthly Rating Popup */}
         <AnimatePresence>
           {showMonthlyRatingPopup && (
@@ -824,7 +824,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-16 md:mt-20 lg:mt-24"
+          className="mt-32 md:mt-40 lg:mt-48"
         >
           <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
             <PlayerProfileCarousel currentUserName={currentUser} />

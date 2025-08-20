@@ -90,7 +90,6 @@ export default function DashboardPage() {
     checkThursdayStatus()
     loadMonthlyAwards()
     checkMonthlyReset()
-    loadProfileData()
     
     const interval = setInterval(checkThursdayStatus, 60000)
     return () => clearInterval(interval)
@@ -355,12 +354,16 @@ export default function DashboardPage() {
     }, 3000)
     
     // Dispatch real-time update events using centralized system
+    console.log('🔥 Dispatching real-time events for:', userName, updatedStats)
     RealTimeEvents.dispatchPlayerStatsUpdate('dashboard', userName, updatedStats)
     RealTimeEvents.getInstance().dispatch('dataUpdated', 'dashboard', { 
       type: 'player-stats',
       player: userName,
       stats: updatedStats
     })
+    
+    // Also trigger rankings update specifically
+    window.dispatchEvent(new Event('ratingsUpdated'))
   }
 
   const downloadMonthlyReport = () => {
@@ -371,17 +374,24 @@ export default function DashboardPage() {
   const loadProfileData = () => {
     if (!user?.display_name) return
     
+    console.log('Loading profile data for:', user.display_name)
+    
     // Load profile image
     const storedImages = localStorage.getItem('playerImages')
     const images = storedImages ? JSON.parse(storedImages) : {}
+    console.log('Stored images:', images)
     setProfileImage(images[user.display_name] || '')
     
     // Load profile data
     const storedProfiles = localStorage.getItem('playerProfiles')
     const profiles = storedProfiles ? JSON.parse(storedProfiles) : {}
+    console.log('Stored profiles:', profiles)
     
     if (profiles[user.display_name]) {
       setProfileData(profiles[user.display_name])
+    } else {
+      // Set default data for first time
+      console.log('Setting default profile data for:', user.display_name)
     }
   }
 
@@ -439,7 +449,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <header className="border-b border-gray-800 bg-black/50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Trophy className="w-8 h-8 text-yellow-400" />
@@ -505,7 +515,7 @@ export default function DashboardPage() {
             exit={{ height: 0, opacity: 0 }}
             className="bg-green-900/20 border-b border-green-800"
           >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-3">
               <div className="flex items-center gap-2 text-green-400">
                 <CheckCircle className="w-5 h-5" />
                 <span>Stats submitted successfully for this week!</span>
@@ -515,7 +525,7 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-8">
         {/* Admin Panel Link */}
         {user?.isAdmin && (
           <motion.div 
