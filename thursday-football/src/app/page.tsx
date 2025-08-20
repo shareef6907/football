@@ -101,6 +101,8 @@ export default function HomePage() {
     window.addEventListener('ratingsUpdated', handleRealTimeUpdates as EventListener)
     window.addEventListener('playerStatsUpdated', handlePlayerStatsUpdate as EventListener)
     window.addEventListener('dataUpdated', handleRealTimeUpdates as EventListener)
+    window.addEventListener('rankingsUpdated', updatePlayerStatsRealTime as EventListener)
+    window.addEventListener('matchDataUpdated', updatePlayerStatsRealTime as EventListener)
 
     // Update Thursday status every minute  
     const statusInterval = setInterval(checkThursdayStatus, 60000)
@@ -176,7 +178,7 @@ export default function HomePage() {
       const playerRatings = ratings[name] || []
       const avgRating = playerRatings.length > 0 
         ? playerRatings.reduce((a: number, b: number) => a + b, 0) / playerRatings.length
-        : 5.0
+        : 0
       
       return {
         name,
@@ -205,7 +207,7 @@ export default function HomePage() {
 
     TEAM_MEMBERS.forEach(name => {
       const playerMatches = matches[name] || {}
-      const playerRating = ratings.find((r: any) => r.name === name)?.rating || 5
+      const playerRating = ratings.find((r: any) => r.name === name)?.rating || 0
       
       if (playerMatches.goals > topScorer.goals) {
         topScorer = { name, goals: playerMatches.goals }
@@ -313,7 +315,7 @@ export default function HomePage() {
       const playerRatings = ratings[name] || []
       const avgRating = playerRatings.length > 0 
         ? playerRatings.reduce((a: number, b: number) => a + b, 0) / playerRatings.length
-        : 5.0
+        : 0
       
       const playerMatches = matches[name] || {}
       const points = calculatePoints({
@@ -334,6 +336,20 @@ export default function HomePage() {
     })
     
     setPlayersWithStats(players)
+    
+    // Trigger real-time UI updates
+    window.dispatchEvent(new CustomEvent('rankingsUpdated', { 
+      detail: { players, timestamp: Date.now() } 
+    }))
+  }
+
+  // Real-time update system for immediate UI refresh
+  const updatePlayerStatsRealTime = () => {
+    loadPlayersWithStats()
+    loadLeaders()
+    
+    // Force re-render of all sections
+    setTimeUntilThursday(prev => prev)
   }
 
 
@@ -383,6 +399,10 @@ export default function HomePage() {
       type: 'ratings', 
       ratingsCount: Object.keys(userRatings).length 
     })
+    
+    // Trigger immediate real-time updates
+    updatePlayerStatsRealTime()
+    window.dispatchEvent(new CustomEvent('matchDataUpdated'))
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -629,8 +649,7 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 pb-32">
-        <div className="space-y-48 md:space-y-56 lg:space-y-64">
+      <div className="main-container pb-32">
         {/* Monthly Rating Popup */}
         <AnimatePresence>
           {showMonthlyRatingPopup && (
@@ -691,9 +710,8 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
-          <div className="max-w-4xl mx-auto">
             <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
               <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 ⚽ Team Generator
@@ -894,7 +912,6 @@ export default function HomePage() {
                 )}
               </div>
             </div>
-          </div>
         </motion.section>
 
         {/* Section 2: Player Ratings Table - Centered */}
@@ -903,7 +920,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
             <div className="bg-black/60 px-8 py-8 border-b border-white/10">
@@ -1027,7 +1044,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-6xl font-bold text-center mb-10 bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
@@ -1126,38 +1143,38 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="max-w-md mx-auto">
             {/* Login Form */}
             <motion.div 
-              className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10"
+              className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12 w-full max-w-md mx-auto"
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">🔐 Player Login</h2>
-              <form onSubmit={handleLogin} className="space-y-6">
+              <h2 className="text-5xl font-bold mb-10 text-center bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">🔐 Player Login</h2>
+              <form onSubmit={handleLogin} className="space-y-8">
                 <div>
-                  <label className="block text-base font-medium text-gray-400 mb-2">
+                  <label className="block text-xl font-medium text-gray-300 mb-3">
                     Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
+                    className="w-full px-6 py-5 text-xl rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
                     placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium text-gray-400 mb-2">
+                  <label className="block text-xl font-medium text-gray-300 mb-3">
                     Password
                   </label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-5 py-4 text-lg rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
+                    className="w-full px-6 py-5 text-xl rounded-xl bg-black/60 border border-white/20 focus:border-cyan-400 outline-none transition-all text-white"
                     placeholder="••••••••"
                     required
                   />
@@ -1174,7 +1191,7 @@ export default function HomePage() {
                 <motion.button
                   type="submit"
                   disabled={isLoggingIn}
-                  className="w-full px-6 py-4 text-xl font-bold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full px-8 py-5 text-2xl font-bold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -1195,8 +1212,8 @@ export default function HomePage() {
                   )}
                 </motion.button>
               </form>
-              <div className="mt-6 pt-6 border-t border-blue-500/30 text-center">
-                <Link href="/register" className="text-blue-400 hover:text-blue-300 text-lg font-semibold">
+              <div className="mt-8 pt-8 border-t border-blue-500/30 text-center">
+                <Link href="/register" className="text-blue-400 hover:text-blue-300 text-xl font-semibold">
                   Create Account →
                 </Link>
               </div>
@@ -1209,7 +1226,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="max-w-2xl mx-auto">
             {/* Current Month Leaders */}
@@ -1217,7 +1234,7 @@ export default function HomePage() {
               className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10"
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">🏆 Current Leaders</h2>
+              <h2 className="text-5xl font-bold mb-10 text-center bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">🏆 Current Leaders</h2>
               {leaders && (
                 <div className="space-y-4">
                   {[
@@ -1271,7 +1288,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="bg-gradient-to-br from-violet-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-4xl font-bold mb-10 text-center bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">⚡ How Points Work</h2>
@@ -1373,7 +1390,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-48 md:mt-56 lg:mt-64"
+          className="section-spacing homepage-section"
         >
           <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
@@ -1540,7 +1557,6 @@ export default function HomePage() {
             </motion.button>
           </Link>
         </motion.div>
-        </div>
       </div>
 
       <style jsx>{`
