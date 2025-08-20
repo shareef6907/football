@@ -7,7 +7,6 @@ import { createClient } from '@/lib/auth'
 import { TEAM_MEMBERS } from '@/lib/auth'
 import { getPlayerBadges } from '@/lib/awards'
 import { RealTimeEvents } from '@/lib/realtime'
-import PlayerProfileCarousel from '@/components/PlayerProfileCarousel'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Trophy, Star, Target, Shield, LogIn, UserCog, 
@@ -29,23 +28,9 @@ interface LeaderStats {
   topRanked: { name: string, points: number }
 }
 
-interface GameInfo {
-  date: string
-  opponent: string
-  result?: string
-  score?: string
-}
-
 interface TeamGeneratorProps {
   players: string[]
   teamSize: 5 | 6
-}
-
-interface BalancedTeam {
-  teamA: { players: string[], avgRating: number, totalPoints: number }
-  teamB: { players: string[], avgRating: number, totalPoints: number }
-  balanceScore: number
-  generatedAt: string
 }
 
 interface PlayerWithStats {
@@ -73,13 +58,10 @@ export default function HomePage() {
   const [timeUntilThursday, setTimeUntilThursday] = useState('')
   const [showRatingSuccess, setShowRatingSuccess] = useState(false)
   const [showMonthlyRatingPopup, setShowMonthlyRatingPopup] = useState(false)
-  const [previousGames, setPreviousGames] = useState<GameInfo[]>([])
-  const [nextGame, setNextGame] = useState<GameInfo | null>(null)
   const [showTeamGenerator, setShowTeamGenerator] = useState(false)
   const [availablePlayers, setAvailablePlayers] = useState<string[]>(TEAM_MEMBERS)
   const [teamSize, setTeamSize] = useState<5 | 6>(5)
   const [generatedTeams, setGeneratedTeams] = useState<{teamA: string[], teamB: string[]} | null>(null)
-  const [monthlyBalancedTeams, setMonthlyBalancedTeams] = useState<BalancedTeam | null>(null)
   const [playersWithStats, setPlayersWithStats] = useState<PlayerWithStats[]>([])
   const [countdownTime, setCountdownTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
@@ -87,15 +69,11 @@ export default function HomePage() {
     checkAuthAndLoadData()
     checkThursdayStatus()
     loadLeaders()
-    loadGameData()
     checkMonthlyRatingStatus()
     
-    // Load player stats first, then generate teams
+    // Load player stats
     setTimeout(() => {
       loadPlayersWithStats()
-      setTimeout(() => {
-        generateMonthlyBalancedTeams()
-      }, 100)
     }, 100)
     
     // Check if user has already rated
@@ -111,14 +89,12 @@ export default function HomePage() {
       loadLeaders()
       loadPlayerRatings()
       loadPlayersWithStats()
-      generateMonthlyBalancedTeams()
     }
     
     const handlePlayerStatsUpdate = (event: CustomEvent) => {
       console.log('Player stats updated:', event.detail)
       loadLeaders()
       loadPlayersWithStats()
-      generateMonthlyBalancedTeams()
     }
     
     // Set up event listeners for real-time updates
@@ -300,29 +276,6 @@ export default function HomePage() {
     }))
   }
 
-  const loadGameData = () => {
-    // Sample game data - replace with real data from Supabase
-    const samplePreviousGames: GameInfo[] = [
-      { date: '2025-08-12', opponent: 'Team A vs Team B', result: 'Win', score: '5-3' },
-      { date: '2025-08-05', opponent: 'Team C vs Team D', result: 'Loss', score: '2-4' },
-      { date: '2025-07-29', opponent: 'Team E vs Team F', result: 'Win', score: '6-1' }
-    ]
-    
-    // Calculate next Thursday
-    const nextThursday = getNextThursday()
-    const sampleNextGame: GameInfo = {
-      date: nextThursday.toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      opponent: 'Weekly Match'
-    }
-    
-    setPreviousGames(samplePreviousGames)
-    setNextGame(sampleNextGame)
-  }
 
   const getNextThursday = () => {
     const today = new Date()
@@ -383,103 +336,17 @@ export default function HomePage() {
     setPlayersWithStats(players)
   }
 
-  const generateBalancedTeams = (players: PlayerWithStats[], size: 5 | 6): BalancedTeam => {
-    // Filter available players (not injured)
-    const availablePlayers = players.filter(p => p.formStatus !== 'injured')
-    
-    // Sort by rating + points for better balancing
-    const sortedPlayers = [...availablePlayers].sort((a, b) => 
-      (b.rating + b.points/10) - (a.rating + a.points/10)
-    )
-    
-    let bestBalance: BalancedTeam = {
-      teamA: { players: [], avgRating: 0, totalPoints: 0 },
-      teamB: { players: [], avgRating: 0, totalPoints: 0 },
-      balanceScore: Infinity,
-      generatedAt: new Date().toISOString()
-    }
-    
-    // Try multiple combinations to find best balance
-    for (let attempt = 0; attempt < 1000; attempt++) {
-      const shuffled = [...sortedPlayers].sort(() => Math.random() - 0.5)
-      const teamA = shuffled.slice(0, size)
-      const teamB = shuffled.slice(size, size * 2)
-      
-      if (teamA.length < size || teamB.length < size) continue
-      
-      const teamAAvgRating = teamA.reduce((sum, p) => sum + p.rating, 0) / teamA.length
-      const teamBAvgRating = teamB.reduce((sum, p) => sum + p.rating, 0) / teamB.length
-      const teamATotalPoints = teamA.reduce((sum, p) => sum + p.points, 0)
-      const teamBTotalPoints = teamB.reduce((sum, p) => sum + p.points, 0)
-      
-      // Balance score: lower is better (closer ratings + closer points)
-      const ratingDiff = Math.abs(teamAAvgRating - teamBAvgRating)
-      const pointsDiff = Math.abs(teamATotalPoints - teamBTotalPoints) / 100 // Scale down points
-      const balanceScore = ratingDiff + pointsDiff
-      
-      if (balanceScore < bestBalance.balanceScore) {
-        bestBalance = {
-          teamA: { 
-            players: teamA.map(p => p.name), 
-            avgRating: Math.round(teamAAvgRating * 10) / 10,
-            totalPoints: teamATotalPoints
-          },
-          teamB: { 
-            players: teamB.map(p => p.name), 
-            avgRating: Math.round(teamBAvgRating * 10) / 10,
-            totalPoints: teamBTotalPoints
-          },
-          balanceScore: Math.round(balanceScore * 100) / 100,
-          generatedAt: new Date().toISOString()
-        }
-      }
-    }
-    
-    return bestBalance
-  }
 
-  const generateMonthlyBalancedTeams = () => {
-    const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
-    const storedTeams = localStorage.getItem('monthlyBalancedTeams')
-    
-    if (storedTeams) {
-      const parsed = JSON.parse(storedTeams)
-      if (parsed.month === currentMonth) {
-        setMonthlyBalancedTeams(parsed.teams)
-        return
-      }
-    }
-    
-    // Generate new monthly balanced teams
-    if (playersWithStats.length >= 10) {
-      const balancedTeams = generateBalancedTeams(playersWithStats, 5)
-      setMonthlyBalancedTeams(balancedTeams)
-      
-      // Store for the month
-      localStorage.setItem('monthlyBalancedTeams', JSON.stringify({
-        month: currentMonth,
-        teams: balancedTeams
-      }))
-    }
-  }
 
   const generateTeams = () => {
-    if (playersWithStats.length >= teamSize * 2) {
-      const balancedTeams = generateBalancedTeams(playersWithStats, teamSize)
-      setGeneratedTeams({ 
-        teamA: balancedTeams.teamA.players, 
-        teamB: balancedTeams.teamB.players 
-      })
-    } else {
-      // Fallback to simple shuffle if not enough data
-      const shuffled = [...availablePlayers].sort(() => Math.random() - 0.5)
-      const playersPerTeam = teamSize
-      
-      const teamA = shuffled.slice(0, playersPerTeam)
-      const teamB = shuffled.slice(playersPerTeam, playersPerTeam * 2)
-      
-      setGeneratedTeams({ teamA, teamB })
-    }
+    // Simple shuffle team generation
+    const shuffled = [...availablePlayers].sort(() => Math.random() - 0.5)
+    const playersPerTeam = teamSize
+    
+    const teamA = shuffled.slice(0, playersPerTeam)
+    const teamB = shuffled.slice(playersPerTeam, playersPerTeam * 2)
+    
+    setGeneratedTeams({ teamA, teamB })
   }
 
   const submitRatings = () => {
@@ -505,7 +372,6 @@ export default function HomePage() {
     loadPlayerRatings()
     loadLeaders() // Update leaders and rankings in real-time
     loadPlayersWithStats()
-    generateMonthlyBalancedTeams() // Regenerate balanced teams with new ratings
     
     setTimeout(() => {
       setShowRatingSuccess(false)
@@ -689,7 +555,7 @@ export default function HomePage() {
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     <p className="text-3xl md:text-4xl font-black text-white mb-2">
-                      {nextGame?.date || getNextThursday().toLocaleDateString('en-US', { 
+                      {getNextThursday().toLocaleDateString('en-US', { 
                         weekday: 'long',
                         month: 'long', 
                         day: 'numeric' 
@@ -819,101 +685,15 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* Section 1: Player Profile Carousel */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mt-32 md:mt-40 lg:mt-48"
-        >
-          <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
-            <PlayerProfileCarousel currentUserName={currentUser} />
-            <div className="text-center mt-8 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/rankings"
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all text-lg font-semibold"
-                >
-                  <Trophy className="w-6 h-6" />
-                  View All Rankings
-                </Link>
-                {currentUser && (
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transition-all text-lg font-semibold"
-                  >
-                    <UserCog className="w-6 h-6" />
-                    My Dashboard
-                  </Link>
-                )}
-              </div>
-              {currentUser && (
-                <p className="text-sm text-gray-400">
-                  Welcome back, {currentUser}! Click on your profile card to edit your info.
-                </p>
-              )}
-            </div>
-          </div>
-        </motion.section>
 
-        {/* Section 3: Games & Team Generator */}
+        {/* Team Generator - Full Width */}
         <motion.section 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="mt-32 md:mt-40 lg:mt-48"
         >
-          <div className="grid lg:grid-cols-2 gap-16">
-            {/* Previous & Next Games */}
-            <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
-              <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                📅 Game Schedule
-              </h2>
-              
-              <div className="space-y-6">
-                {/* Next Game */}
-                <div className="bg-black/40 rounded-2xl p-6 border border-green-400/20">
-                  <h3 className="text-xl font-bold mb-4 text-green-400 flex items-center gap-2">
-                    <Calendar className="w-6 h-6" />
-                    Next Game
-                  </h3>
-                  {nextGame && (
-                    <div>
-                      <p className="text-lg font-semibold text-white">{nextGame.date}</p>
-                      <p className="text-gray-400">{nextGame.opponent}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Previous Games */}
-                <div className="bg-black/40 rounded-2xl p-6 border border-blue-400/20">
-                  <h3 className="text-xl font-bold mb-4 text-blue-400 flex items-center gap-2">
-                    <Trophy className="w-6 h-6" />
-                    Recent Games
-                  </h3>
-                  <div className="space-y-3">
-                    {previousGames.map((game, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <div>
-                          <p className="text-white font-medium">{game.date}</p>
-                          <p className="text-gray-500 text-sm">{game.opponent}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                            game.result === 'Win' ? 'bg-green-400/20 text-green-400' : 'bg-red-400/20 text-red-400'
-                          }`}>
-                            {game.result}
-                          </span>
-                          <p className="text-gray-400 text-sm mt-1">{game.score}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Team Generator */}
+          <div className="max-w-4xl mx-auto">
             <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
               <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                 ⚽ Team Generator
@@ -1242,195 +1022,6 @@ export default function HomePage() {
           </div>
         </motion.section>
 
-        {/* Section 4: Monthly Balanced Teams */}
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="mt-24 md:mt-32 lg:mt-40"
-        >
-          <div className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
-            <h2 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-              🏆 Monthly Fair Teams
-            </h2>
-            <p className="text-center text-gray-300 text-xl mb-8">
-              AI-balanced teams based on player ratings, stats, and form status
-            </p>
-            
-            {monthlyBalancedTeams ? (
-              <div className="space-y-8">
-                {/* Balance Metrics */}
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-6 px-8 py-4 rounded-2xl bg-black/40 border border-emerald-400/30">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-400">Balance Score</p>
-                      <p className="text-2xl font-bold text-emerald-400">{monthlyBalancedTeams.balanceScore}</p>
-                      <p className="text-xs text-gray-500">Lower = Better</p>
-                    </div>
-                    <div className="h-8 w-px bg-gray-600"></div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-400">Generated</p>
-                      <p className="text-lg font-semibold text-white">
-                        {new Date(monthlyBalancedTeams.generatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Balanced Teams Display */}
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Team A */}
-                  <motion.div 
-                    className="relative group"
-                    whileHover={{ scale: 1.03 }}
-                  >
-                    <div className="absolute inset-0 bg-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative bg-gradient-to-br from-blue-600/30 to-cyan-600/30 backdrop-blur-xl rounded-2xl border border-blue-400/30 p-8">
-                      <div className="text-center mb-6">
-                        <div className="flex items-center justify-center gap-3 mb-4">
-                          <motion.div
-                            animate={{ rotate: [0, 360] }}
-                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Trophy className="w-8 h-8 text-blue-400" />
-                          </motion.div>
-                          <h3 className="text-3xl font-bold text-blue-400">Team A</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-black/40 rounded-xl p-3">
-                            <p className="text-sm text-gray-400">Avg Rating</p>
-                            <div className="flex items-center justify-center gap-1">
-                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                              <p className="text-xl font-bold text-white">{monthlyBalancedTeams.teamA.avgRating}</p>
-                            </div>
-                          </div>
-                          <div className="bg-black/40 rounded-xl p-3">
-                            <p className="text-sm text-gray-400">Total Points</p>
-                            <p className="text-xl font-bold text-white">{monthlyBalancedTeams.teamA.totalPoints}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {monthlyBalancedTeams.teamA.players.map((player, index) => (
-                          <motion.div
-                            key={index}
-                            className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-blue-400/20"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-semibold text-white">{player}</span>
-                              {getPlayerBadges(player).length > 0 && (
-                                <span className="text-sm">{getPlayerBadges(player).join(' ')}</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                              <span className="text-sm font-medium text-gray-300">
-                                {playersWithStats.find(p => p.name === player)?.rating || 5.0}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Team B */}
-                  <motion.div 
-                    className="relative group"
-                    whileHover={{ scale: 1.03 }}
-                  >
-                    <div className="absolute inset-0 bg-red-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative bg-gradient-to-br from-red-600/30 to-pink-600/30 backdrop-blur-xl rounded-2xl border border-red-400/30 p-8">
-                      <div className="text-center mb-6">
-                        <div className="flex items-center justify-center gap-3 mb-4">
-                          <motion.div
-                            animate={{ rotate: [360, 0] }}
-                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Trophy className="w-8 h-8 text-red-400" />
-                          </motion.div>
-                          <h3 className="text-3xl font-bold text-red-400">Team B</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-black/40 rounded-xl p-3">
-                            <p className="text-sm text-gray-400">Avg Rating</p>
-                            <div className="flex items-center justify-center gap-1">
-                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                              <p className="text-xl font-bold text-white">{monthlyBalancedTeams.teamB.avgRating}</p>
-                            </div>
-                          </div>
-                          <div className="bg-black/40 rounded-xl p-3">
-                            <p className="text-sm text-gray-400">Total Points</p>
-                            <p className="text-xl font-bold text-white">{monthlyBalancedTeams.teamB.totalPoints}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {monthlyBalancedTeams.teamB.players.map((player, index) => (
-                          <motion.div
-                            key={index}
-                            className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-red-400/20"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-semibold text-white">{player}</span>
-                              {getPlayerBadges(player).length > 0 && (
-                                <span className="text-sm">{getPlayerBadges(player).join(' ')}</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                              <span className="text-sm font-medium text-gray-300">
-                                {playersWithStats.find(p => p.name === player)?.rating || 5.0}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-
-                {/* Regenerate Button */}
-                <div className="text-center">
-                  <motion.button
-                    onClick={generateMonthlyBalancedTeams}
-                    className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transition-all font-semibold text-lg flex items-center gap-3 mx-auto"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Shuffle className="w-6 h-6" />
-                    Regenerate Fair Teams
-                  </motion.button>
-                  <p className="text-sm text-gray-400 mt-3">
-                    Teams regenerate automatically each month based on updated ratings
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="mx-auto mb-4"
-                >
-                  <Shuffle className="w-16 h-16 text-emerald-400 mx-auto" />
-                </motion.div>
-                <p className="text-xl text-gray-400 mb-6">Generating balanced teams...</p>
-                <p className="text-sm text-gray-500">Need more player ratings to create fair teams</p>
-              </div>
-            )}
-          </div>
-        </motion.section>
 
         {/* Section 5: Login and Leaders - Side by Side with Space */}
         <motion.section 
