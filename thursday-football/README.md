@@ -15,3 +15,7 @@ npm run dev
 ```
 
 Visit [thursdayfootball.com](https://thursdayfootball.com) to see it live!
+
+## Recent Updates
+- Streamlined homepage with cleaner layout
+- Removed unnecessary sections for better UX
