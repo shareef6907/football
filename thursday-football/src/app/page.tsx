@@ -630,7 +630,7 @@ export default function HomePage() {
       </motion.div>
 
       <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 pb-32">
-        <div className="space-y-32 md:space-y-40 lg:space-y-48">
+        <div className="space-y-48 md:space-y-56 lg:space-y-64">
         {/* Monthly Rating Popup */}
         <AnimatePresence>
           {showMonthlyRatingPopup && (
@@ -691,11 +691,11 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-32 md:mt-40 lg:mt-48"
+          className="mt-48 md:mt-56 lg:mt-64"
         >
           <div className="max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
-              <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+            <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8">
+              <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 ⚽ Team Generator
               </h2>
               
@@ -710,7 +710,7 @@ export default function HomePage() {
                         onClick={() => setTeamSize(size as 5 | 6)}
                         className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
                           teamSize === size
-                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                            ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
                             : 'bg-black/40 text-gray-400 hover:text-white border border-white/10'
                         }`}
                         whileHover={{ scale: 1.05 }}
@@ -762,7 +762,7 @@ export default function HomePage() {
                           }}
                           className={`p-3 rounded-xl border transition-all text-left ${
                             isSelected
-                              ? 'bg-green-600/20 border-green-400/50 text-white'
+                              ? 'bg-blue-600/20 border-blue-400/50 text-white'
                               : 'bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
                           }`}
                           whileHover={{ scale: 1.02 }}
@@ -786,7 +786,7 @@ export default function HomePage() {
                             </div>
                             <div className={`w-5 h-5 rounded-full border-2 transition-all ${
                               isSelected 
-                                ? 'bg-green-400 border-green-400' 
+                                ? 'bg-blue-400 border-blue-400' 
                                 : 'border-gray-400'
                             }`}>
                               {isSelected && (
@@ -813,7 +813,7 @@ export default function HomePage() {
                 <motion.button
                   onClick={generateTeams}
                   disabled={availablePlayers.length < teamSize * 2}
-                  className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -903,7 +903,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mt-32 md:mt-40 lg:mt-48"
+          className="mt-48 md:mt-56 lg:mt-64"
         >
           <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
             <div className="bg-black/60 px-8 py-8 border-b border-white/10">
@@ -1022,15 +1022,113 @@ export default function HomePage() {
           </div>
         </motion.section>
 
+        {/* Rankings Section - Below Rate Players */}
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mt-48 md:mt-56 lg:mt-64"
+        >
+          <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
+            <h2 className="text-6xl font-bold text-center mb-10 bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              🏆 Current Rankings
+            </h2>
+            <p className="text-center text-gray-300 text-2xl mb-12">
+              Live leaderboard updated with every score entry
+            </p>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="px-6 py-8 text-left text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Rank</th>
+                    <th className="px-6 py-8 text-left text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Player</th>
+                    <th className="px-6 py-8 text-center text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Points</th>
+                    <th className="px-6 py-8 text-center text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Goals</th>
+                    <th className="px-6 py-8 text-center text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Assists</th>
+                    <th className="px-6 py-8 text-center text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">Rating</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {playersWithStats
+                    .sort((a, b) => b.points - a.points)
+                    .slice(0, 10)
+                    .map((player, index) => {
+                      const matchData = localStorage.getItem('matchData')
+                      const matches = matchData ? JSON.parse(matchData) : {}
+                      const playerMatches = matches[player.name] || { goals: 0, assists: 0, saves: 0 }
+                      
+                      return (
+                        <motion.tr 
+                          key={player.name} 
+                          className="hover:bg-white/5 transition-all"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.01 }}
+                        >
+                          <td className="px-6 py-8">
+                            <div className="flex items-center gap-4">
+                              <span className={`text-3xl font-bold ${
+                                index === 0 ? 'text-yellow-400' : 
+                                index === 1 ? 'text-gray-300' : 
+                                index === 2 ? 'text-orange-400' : 'text-white'
+                              }`}>
+                                #{index + 1}
+                              </span>
+                              {index === 0 && <Trophy className="w-8 h-8 text-yellow-400" />}
+                            </div>
+                          </td>
+                          <td className="px-6 py-8">
+                            <div className="flex items-center gap-4">
+                              <span className="text-2xl font-semibold text-white">{player.name}</span>
+                              {getPlayerBadges(player.name).length > 0 && (
+                                <span className="text-xl">{getPlayerBadges(player.name).join(' ')}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-8 text-center">
+                            <span className="text-3xl font-bold text-white">{Math.round(player.points)}</span>
+                          </td>
+                          <td className="px-6 py-8 text-center">
+                            <span className="text-2xl font-semibold text-blue-400">{playerMatches.goals || 0}</span>
+                          </td>
+                          <td className="px-6 py-8 text-center">
+                            <span className="text-2xl font-semibold text-purple-400">{playerMatches.assists || 0}</span>
+                          </td>
+                          <td className="px-6 py-8 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                              <span className="text-2xl font-semibold text-yellow-400">{player.rating}</span>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-8 text-center">
+              <Link
+                href="/rankings"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 transition-all text-lg font-semibold"
+              >
+                <Trophy className="w-6 h-6" />
+                View Full Rankings
+              </Link>
+            </div>
+          </div>
+        </motion.section>
 
-        {/* Section 5: Login and Leaders - Side by Side with Space */}
+        {/* Player Login - Centered and Separate */}
         <motion.section 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-24 md:mt-32 lg:mt-40"
+          className="mt-48 md:mt-56 lg:mt-64"
         >
-          <div className="grid md:grid-cols-2 gap-20">
+          <div className="max-w-md mx-auto">
             {/* Login Form */}
             <motion.div 
               className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10"
@@ -1103,7 +1201,17 @@ export default function HomePage() {
                 </Link>
               </div>
             </motion.div>
+          </div>
+        </motion.section>
 
+        {/* Current Leaders - Separate Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mt-48 md:mt-56 lg:mt-64"
+        >
+          <div className="max-w-2xl mx-auto">
             {/* Current Month Leaders */}
             <motion.div 
               className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-10"
@@ -1163,7 +1271,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-24 md:mt-32 lg:mt-40"
+          className="mt-48 md:mt-56 lg:mt-64"
         >
           <div className="bg-gradient-to-br from-violet-900/20 to-purple-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-4xl font-bold mb-10 text-center bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">⚡ How Points Work</h2>
@@ -1265,7 +1373,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-24 md:mt-32 lg:mt-40"
+          className="mt-48 md:mt-56 lg:mt-64"
         >
           <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-12">
             <h2 className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">📋 League Rules & Guidelines</h2>
