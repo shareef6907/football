@@ -412,7 +412,7 @@ const ThursdayFootballApp = () => {
                       onChange={(e) => updateFormData('won', e.target.value === 'true')}
                       value={formData.won ? 'true' : 'false'}
                     >
-                      <option value="false">❌ Lost Game</option>
+                      <option value="false">❌ Lost Game (0 pts)</option>
                       <option value="true">🏆 Won Game (+10 pts)</option>
                     </select>
                   </div>

@@ -214,7 +214,12 @@ export async function getPlayerRankings(): Promise<any[]> {
         playerStats[playerName].goals += stat.goals || 0
         playerStats[playerName].assists += stat.assists || 0
         playerStats[playerName].saves += stat.saves || 0
-        playerStats[playerName].wins += (stat.points_earned >= 10) ? 1 : 0
+        
+        // Calculate expected points without win bonus
+        const expectedPoints = (stat.goals * 5) + (stat.assists * 3) + (stat.saves * 2)
+        // If actual points are 10 more than expected, they won the game
+        const wonGame = stat.points_earned === (expectedPoints + 10)
+        playerStats[playerName].wins += wonGame ? 1 : 0
         playerStats[playerName].totalGames += 1
       }
     }
