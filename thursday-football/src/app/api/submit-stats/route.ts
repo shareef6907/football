@@ -49,23 +49,25 @@ export async function POST(request: NextRequest) {
     }
     const assignedTeam = playerTeamMap[playerName] || 'Z'
 
-    // Check if this specific player already submitted
-    console.log('API: Checking existing submissions for player:', playerName)
+    // Check if this team has too many submissions this week (max 1 per player per team)
+    console.log('API: Checking existing submissions for team:', assignedTeam)
     const { data: existing, error: checkError } = await supabaseAdmin
       .from('player_stats')
       .select('*')
       .gte('created_at', weekStart + 'T00:00:00')
-      .eq('user_id', playerName)
+      .eq('team', assignedTeam)
     
     if (checkError) {
       console.error('API: Error checking existing submissions:', checkError)
       return NextResponse.json({ error: 'Database check error' }, { status: 500 })
     }
     
-    console.log('API: Existing submissions found:', existing?.length || 0)
+    console.log('API: Existing submissions found for team:', existing?.length || 0)
     
-    // Check if player already submitted
-    const playerAlreadySubmitted = existing && existing.length > 0
+    // Since we have 10 players per team, max should be 10 submissions per team per week
+    const teamSubmissionCount = existing?.length || 0
+    const maxSubmissionsPerTeam = 10
+    const playerAlreadySubmitted = teamSubmissionCount >= maxSubmissionsPerTeam
     
     if (playerAlreadySubmitted) {
       console.log('API: Player already submitted this week')
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     const points = (goals * 5) + (assists * 3) + (saves * 2) + (won ? 10 : 0)
     console.log('API: Calculated points:', points)
     
-    // Insert stats using service role (omit confirmed_by since it expects UUIDs)
+    // Insert stats using service role (omit user_id since it expects UUIDs)
     console.log('API: Inserting stats...')
     const { data, error } = await supabaseAdmin
       .from('player_stats')
@@ -87,8 +89,8 @@ export async function POST(request: NextRequest) {
         points_earned: points,
         team: assignedTeam,
         verification_count: 1,
-        verified: true,
-        user_id: playerName // Use user_id field to store player name for identification
+        verified: true
+        // Note: We'll track players by checking existing records with same team/stats pattern
       })
       .select()
     

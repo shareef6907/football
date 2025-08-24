@@ -120,7 +120,7 @@ export async function submitPlayerStats(playerName: string, stats: {
   }
 }
 
-// Check if player has submitted this week
+// Check if player has submitted this week (simplified - just check if team is full)
 export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<boolean> {
   const weekStart = getWeekStart()
   
@@ -135,14 +135,15 @@ export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<bo
   }
   const assignedTeam = playerTeamMap[playerName] || 'Z'
   
-  // Check if there's a record for this player this week by looking at user_id field
+  // Check if team already has maximum submissions this week
   const { data } = await supabase
     .from('player_stats')
     .select('*')
     .gte('created_at', weekStart + 'T00:00:00')
-    .eq('user_id', playerName)
+    .eq('team', assignedTeam)
   
-  return (data && data.length > 0) || false
+  // If team already has 10 submissions, consider player as already submitted
+  return (data && data.length >= 10) || false
 }
 
 // Helper function to get the start of the current week (Monday)
@@ -188,12 +189,51 @@ export async function getPlayerRankings(): Promise<any[]> {
   // Since multiple players can be on team A/B, we cannot reverse-map from team to individual player
   // We'll need to track by created_at timestamp and match to specific submissions
   
+  // Since we can't track individual players without user_id, 
+  // we'll create aggregate stats based on team performance
+  const teamStats: { [key: string]: any } = {}
+  
   data?.forEach((stat: any) => {
-    // Use user_id field to identify the player
-    const playerName = stat.user_id
-    if (!playerName) return
+    const team = stat.team
+    if (!team) return
     
-    if (!playerStats[playerName]) {
+    if (!teamStats[team]) {
+      teamStats[team] = {
+        name: `Team ${team}`,
+        goals: 0,
+        assists: 0,
+        saves: 0,
+        wins: 0,
+        totalGames: 0,
+        form: 'fit'
+      }
+    }
+    
+    teamStats[team].goals += stat.goals || 0
+    teamStats[team].assists += stat.assists || 0
+    teamStats[team].saves += stat.saves || 0
+    if (stat.points_earned >= 10) teamStats[team].wins += 1
+    teamStats[team].totalGames += 1
+  })
+  
+  // For individual rankings, create entries for all players with default values
+  PLAYERS.forEach(playerName => {
+    const playerTeam = playerToTeamMap[playerName] || 'Z'
+    const teamData = teamStats[playerTeam]
+    
+    if (teamData) {
+      // Distribute team stats evenly among team players for display
+      const teamSize = teamPlayerMap[playerTeam]?.length || 1
+      playerStats[playerName] = {
+        name: playerName,
+        goals: Math.floor(teamData.goals / teamSize),
+        assists: Math.floor(teamData.assists / teamSize),
+        saves: Math.floor(teamData.saves / teamSize),
+        wins: Math.floor(teamData.wins / teamSize),
+        totalGames: Math.floor(teamData.totalGames / teamSize),
+        form: 'fit'
+      }
+    } else {
       playerStats[playerName] = {
         name: playerName,
         goals: 0,
@@ -201,16 +241,9 @@ export async function getPlayerRankings(): Promise<any[]> {
         saves: 0,
         wins: 0,
         totalGames: 0,
-        form: 'fit' // Default form status
+        form: 'fit'
       }
     }
-    
-    playerStats[playerName].goals += stat.goals || 0
-    playerStats[playerName].assists += stat.assists || 0
-    playerStats[playerName].saves += stat.saves || 0
-    // Determine wins based on points or other logic (simplified for now)
-    if (stat.points_earned >= 10) playerStats[playerName].wins += 1
-    playerStats[playerName].totalGames += 1
   })
   
   // Convert to array and calculate total points
