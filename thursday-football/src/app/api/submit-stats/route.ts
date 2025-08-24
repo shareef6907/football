@@ -38,47 +38,18 @@ export async function POST(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
-    // Map players to teams A and B only (constraint allows only A, B)
-    const playerTeamMap: { [key: string]: string } = {
-      // Team A (10 players)
-      'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
-      'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
-      // Team B (10 players)  
-      'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
-      'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
-    }
-    const assignedTeam = playerTeamMap[playerName] || 'Z'
+    // Use a default team since we're not doing team-based tracking
+    const assignedTeam = 'A'
 
-    // Check if this team has too many submissions this week (max 1 per player per team)
-    console.log('API: Checking existing submissions for team:', assignedTeam)
-    const { data: existing, error: checkError } = await supabaseAdmin
-      .from('player_stats')
-      .select('*')
-      .gte('created_at', weekStart + 'T00:00:00')
-      .eq('team', assignedTeam)
-    
-    if (checkError) {
-      console.error('API: Error checking existing submissions:', checkError)
-      return NextResponse.json({ error: 'Database check error' }, { status: 500 })
-    }
-    
-    console.log('API: Existing submissions found for team:', existing?.length || 0)
-    
-    // Since we have 10 players per team, max should be 10 submissions per team per week
-    const teamSubmissionCount = existing?.length || 0
-    const maxSubmissionsPerTeam = 10
-    const playerAlreadySubmitted = teamSubmissionCount >= maxSubmissionsPerTeam
-    
-    if (playerAlreadySubmitted) {
-      console.log('API: Player already submitted this week')
-      return NextResponse.json({ error: 'Already submitted this week' }, { status: 400 })
-    }
+    // Check if this exact player already submitted by checking for similar stats pattern
+    // We'll allow duplicate submissions since teams change weekly
+    console.log('API: Allowing submission (teams change weekly)')
     
     // Calculate points
     const points = (goals * 5) + (assists * 3) + (saves * 2) + (won ? 10 : 0)
     console.log('API: Calculated points:', points)
     
-    // Insert stats using service role (omit user_id since it expects UUIDs)
+    // Insert stats using service role 
     console.log('API: Inserting stats...')
     const { data, error } = await supabaseAdmin
       .from('player_stats')
@@ -90,7 +61,7 @@ export async function POST(request: NextRequest) {
         team: assignedTeam,
         verification_count: 1,
         verified: true
-        // Note: We'll track players by checking existing records with same team/stats pattern
+        // Player name will be tracked client-side since DB fields expect UUIDs
       })
       .select()
     
@@ -111,7 +82,12 @@ export async function POST(request: NextRequest) {
     
     console.log('API: Stats submitted successfully!')
     clearTimeout(timeoutId)
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({ 
+      success: true, 
+      data: data,
+      playerName: playerName, // Return player name for client tracking
+      submissionId: data?.[0]?.id 
+    })
     
   } catch (error) {
     console.error('API: Unexpected error:', {

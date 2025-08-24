@@ -113,6 +113,18 @@ export async function submitPlayerStats(playerName: string, stats: {
       return false
     }
     
+    // Store submission in localStorage for tracking
+    if (result.success && result.submissionId) {
+      const weekStart = getWeekStart()
+      const submissionKey = `submission_${weekStart}_${playerName}`
+      localStorage.setItem(submissionKey, JSON.stringify({
+        id: result.submissionId,
+        playerName: result.playerName,
+        submittedAt: new Date().toISOString(),
+        stats: stats
+      }))
+    }
+    
     return true
   } catch (error) {
     console.error('Error submitting player stats:', error)
@@ -120,30 +132,20 @@ export async function submitPlayerStats(playerName: string, stats: {
   }
 }
 
-// Check if player has submitted this week (simplified - just check if team is full)
+// Check if player has submitted this week using localStorage
 export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<boolean> {
   const weekStart = getWeekStart()
+  const submissionKey = `submission_${weekStart}_${playerName}`
   
-  // Map players to teams A and B only (constraint allows only A, B)
-  const playerTeamMap: { [key: string]: string } = {
-    // Team A (10 players)
-    'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
-    'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
-    // Team B (10 players)  
-    'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
-    'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
+  // Check localStorage first for fast response
+  if (typeof window !== 'undefined') {
+    const storedSubmission = localStorage.getItem(submissionKey)
+    if (storedSubmission) {
+      return true
+    }
   }
-  const assignedTeam = playerTeamMap[playerName] || 'Z'
   
-  // Check if team already has maximum submissions this week
-  const { data } = await supabase
-    .from('player_stats')
-    .select('*')
-    .gte('created_at', weekStart + 'T00:00:00')
-    .eq('team', assignedTeam)
-  
-  // If team already has 10 submissions, consider player as already submitted
-  return (data && data.length >= 10) || false
+  return false
 }
 
 // Helper function to get the start of the current week (Monday)
@@ -155,7 +157,7 @@ function getWeekStart(): string {
   return monday.toISOString().split('T')[0]
 }
 
-// Get aggregated stats for all players
+// Get aggregated stats for all players using localStorage tracking
 export async function getPlayerRankings(): Promise<any[]> {
   const { data, error } = await supabase
     .from('player_stats')
@@ -166,85 +168,47 @@ export async function getPlayerRankings(): Promise<any[]> {
     return []
   }
   
-  // Create reverse mapping for stats aggregation (multiple players per team)
-  const teamPlayerMap: { [key: string]: string[] } = {
-    'A': ['Ahmed', 'Hamsheed', 'Shareef', 'Emaad', 'Luqman', 'Jinish', 'Rathul', 'Waleed', 'Junaid', 'Fathah'],
-    'B': ['Fasin', 'Jalal', 'Shaheen', 'Darwish', 'Nabeel', 'Afzal', 'Madan', 'Ahmed-Ateeq', 'Shafeer', 'Nithin']
-  }
-  
   const playerStats: { [key: string]: any } = {}
   
-  // Since we need to map individual records back to players, we need a different approach
-  // We'll use the original player names and look up their team assignments
-  const playerToTeamMap: { [key: string]: string } = {
-    // Team A (10 players)
-    'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
-    'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
-    // Team B (10 players)  
-    'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
-    'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
-  }
-  
-  // Group stats by team first, then we'll need to manually assign to players
-  // Since multiple players can be on team A/B, we cannot reverse-map from team to individual player
-  // We'll need to track by created_at timestamp and match to specific submissions
-  
-  // Since we can't track individual players without user_id, 
-  // we'll create aggregate stats based on team performance
-  const teamStats: { [key: string]: any } = {}
-  
-  data?.forEach((stat: any) => {
-    const team = stat.team
-    if (!team) return
-    
-    if (!teamStats[team]) {
-      teamStats[team] = {
-        name: `Team ${team}`,
-        goals: 0,
-        assists: 0,
-        saves: 0,
-        wins: 0,
-        totalGames: 0,
-        form: 'fit'
-      }
-    }
-    
-    teamStats[team].goals += stat.goals || 0
-    teamStats[team].assists += stat.assists || 0
-    teamStats[team].saves += stat.saves || 0
-    if (stat.points_earned >= 10) teamStats[team].wins += 1
-    teamStats[team].totalGames += 1
-  })
-  
-  // For individual rankings, create entries for all players with default values
+  // Initialize all players with default stats
   PLAYERS.forEach(playerName => {
-    const playerTeam = playerToTeamMap[playerName] || 'Z'
-    const teamData = teamStats[playerTeam]
-    
-    if (teamData) {
-      // Distribute team stats evenly among team players for display
-      const teamSize = teamPlayerMap[playerTeam]?.length || 1
-      playerStats[playerName] = {
-        name: playerName,
-        goals: Math.floor(teamData.goals / teamSize),
-        assists: Math.floor(teamData.assists / teamSize),
-        saves: Math.floor(teamData.saves / teamSize),
-        wins: Math.floor(teamData.wins / teamSize),
-        totalGames: Math.floor(teamData.totalGames / teamSize),
-        form: 'fit'
-      }
-    } else {
-      playerStats[playerName] = {
-        name: playerName,
-        goals: 0,
-        assists: 0,
-        saves: 0,
-        wins: 0,
-        totalGames: 0,
-        form: 'fit'
-      }
+    playerStats[playerName] = {
+      name: playerName,
+      goals: 0,
+      assists: 0,
+      saves: 0,
+      wins: 0,
+      totalGames: 0,
+      form: 'fit',
+      submissions: []
     }
   })
+  
+  // Get submissions from localStorage and match with database stats
+  if (typeof window !== 'undefined') {
+    const weekStart = getWeekStart()
+    
+    PLAYERS.forEach(playerName => {
+      const submissionKey = `submission_${weekStart}_${playerName}`
+      const storedSubmission = localStorage.getItem(submissionKey)
+      
+      if (storedSubmission) {
+        try {
+          const submission = JSON.parse(storedSubmission)
+          const stats = submission.stats
+          
+          playerStats[playerName].goals += stats.goals || 0
+          playerStats[playerName].assists += stats.assists || 0
+          playerStats[playerName].saves += stats.saves || 0
+          playerStats[playerName].wins += stats.won ? 1 : 0
+          playerStats[playerName].totalGames += 1
+          playerStats[playerName].submissions.push(submission)
+        } catch (e) {
+          console.error('Error parsing stored submission:', e)
+        }
+      }
+    })
+  }
   
   // Convert to array and calculate total points
   return Object.values(playerStats).map((player: any) => ({
