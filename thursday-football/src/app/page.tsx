@@ -255,21 +255,15 @@ const ThursdayFootballApp = () => {
     return formatted.replace(/\b\d{1,2}\b/, `${day}${suffix}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Loading Thursday Football League... ⚽</div>
-      </div>
-    );
-  }
+  // Show content immediately, load data in background
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white">
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-8 py-16 max-w-6xl">
         
         {/* Header Section - Large spacing */}
-        <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-8">
+        <div className="text-center mb-24">
+          <h1 className="text-6xl font-bold text-white mb-12">
             ⚽ Thursday Football League ⚽
           </h1>
           
@@ -288,22 +282,22 @@ const ThursdayFootballApp = () => {
         </div>
 
         {/* Stats Submission Section - Proper spacing */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 mb-12 border border-purple-500/20 shadow-2xl">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-purple-500/20">
           <div className="flex items-center mb-6">
             <Target className="w-8 h-8 mr-3 text-purple-400" />
             <h3 className="text-3xl font-bold text-purple-300">
               Submit Stats for Thursday Game {formatGameDate(previousGame).split(' ')[0]} {formatGameDate(previousGame).split(' ')[1]}
             </h3>
           </div>
-          <p className="text-gray-400 text-lg mb-8">
+          <p className="text-gray-400 text-lg mb-12">
             ⚠️ One submission per week only • Submission window: Thursday 8PM - Wednesday 11:59PM
           </p>
           
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-12">
             {/* Player Selection */}
-            <div className="space-y-6">
+            <div className="space-y-10">
               <div>
-                <label className="block text-xl font-medium mb-4 text-gray-200">Select Player</label>
+                <label className="block text-xl font-medium mb-6 text-gray-200">Select Player</label>
                 <div className="relative">
                   <select 
                     value={selectedPlayer} 
@@ -331,8 +325,8 @@ const ThursdayFootballApp = () => {
 
             {/* Stats Input Fields */}
             {selectedPlayer && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-6">
+              <div className="space-y-10">
+                <div className="grid grid-cols-3 gap-8">
                   <div>
                     <label className="block text-lg font-medium mb-3 text-gray-200">Goals ⚽</label>
                     <input 
@@ -380,7 +374,7 @@ const ThursdayFootballApp = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="block text-lg font-medium mb-3 text-gray-200">Form Status</label>
                     <select 
@@ -416,7 +410,7 @@ const ThursdayFootballApp = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-center pt-6">
+                <div className="flex justify-center pt-10">
                   <button
                     onClick={handleSubmitStats}
                     disabled={!selectedPlayer || submissionStatus[selectedPlayer]}
@@ -437,7 +431,7 @@ const ThursdayFootballApp = () => {
         </div>
 
         {/* Player Rankings Table - Large spacing */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 mb-12 border border-green-500/20 shadow-2xl">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-green-500/20">
           <div className="flex items-center mb-8">
             <Trophy className="w-8 h-8 mr-3 text-green-400" />
             <h3 className="text-3xl font-bold text-green-300">Player Rankings</h3>
@@ -494,11 +488,11 @@ const ThursdayFootballApp = () => {
         </div>
 
         {/* Current Leaders Dashboard - Large cards */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 mb-12 border border-yellow-500/20 shadow-2xl">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-yellow-500/20">
           <h3 className="text-3xl font-bold mb-8 text-center text-yellow-400">
             🏆 Current Leaders 🏆
           </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
             <div className="bg-gradient-to-br from-purple-900/60 to-blue-900/60 backdrop-blur-sm p-6 rounded-2xl border border-purple-400/30">
               <div className="text-4xl mb-3 text-center">🏆</div>
               <div className="font-semibold text-xl text-purple-300 text-center">Overall Leader</div>
@@ -543,13 +537,13 @@ const ThursdayFootballApp = () => {
         </div>
 
         {/* Team Generator - Spacious design */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 mb-12 border border-cyan-500/20 shadow-2xl">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-cyan-500/20">
           <div className="flex items-center mb-8">
             <Users className="w-8 h-8 mr-3 text-cyan-400" />
             <h3 className="text-3xl font-bold text-cyan-300">Generate Balanced Teams</h3>
           </div>
           
-          <div className="grid md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
             {playerNames.map(name => {
               const playerId = name.toLowerCase().replace('-', '');
               const playerStats = players.find(p => p.id === playerId);
@@ -583,8 +577,8 @@ const ThursdayFootballApp = () => {
             })}
           </div>
 
-          <div className="text-center mb-8">
-            <p className="text-gray-400 mb-4 text-xl">Selected: {selectedPlayers.length} players</p>
+          <div className="text-center mb-12">
+            <p className="text-gray-400 mb-6 text-xl">Selected: {selectedPlayers.length} players</p>
             <button
               onClick={generateTeams}
               disabled={selectedPlayers.length < 4}
@@ -595,7 +589,7 @@ const ThursdayFootballApp = () => {
           </div>
 
           {showTeams && generatedTeams.length === 2 && (
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid lg:grid-cols-2 gap-12 mt-12">
               {generatedTeams.map((team, teamIndex) => (
                 <div key={teamIndex} className={`p-6 rounded-2xl backdrop-blur-sm border-2 ${teamIndex === 0 ? 'bg-red-900/40 border-red-500/60' : 'bg-blue-900/40 border-blue-500/60'}`}>
                   <h4 className="text-2xl font-bold mb-6 text-center">
@@ -626,13 +620,13 @@ const ThursdayFootballApp = () => {
         </div>
 
         {/* Scoring System & Prizes - Professional layout */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 border border-indigo-500/20 shadow-2xl">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-16 border border-indigo-500/20">
           <div className="flex items-center mb-8">
             <Shield className="w-8 h-8 mr-3 text-indigo-400" />
             <h3 className="text-3xl font-bold text-indigo-300">Scoring System & Prizes</h3>
           </div>
           
-          <div className="grid lg:grid-cols-4 gap-8">
+          <div className="grid lg:grid-cols-4 gap-10">
             {/* Point System */}
             <div className="bg-gradient-to-br from-blue-900/60 to-cyan-900/60 backdrop-blur-sm p-6 rounded-2xl border border-blue-400/30">
               <h4 className="font-bold text-2xl text-cyan-300 mb-6 text-center">📊 Point System</h4>
@@ -723,7 +717,7 @@ const ThursdayFootballApp = () => {
             </div>
           </div>
 
-          <div className="mt-8 p-6 bg-gray-700/60 backdrop-blur-sm rounded-2xl border border-gray-600/50">
+          <div className="mt-12 p-8 bg-gray-700/60 backdrop-blur-sm rounded-2xl border border-gray-600/50">
             <p className="text-center text-xl">
               <span className="font-bold text-yellow-400 text-2xl">🎯 Pro Tip:</span> 
               <span className="text-gray-300 block mt-2"> 
