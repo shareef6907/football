@@ -193,6 +193,7 @@ export async function getPlayerRankings(): Promise<any[]> {
       saves: 0,
       wins: 0,
       totalGames: 0,
+      totalPoints: 0,
       form: 'fit'
     }
   })
@@ -214,6 +215,7 @@ export async function getPlayerRankings(): Promise<any[]> {
         playerStats[playerName].goals += stat.goals || 0
         playerStats[playerName].assists += stat.assists || 0
         playerStats[playerName].saves += stat.saves || 0
+        playerStats[playerName].totalPoints += stat.points_earned || 0
         
         // Calculate expected points without win bonus
         const expectedPoints = (stat.goals * 5) + (stat.assists * 3) + (stat.saves * 2)
@@ -225,9 +227,9 @@ export async function getPlayerRankings(): Promise<any[]> {
     }
   })
   
-  // Convert to array and calculate total points
+  // Convert to array - use database points, don't recalculate
   return Object.values(playerStats).map((player: any) => ({
-    ...player,
-    totalPoints: (player.goals * 5) + (player.assists * 3) + (player.saves * 2) + (player.wins * 10)
+    ...player
+    // totalPoints already set from database points_earned
   })).sort((a: any, b: any) => b.totalPoints - a.totalPoints)
 }
