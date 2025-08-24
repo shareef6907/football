@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '../../../../lib/supabase'
 
 export async function POST(request: NextRequest) {
+  // Set timeout for the entire request
+  const timeoutId = setTimeout(() => {
+    console.error('API: Request timed out after 30 seconds')
+  }, 30000)
+  
   try {
     console.log('API: Starting stats submission...')
     const body = await request.json()
@@ -85,15 +90,35 @@ export async function POST(request: NextRequest) {
       .select()
     
     if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      console.error('API: Database insert error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        full: error
+      })
+      return NextResponse.json({ 
+        error: 'Database error', 
+        details: error.message,
+        code: error.code 
+      }, { status: 500 })
     }
     
+    console.log('API: Stats submitted successfully!')
+    clearTimeout(timeoutId)
     return NextResponse.json({ success: true, data })
     
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('API: Unexpected error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      full: error
+    })
+    clearTimeout(timeoutId)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
