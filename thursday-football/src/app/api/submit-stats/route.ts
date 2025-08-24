@@ -38,22 +38,24 @@ export async function POST(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
-    // Create unique single-character team ID for each player
+    // Map players to teams A and B only (constraint allows only A, B)
     const playerTeamMap: { [key: string]: string } = {
-      'Ahmed': 'A', 'Fasin': 'B', 'Hamsheed': 'C', 'Jalal': 'D', 'Shareef': 'E',
-      'Shaheen': 'F', 'Emaad': 'G', 'Darwish': 'H', 'Luqman': 'I', 'Nabeel': 'J',
-      'Jinish': 'K', 'Afzal': 'L', 'Rathul': 'M', 'Madan': 'N', 'Waleed': 'O',
-      'Ahmed-Ateeq': 'P', 'Junaid': 'Q', 'Shafeer': 'R', 'Fathah': 'S', 'Nithin': 'T'
+      // Team A (10 players)
+      'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
+      'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
+      // Team B (10 players)  
+      'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
+      'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
     }
     const assignedTeam = playerTeamMap[playerName] || 'Z'
 
     // Check if this specific player already submitted
-    console.log('API: Checking existing submissions for team:', assignedTeam)
+    console.log('API: Checking existing submissions for player:', playerName)
     const { data: existing, error: checkError } = await supabaseAdmin
       .from('player_stats')
       .select('*')
       .gte('created_at', weekStart + 'T00:00:00')
-      .eq('team', assignedTeam)
+      .eq('user_id', playerName)
     
     if (checkError) {
       console.error('API: Error checking existing submissions:', checkError)
@@ -85,7 +87,8 @@ export async function POST(request: NextRequest) {
         points_earned: points,
         team: assignedTeam,
         verification_count: 1,
-        verified: true
+        verified: true,
+        user_id: playerName // Use user_id field to store player name for identification
       })
       .select()
     

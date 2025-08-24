@@ -124,21 +124,23 @@ export async function submitPlayerStats(playerName: string, stats: {
 export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<boolean> {
   const weekStart = getWeekStart()
   
-  // Use the same player team mapping as in the API route
+  // Map players to teams A and B only (constraint allows only A, B)
   const playerTeamMap: { [key: string]: string } = {
-    'Ahmed': 'A', 'Fasin': 'B', 'Hamsheed': 'C', 'Jalal': 'D', 'Shareef': 'E',
-    'Shaheen': 'F', 'Emaad': 'G', 'Darwish': 'H', 'Luqman': 'I', 'Nabeel': 'J',
-    'Jinish': 'K', 'Afzal': 'L', 'Rathul': 'M', 'Madan': 'N', 'Waleed': 'O',
-    'Ahmed-Ateeq': 'P', 'Junaid': 'Q', 'Shafeer': 'R', 'Fathah': 'S', 'Nithin': 'T'
+    // Team A (10 players)
+    'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
+    'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
+    // Team B (10 players)  
+    'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
+    'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
   }
   const assignedTeam = playerTeamMap[playerName] || 'Z'
   
-  // Check if there's a record for this player this week by looking at team field
+  // Check if there's a record for this player this week by looking at user_id field
   const { data } = await supabase
     .from('player_stats')
     .select('*')
     .gte('created_at', weekStart + 'T00:00:00')
-    .eq('team', assignedTeam)
+    .eq('user_id', playerName)
   
   return (data && data.length > 0) || false
 }
@@ -163,19 +165,32 @@ export async function getPlayerRankings(): Promise<any[]> {
     return []
   }
   
-  // Aggregate stats by player (reverse lookup from team field)
-  const teamPlayerMap: { [key: string]: string } = {
-    'A': 'Ahmed', 'B': 'Fasin', 'C': 'Hamsheed', 'D': 'Jalal', 'E': 'Shareef',
-    'F': 'Shaheen', 'G': 'Emaad', 'H': 'Darwish', 'I': 'Luqman', 'J': 'Nabeel',
-    'K': 'Jinish', 'L': 'Afzal', 'M': 'Rathul', 'N': 'Madan', 'O': 'Waleed',
-    'P': 'Ahmed-Ateeq', 'Q': 'Junaid', 'R': 'Shafeer', 'S': 'Fathah', 'T': 'Nithin'
+  // Create reverse mapping for stats aggregation (multiple players per team)
+  const teamPlayerMap: { [key: string]: string[] } = {
+    'A': ['Ahmed', 'Hamsheed', 'Shareef', 'Emaad', 'Luqman', 'Jinish', 'Rathul', 'Waleed', 'Junaid', 'Fathah'],
+    'B': ['Fasin', 'Jalal', 'Shaheen', 'Darwish', 'Nabeel', 'Afzal', 'Madan', 'Ahmed-Ateeq', 'Shafeer', 'Nithin']
   }
   
   const playerStats: { [key: string]: any } = {}
   
+  // Since we need to map individual records back to players, we need a different approach
+  // We'll use the original player names and look up their team assignments
+  const playerToTeamMap: { [key: string]: string } = {
+    // Team A (10 players)
+    'Ahmed': 'A', 'Hamsheed': 'A', 'Shareef': 'A', 'Emaad': 'A', 'Luqman': 'A',
+    'Jinish': 'A', 'Rathul': 'A', 'Waleed': 'A', 'Junaid': 'A', 'Fathah': 'A',
+    // Team B (10 players)  
+    'Fasin': 'B', 'Jalal': 'B', 'Shaheen': 'B', 'Darwish': 'B', 'Nabeel': 'B',
+    'Afzal': 'B', 'Madan': 'B', 'Ahmed-Ateeq': 'B', 'Shafeer': 'B', 'Nithin': 'B'
+  }
+  
+  // Group stats by team first, then we'll need to manually assign to players
+  // Since multiple players can be on team A/B, we cannot reverse-map from team to individual player
+  // We'll need to track by created_at timestamp and match to specific submissions
+  
   data?.forEach((stat: any) => {
-    // Extract player name from team field using reverse mapping
-    const playerName = teamPlayerMap[stat.team]
+    // Use user_id field to identify the player
+    const playerName = stat.user_id
     if (!playerName) return
     
     if (!playerStats[playerName]) {
