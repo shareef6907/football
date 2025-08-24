@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       .from('player_stats')
       .select('*')
       .gte('created_at', weekStart + 'T00:00:00')
-      .eq('game_id', playerUUID)
+      .contains('confirmed_by', [playerUUID])
     
     if (checkError) {
       console.error('API: Error checking existing submissions:', checkError)
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const points = (goals * 5) + (assists * 3) + (saves * 2) + (won ? 10 : 0)
     console.log('API: Calculated points:', points)
     
-    // Insert stats using service role with player UUID 
+    // Insert stats using service role with player UUID in confirmed_by
     console.log('API: Inserting stats...')
     const { data, error } = await supabaseAdmin
       .from('player_stats')
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         team: assignedTeam,
         verification_count: 1,
         verified: true,
-        game_id: playerUUID // Store player UUID for cross-device tracking
+        confirmed_by: [playerUUID] // Store player UUID for cross-device tracking
       })
       .select()
     

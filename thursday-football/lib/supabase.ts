@@ -157,7 +157,7 @@ export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<bo
     .from('player_stats')
     .select('*')
     .gte('created_at', weekStart + 'T00:00:00')
-    .eq('game_id', playerUUID)
+    .contains('confirmed_by', [playerUUID])
   
   return (data && data.length > 0) || false
 }
@@ -203,17 +203,20 @@ export async function getPlayerRankings(): Promise<any[]> {
     uuidToPlayerMap[uuid] = playerName
   })
   
-  // Process database stats using UUID mapping
+  // Process database stats using UUID mapping from confirmed_by field
   data?.forEach((stat: any) => {
-    const playerUUID = stat.game_id
-    const playerName = uuidToPlayerMap[playerUUID]
-    
-    if (playerName && playerStats[playerName]) {
-      playerStats[playerName].goals += stat.goals || 0
-      playerStats[playerName].assists += stat.assists || 0
-      playerStats[playerName].saves += stat.saves || 0
-      playerStats[playerName].wins += (stat.points_earned >= 10) ? 1 : 0
-      playerStats[playerName].totalGames += 1
+    const confirmedBy = stat.confirmed_by
+    if (confirmedBy && confirmedBy.length > 0) {
+      const playerUUID = confirmedBy[0] // First UUID is the player
+      const playerName = uuidToPlayerMap[playerUUID]
+      
+      if (playerName && playerStats[playerName]) {
+        playerStats[playerName].goals += stat.goals || 0
+        playerStats[playerName].assists += stat.assists || 0
+        playerStats[playerName].saves += stat.saves || 0
+        playerStats[playerName].wins += (stat.points_earned >= 10) ? 1 : 0
+        playerStats[playerName].totalGames += 1
+      }
     }
   })
   
