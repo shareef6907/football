@@ -208,6 +208,14 @@ const ThursdayFootballApp = () => {
     }
     
     try {
+      console.log('Submitting stats for', playerName, 'with data:', {
+        goals: formData.goals,
+        assists: formData.assists,
+        saves: formData.saves,
+        won: formData.won,
+        form_status: formData.form
+      });
+      
       const success = await submitPlayerStats(playerName, {
         game_date: previousGame.toISOString().split('T')[0],
         goals: formData.goals,
