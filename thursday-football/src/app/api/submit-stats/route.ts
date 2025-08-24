@@ -16,21 +16,6 @@ export async function POST(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
-    // Check if this specific player already submitted
-    const { data: existing } = await supabaseAdmin
-      .from('player_stats')
-      .select('*')
-      .gte('created_at', weekStart + 'T00:00:00')
-    
-    // Check if player already submitted by looking at team field
-    const playerAlreadySubmitted = existing?.some(stat => 
-      stat.team === playerName
-    )
-    
-    if (playerAlreadySubmitted) {
-      return NextResponse.json({ error: 'Already submitted this week' }, { status: 400 })
-    }
-    
     // Create unique single-character team ID for each player
     const playerTeamMap: { [key: string]: string } = {
       'Ahmed': 'A', 'Fasin': 'B', 'Hamsheed': 'C', 'Jalal': 'D', 'Shareef': 'E',
@@ -40,6 +25,20 @@ export async function POST(request: NextRequest) {
     }
     const assignedTeam = playerTeamMap[playerName] || 'Z'
 
+    // Check if this specific player already submitted
+    const { data: existing } = await supabaseAdmin
+      .from('player_stats')
+      .select('*')
+      .gte('created_at', weekStart + 'T00:00:00')
+      .eq('team', assignedTeam)
+    
+    // Check if player already submitted
+    const playerAlreadySubmitted = existing && existing.length > 0
+    
+    if (playerAlreadySubmitted) {
+      return NextResponse.json({ error: 'Already submitted this week' }, { status: 400 })
+    }
+    
     // Calculate points
     const points = (goals * 5) + (assists * 3) + (saves * 2) + (won ? 10 : 0)
     

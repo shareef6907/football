@@ -124,12 +124,21 @@ export async function submitPlayerStats(playerName: string, stats: {
 export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<boolean> {
   const weekStart = getWeekStart()
   
+  // Use the same player team mapping as in the API route
+  const playerTeamMap: { [key: string]: string } = {
+    'Ahmed': 'A', 'Fasin': 'B', 'Hamsheed': 'C', 'Jalal': 'D', 'Shareef': 'E',
+    'Shaheen': 'F', 'Emaad': 'G', 'Darwish': 'H', 'Luqman': 'I', 'Nabeel': 'J',
+    'Jinish': 'K', 'Afzal': 'L', 'Rathul': 'M', 'Madan': 'N', 'Waleed': 'O',
+    'Ahmed-Ateeq': 'P', 'Junaid': 'Q', 'Shafeer': 'R', 'Fathah': 'S', 'Nithin': 'T'
+  }
+  const assignedTeam = playerTeamMap[playerName] || 'Z'
+  
   // Check if there's a record for this player this week by looking at team field
   const { data } = await supabase
     .from('player_stats')
     .select('*')
     .gte('created_at', weekStart + 'T00:00:00')
-    .eq('team', playerName.charAt(0).toLowerCase()) // Match by first character of name
+    .eq('team', assignedTeam)
   
   return (data && data.length > 0) || false
 }
