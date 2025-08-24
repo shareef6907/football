@@ -47,6 +47,30 @@ export const PLAYERS = [
   'Ahmed-Ateeq', 'Junaid', 'Shafeer', 'Fathah', 'Nithin'
 ]
 
+// Deterministic UUID mapping for players
+export const PLAYER_UUIDS: { [key: string]: string } = {
+  "Ahmed": "7f1e43d8-80f0-49c6-84ac-6378af6de477",
+  "Fasin": "d58595c9-cb6c-4b9d-8158-523f6b893580",
+  "Hamsheed": "6e3d931a-dc26-4b90-81f0-59ff53019e50",
+  "Jalal": "6c0ce954-87a5-41b2-8898-1330751155b0",
+  "Shareef": "ba7c5acc-c94d-466e-8d5a-0c7773c2bf0c",
+  "Shaheen": "10825c4b-23d0-4e93-8c49-eadface5aeb3",
+  "Emaad": "ac54a34c-4448-4721-8442-5dde27973756",
+  "Darwish": "6c6b378f-2748-467a-8eca-62c782eacd0a",
+  "Luqman": "df86a60e-5940-406a-8330-f74379c89da3",
+  "Nabeel": "3b16e4b3-82f5-4a0e-80d3-86f6b149891a",
+  "Jinish": "793fb65a-2b41-41d8-84d4-f4ab015c6aab",
+  "Afzal": "e30229fa-f9d5-4440-8dc4-471d213ffb6b",
+  "Rathul": "d7a8e753-d98e-43d6-8c44-6eda18f32d4d",
+  "Madan": "611a0a44-d1e2-40fe-8946-ba84e980a694",
+  "Waleed": "1b6a5f4a-c0e8-4694-83cb-4da00c20545e",
+  "Ahmed-Ateeq": "149aedd7-a9a5-4810-8002-c67163cd5cf6",
+  "Junaid": "1215383b-bbb7-43f3-8759-2f5b69994330",
+  "Shafeer": "dfea2af6-9ab5-4e88-8f0b-6860f83ae8ef",
+  "Fathah": "ae977a0c-cfb6-4827-87c9-f2448f03164e",
+  "Nithin": "42c2e951-394b-4b32-8823-3b5f70d3a56d"
+}
+
 // Get all players (return from static list since no players table)
 export async function getAllPlayers(): Promise<{id: number, name: string}[]> {
   return PLAYERS.map((name, index) => ({
@@ -113,17 +137,7 @@ export async function submitPlayerStats(playerName: string, stats: {
       return false
     }
     
-    // Store submission in localStorage for tracking
-    if (result.success && result.submissionId) {
-      const weekStart = getWeekStart()
-      const submissionKey = `submission_${weekStart}_${playerName}`
-      localStorage.setItem(submissionKey, JSON.stringify({
-        id: result.submissionId,
-        playerName: result.playerName,
-        submittedAt: new Date().toISOString(),
-        stats: stats
-      }))
-    }
+    // No need for localStorage - data is now properly stored in database with UUIDs
     
     return true
   } catch (error) {
@@ -132,20 +146,20 @@ export async function submitPlayerStats(playerName: string, stats: {
   }
 }
 
-// Check if player has submitted this week using localStorage
+// Check if player has submitted this week using database
 export async function hasPlayerSubmittedThisWeek(playerName: string): Promise<boolean> {
   const weekStart = getWeekStart()
-  const submissionKey = `submission_${weekStart}_${playerName}`
+  const playerUUID = PLAYER_UUIDS[playerName]
   
-  // Check localStorage first for fast response
-  if (typeof window !== 'undefined') {
-    const storedSubmission = localStorage.getItem(submissionKey)
-    if (storedSubmission) {
-      return true
-    }
-  }
+  if (!playerUUID) return false
   
-  return false
+  const { data } = await supabase
+    .from('player_stats')
+    .select('*')
+    .gte('created_at', weekStart + 'T00:00:00')
+    .eq('game_id', playerUUID)
+  
+  return (data && data.length > 0) || false
 }
 
 // Helper function to get the start of the current week (Monday)
@@ -157,7 +171,7 @@ function getWeekStart(): string {
   return monday.toISOString().split('T')[0]
 }
 
-// Get aggregated stats for all players using localStorage tracking
+// Get aggregated stats for all players from database using UUIDs
 export async function getPlayerRankings(): Promise<any[]> {
   const { data, error } = await supabase
     .from('player_stats')
@@ -179,36 +193,29 @@ export async function getPlayerRankings(): Promise<any[]> {
       saves: 0,
       wins: 0,
       totalGames: 0,
-      form: 'fit',
-      submissions: []
+      form: 'fit'
     }
   })
   
-  // Get submissions from localStorage and match with database stats
-  if (typeof window !== 'undefined') {
-    const weekStart = getWeekStart()
+  // Create reverse UUID mapping
+  const uuidToPlayerMap: { [key: string]: string } = {}
+  Object.entries(PLAYER_UUIDS).forEach(([playerName, uuid]) => {
+    uuidToPlayerMap[uuid] = playerName
+  })
+  
+  // Process database stats using UUID mapping
+  data?.forEach((stat: any) => {
+    const playerUUID = stat.game_id
+    const playerName = uuidToPlayerMap[playerUUID]
     
-    PLAYERS.forEach(playerName => {
-      const submissionKey = `submission_${weekStart}_${playerName}`
-      const storedSubmission = localStorage.getItem(submissionKey)
-      
-      if (storedSubmission) {
-        try {
-          const submission = JSON.parse(storedSubmission)
-          const stats = submission.stats
-          
-          playerStats[playerName].goals += stats.goals || 0
-          playerStats[playerName].assists += stats.assists || 0
-          playerStats[playerName].saves += stats.saves || 0
-          playerStats[playerName].wins += stats.won ? 1 : 0
-          playerStats[playerName].totalGames += 1
-          playerStats[playerName].submissions.push(submission)
-        } catch (e) {
-          console.error('Error parsing stored submission:', e)
-        }
-      }
-    })
-  }
+    if (playerName && playerStats[playerName]) {
+      playerStats[playerName].goals += stat.goals || 0
+      playerStats[playerName].assists += stat.assists || 0
+      playerStats[playerName].saves += stat.saves || 0
+      playerStats[playerName].wins += (stat.points_earned >= 10) ? 1 : 0
+      playerStats[playerName].totalGames += 1
+    }
+  })
   
   // Convert to array and calculate total points
   return Object.values(playerStats).map((player: any) => ({

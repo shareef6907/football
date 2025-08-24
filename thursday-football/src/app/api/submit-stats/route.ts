@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '../../../../lib/supabase'
+import { getSupabaseAdmin, PLAYER_UUIDS } from '../../../../lib/supabase'
 
 export async function POST(request: NextRequest) {
   // Set timeout for the entire request
@@ -38,18 +38,39 @@ export async function POST(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
+    // Get player UUID for tracking
+    const playerUUID = PLAYER_UUIDS[playerName]
+    if (!playerUUID) {
+      console.log('API: Invalid player name:', playerName)
+      return NextResponse.json({ error: 'Invalid player name' }, { status: 400 })
+    }
+    
     // Use a default team since we're not doing team-based tracking
     const assignedTeam = 'A'
 
-    // Check if this exact player already submitted by checking for similar stats pattern
-    // We'll allow duplicate submissions since teams change weekly
-    console.log('API: Allowing submission (teams change weekly)')
+    // Check if this player already submitted this week
+    console.log('API: Checking existing submissions for player:', playerName)
+    const { data: existing, error: checkError } = await supabaseAdmin
+      .from('player_stats')
+      .select('*')
+      .gte('created_at', weekStart + 'T00:00:00')
+      .eq('game_id', playerUUID)
+    
+    if (checkError) {
+      console.error('API: Error checking existing submissions:', checkError)
+      return NextResponse.json({ error: 'Database check error' }, { status: 500 })
+    }
+    
+    if (existing && existing.length > 0) {
+      console.log('API: Player already submitted this week')
+      return NextResponse.json({ error: 'Already submitted this week' }, { status: 400 })
+    }
     
     // Calculate points
     const points = (goals * 5) + (assists * 3) + (saves * 2) + (won ? 10 : 0)
     console.log('API: Calculated points:', points)
     
-    // Insert stats using service role 
+    // Insert stats using service role with player UUID 
     console.log('API: Inserting stats...')
     const { data, error } = await supabaseAdmin
       .from('player_stats')
@@ -60,8 +81,8 @@ export async function POST(request: NextRequest) {
         points_earned: points,
         team: assignedTeam,
         verification_count: 1,
-        verified: true
-        // Player name will be tracked client-side since DB fields expect UUIDs
+        verified: true,
+        game_id: playerUUID // Store player UUID for cross-device tracking
       })
       .select()
     
