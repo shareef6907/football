@@ -734,6 +734,18 @@ const ThursdayFootballApp = () => {
             </p>
           </div>
         </div>
+
+        {/* Admin Access Button */}
+        <div className="text-center mt-8 mb-8">
+          <a
+            href="/admin"
+            className="inline-flex items-center px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-all text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50"
+          >
+            <Shield className="w-5 h-5 mr-2" />
+            Admin Access
+          </a>
+        </div>
+
       </div>
     </div>
   );
