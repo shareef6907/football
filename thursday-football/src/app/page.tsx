@@ -267,45 +267,45 @@ const ThursdayFootballApp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white">
-      <div className="container mx-auto px-8 py-16 max-w-6xl">
+      <div className="container mx-auto px-4 sm:px-8 py-8 sm:py-16 max-w-6xl">
         
-        {/* Header Section - Large spacing */}
-        <div className="text-center mb-24">
-          <h1 className="text-6xl font-bold text-white mb-12">
+        {/* Header Section - Responsive spacing */}
+        <div className="text-center mb-12 sm:mb-24">
+          <h1 className="text-3xl sm:text-6xl font-bold text-white mb-6 sm:mb-12">
             ⚽ Thursday Football League ⚽
           </h1>
           
           {/* Next Game Countdown - Glass morphism card */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 mb-12 border border-blue-500/20 shadow-2xl">
-            <div className="flex items-center justify-center mb-4">
-              <Clock className="w-8 h-8 mr-3 text-blue-400" />
-              <h2 className="text-3xl font-semibold text-blue-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-12 border border-blue-500/20 shadow-2xl">
+            <div className="flex flex-col sm:flex-row items-center justify-center mb-2 sm:mb-4">
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-blue-400" />
+              <h2 className="text-lg sm:text-3xl font-semibold text-blue-300 text-center">
                 Next Game: Thursday, {formatGameDate(nextGame)}, 8PM
               </h2>
             </div>
-            <div className="text-4xl font-bold text-green-400 animate-pulse">
+            <div className="text-2xl sm:text-4xl font-bold text-green-400 animate-pulse">
               ⏰ {timeLeft}
             </div>
           </div>
         </div>
 
-        {/* Stats Submission Section - Proper spacing */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-purple-500/20">
-          <div className="flex items-center mb-6">
-            <Target className="w-8 h-8 mr-3 text-purple-400" />
-            <h3 className="text-3xl font-bold text-purple-300">
+        {/* Stats Submission Section - Mobile responsive */}
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-purple-500/20">
+          <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-6">
+            <Target className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-purple-400" />
+            <h3 className="text-xl sm:text-3xl font-bold text-purple-300 text-center">
               Submit Stats for Thursday Game {formatGameDate(previousGame).split(' ')[0]} {formatGameDate(previousGame).split(' ')[1]}
             </h3>
           </div>
-          <p className="text-gray-400 text-lg mb-12">
+          <p className="text-gray-400 text-sm sm:text-lg mb-6 sm:mb-12 text-center sm:text-left">
             ⚠️ One submission per week only • Submission window: Thursday 8PM - Wednesday 11:59PM
           </p>
           
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-12">
             {/* Player Selection */}
-            <div className="space-y-10">
+            <div className="space-y-6 sm:space-y-10">
               <div>
-                <label className="block text-xl font-medium mb-6 text-gray-200">Select Player</label>
+                <label className="block text-lg sm:text-xl font-medium mb-4 sm:mb-6 text-gray-200">Select Player</label>
                 <div className="relative">
                   <select 
                     value={selectedPlayer} 
@@ -333,10 +333,10 @@ const ThursdayFootballApp = () => {
 
             {/* Stats Input Fields */}
             {selectedPlayer && (
-              <div className="space-y-10">
-                <div className="grid grid-cols-3 gap-8">
+              <div className="space-y-6 sm:space-y-10">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
                   <div>
-                    <label className="block text-lg font-medium mb-3 text-gray-200">Goals ⚽</label>
+                    <label className="block text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-200">Goals ⚽</label>
                     <input 
                       type="number" 
                       min="0"
@@ -351,7 +351,7 @@ const ThursdayFootballApp = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-lg font-medium mb-3 text-gray-200">Assists ⚡</label>
+                    <label className="block text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-200">Assists ⚡</label>
                     <input 
                       type="number" 
                       min="0"
@@ -366,7 +366,7 @@ const ThursdayFootballApp = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-lg font-medium mb-3 text-gray-200">Saves 🧤</label>
+                    <label className="block text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-200">Saves 🧤</label>
                     <input 
                       type="number" 
                       min="0"
@@ -382,9 +382,9 @@ const ThursdayFootballApp = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                   <div>
-                    <label className="block text-lg font-medium mb-3 text-gray-200">Form Status</label>
+                    <label className="block text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-200">Form Status</label>
                     <select 
                       disabled={submissionStatus[selectedPlayer]}
                       className={`w-full p-4 text-lg rounded-xl border focus:outline-none transition-all ${
@@ -401,7 +401,7 @@ const ThursdayFootballApp = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-lg font-medium mb-3 text-gray-200">Game Result 🏆</label>
+                    <label className="block text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-200">Game Result 🏆</label>
                     <select 
                       disabled={submissionStatus[selectedPlayer]}
                       className={`w-full p-4 text-lg rounded-xl border focus:outline-none transition-all ${
@@ -418,11 +418,11 @@ const ThursdayFootballApp = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-center pt-10">
+                <div className="flex justify-center pt-6 sm:pt-10">
                   <button
                     onClick={handleSubmitStats}
                     disabled={!selectedPlayer || submissionStatus[selectedPlayer]}
-                    className={`px-12 py-4 text-xl font-semibold rounded-2xl transition-all transform hover:scale-105 shadow-lg ${
+                    className={`px-8 sm:px-12 py-3 sm:py-4 text-lg sm:text-xl font-semibold rounded-2xl transition-all transform hover:scale-105 shadow-lg ${
                       !selectedPlayer || submissionStatus[selectedPlayer]
                         ? 'bg-gray-600/50 cursor-not-allowed border border-gray-500' 
                         : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 border border-purple-400/50'
@@ -438,37 +438,37 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Player Rankings Table - Large spacing */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-green-500/20">
-          <div className="flex items-center mb-8">
-            <Trophy className="w-8 h-8 mr-3 text-green-400" />
-            <h3 className="text-3xl font-bold text-green-300">Player Rankings</h3>
+        {/* Player Rankings Table - Mobile responsive */}
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-green-500/20">
+          <div className="flex flex-col sm:flex-row items-center mb-6 sm:mb-8">
+            <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-green-400" />
+            <h3 className="text-2xl sm:text-3xl font-bold text-green-300">Player Rankings</h3>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="text-left p-4 text-xl font-bold">#</th>
-                  <th className="text-left p-4 text-xl font-bold">Player</th>
-                  <th className="text-center p-4 text-xl font-bold">⚽ Goals</th>
-                  <th className="text-center p-4 text-xl font-bold">⚡ Assists</th>
-                  <th className="text-center p-4 text-xl font-bold">🧤 Saves</th>
-                  <th className="text-center p-4 text-xl font-bold">🏆 Wins</th>
-                  <th className="text-center p-4 text-xl font-bold">📊 Total</th>
-                  <th className="text-center p-4 text-xl font-bold">Form</th>
+                  <th className="text-left p-2 sm:p-4 text-sm sm:text-xl font-bold">#</th>
+                  <th className="text-left p-2 sm:p-4 text-sm sm:text-xl font-bold">Player</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">⚽ Goals</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">⚡ Assists</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">🧤 Saves</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">🏆 Wins</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">📊 Total</th>
+                  <th className="text-center p-2 sm:p-4 text-sm sm:text-xl font-bold">Form</th>
                 </tr>
               </thead>
               <tbody>
                 {getRankedPlayers().map((player, index) => (
                   <tr key={player.id} className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-all ${index < 3 ? 'bg-gradient-to-r from-yellow-900/20 to-transparent' : ''}`}>
-                    <td className="p-4 font-bold text-2xl">
+                    <td className="p-2 sm:p-4 font-bold text-lg sm:text-2xl">
                       {index === 0 && '🥇'}
                       {index === 1 && '🥈'}
                       {index === 2 && '🥉'}
                       {index > 2 && (index + 1)}
                     </td>
-                    <td className="p-4 font-semibold text-xl text-blue-300">
+                    <td className="p-2 sm:p-4 font-semibold text-base sm:text-xl text-blue-300">
                       {player.name}
                       {player.currentBadges && player.currentBadges.length > 0 && (
                         <span className="ml-3">
@@ -478,12 +478,12 @@ const ThursdayFootballApp = () => {
                         </span>
                       )}
                     </td>
-                    <td className="text-center p-4 text-xl text-green-400 font-semibold">{player.goals}</td>
-                    <td className="text-center p-4 text-xl text-blue-400 font-semibold">{player.assists}</td>
-                    <td className="text-center p-4 text-xl text-yellow-400 font-semibold">{player.saves}</td>
-                    <td className="text-center p-4 text-xl text-purple-400 font-semibold">{player.wins || 0}</td>
-                    <td className="text-center p-4 font-bold text-2xl text-orange-400">{player.totalPoints}</td>
-                    <td className="text-center p-4 text-xl">
+                    <td className="text-center p-2 sm:p-4 text-base sm:text-xl text-green-400 font-semibold">{player.goals}</td>
+                    <td className="text-center p-2 sm:p-4 text-base sm:text-xl text-blue-400 font-semibold">{player.assists}</td>
+                    <td className="text-center p-2 sm:p-4 text-base sm:text-xl text-yellow-400 font-semibold">{player.saves}</td>
+                    <td className="text-center p-2 sm:p-4 text-base sm:text-xl text-purple-400 font-semibold">{player.wins || 0}</td>
+                    <td className="text-center p-2 sm:p-4 font-bold text-lg sm:text-2xl text-orange-400">{player.totalPoints}</td>
+                    <td className="text-center p-2 sm:p-4 text-base sm:text-xl">
                       {player.form === 'injured' && '🤕'}
                       {player.form === 'slightly_injured' && '😐'}
                       {player.form === 'fit' && '💪'}
@@ -495,26 +495,26 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Current Leaders Dashboard - Large cards */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-yellow-500/20">
-          <h3 className="text-3xl font-bold mb-8 text-center text-yellow-400">
+        {/* Current Leaders Dashboard - Mobile responsive */}
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-yellow-500/20">
+          <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center text-yellow-400">
             🏆 Current Leaders 🏆
           </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
-            <div className="bg-gradient-to-br from-purple-900/60 to-blue-900/60 backdrop-blur-sm p-6 rounded-2xl border border-purple-400/30">
-              <div className="text-4xl mb-3 text-center">🏆</div>
-              <div className="font-semibold text-xl text-purple-300 text-center">Overall Leader</div>
-              <div className="text-2xl text-white text-center mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-10">
+            <div className="bg-gradient-to-br from-purple-900/60 to-blue-900/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-purple-400/30">
+              <div className="text-3xl sm:text-4xl mb-2 sm:mb-3 text-center">🏆</div>
+              <div className="font-semibold text-base sm:text-xl text-purple-300 text-center">Overall Leader</div>
+              <div className="text-lg sm:text-2xl text-white text-center mt-1 sm:mt-2">
                 {(() => {
                   const leader = getRankedPlayers()[0];
                   return leader && leader.totalPoints > 0 ? leader.name : 'No leader yet';
                 })()}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-green-900/60 to-emerald-900/60 backdrop-blur-sm p-6 rounded-2xl border border-green-400/30">
-              <div className="text-4xl mb-3 text-center">⚽️</div>
-              <div className="font-semibold text-xl text-green-300 text-center">Top Scorer</div>
-              <div className="text-2xl text-white text-center mt-2">
+            <div className="bg-gradient-to-br from-green-900/60 to-emerald-900/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-green-400/30">
+              <div className="text-3xl sm:text-4xl mb-2 sm:mb-3 text-center">⚽️</div>
+              <div className="font-semibold text-base sm:text-xl text-green-300 text-center">Top Scorer</div>
+              <div className="text-lg sm:text-2xl text-white text-center mt-1 sm:mt-2">
                 {(() => {
                   const topScorer = [...players].sort((a, b) => b.goals - a.goals)[0];
                   return topScorer && topScorer.goals > 0 ? `${topScorer.name} (${topScorer.goals})` : 'No goals yet';
@@ -531,10 +531,10 @@ const ThursdayFootballApp = () => {
                 })()}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-yellow-900/60 to-orange-900/60 backdrop-blur-sm p-6 rounded-2xl border border-yellow-400/30">
-              <div className="text-4xl mb-3 text-center">🎖️</div>
-              <div className="font-semibold text-xl text-yellow-300 text-center">Top Saves</div>
-              <div className="text-2xl text-white text-center mt-2">
+            <div className="bg-gradient-to-br from-yellow-900/60 to-orange-900/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-yellow-400/30">
+              <div className="text-3xl sm:text-4xl mb-2 sm:mb-3 text-center">🎖️</div>
+              <div className="font-semibold text-base sm:text-xl text-yellow-300 text-center">Top Saves</div>
+              <div className="text-lg sm:text-2xl text-white text-center mt-1 sm:mt-2">
                 {(() => {
                   const topSaves = [...players].sort((a, b) => b.saves - a.saves)[0];
                   return topSaves && topSaves.saves > 0 ? `${topSaves.name} (${topSaves.saves})` : 'No saves yet';
@@ -544,11 +544,11 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Team Generator - Spacious design */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-20 border border-cyan-500/20">
-          <div className="flex items-center mb-8">
-            <Users className="w-8 h-8 mr-3 text-cyan-400" />
-            <h3 className="text-3xl font-bold text-cyan-300">Generate Balanced Teams</h3>
+        {/* Team Generator - Mobile responsive */}
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-cyan-500/20">
+          <div className="flex flex-col sm:flex-row items-center mb-6 sm:mb-8">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-cyan-400" />
+            <h3 className="text-2xl sm:text-3xl font-bold text-cyan-300">Generate Balanced Teams</h3>
           </div>
           
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
