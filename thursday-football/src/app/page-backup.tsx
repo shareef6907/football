@@ -514,6 +514,7 @@ const ThursdayFootballApp = () => {
             </table>
           </div>
         </div>
+        </section>
 
         {/* Current Leaders Dashboard - Premium styling */}
         <div className="bg-gradient-to-br from-gray-800/70 to-gray-700/70 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-yellow-500/40 shadow-2xl ring-1 ring-yellow-400/20">
