@@ -509,12 +509,12 @@ const ThursdayFootballApp = () => {
                   <tr>
                     <th className="text-left p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">#</th>
                     <th className="text-left p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">Player</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚽</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚡</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🧤</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🏆</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">📊</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">💪</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚽ Goals</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚡ Assists</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🧤 Saves</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🏆 Wins</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">📊 Points</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">💪 Form</th>
                   </tr>
                 </thead>
                 <tbody>
