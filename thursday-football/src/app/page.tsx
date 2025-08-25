@@ -501,89 +501,49 @@ const ThursdayFootballApp = () => {
             </h2>
           </div>
 
-          {/* Rankings Table - Mobile Optimized */}
+          {/* Rankings Table - Compact Mobile Table */}
           <div className="bg-gradient-to-br from-slate-800/60 to-green-900/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-slate-700/50 shadow-2xl overflow-hidden">
-            
-            {/* Mobile Card Layout */}
-            <div className="block sm:hidden">
-              {getRankedPlayers().map((player, index) => (
-                <div key={player.id} className={`border-b border-slate-700/30 p-4 ${index < 3 ? 'bg-gradient-to-r from-yellow-900/10 to-transparent' : ''}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="font-black text-xl">
-                        {index === 0 && '🥇'}
-                        {index === 1 && '🥈'}
-                        {index === 2 && '🥉'}
-                        {index > 2 && (index + 1)}
-                      </span>
-                      <span className="font-bold text-lg text-blue-300">{player.name}</span>
-                      {player.currentBadges && player.currentBadges.length > 0 && (
-                        <span className="ml-2">
-                          {player.currentBadges.map((badge: any, idx: number) => (
-                            <span key={idx} className="animate-pulse text-lg mr-1">{badge}</span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-xl text-orange-400">{player.totalPoints}</span>
-                      <span className="text-lg">
-                        {player.form === 'injured' && '🤕'}
-                        {player.form === 'slightly_injured' && '😐'}
-                        {player.form === 'fit' && '💪'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-green-400">⚽ {player.goals}</span>
-                    <span className="text-blue-400">⚡ {player.assists}</span>
-                    <span className="text-yellow-400">🧤 {player.saves}</span>
-                    <span className="text-purple-400">🏆 {player.wins || 0}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Table Layout */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm md:text-base">
                 <thead className="bg-slate-700/50">
                   <tr>
-                    <th className="text-left p-4 md:p-6 text-lg md:text-xl font-bold text-white">#</th>
-                    <th className="text-left p-4 md:p-6 text-lg md:text-xl font-bold text-white">Player</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">⚽ Goals</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">⚡ Assists</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">🧤 Saves</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">🏆 Wins</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">📊 Total</th>
-                    <th className="text-center p-4 md:p-6 text-lg md:text-xl font-bold text-white">Form</th>
+                    <th className="text-left p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">#</th>
+                    <th className="text-left p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">Player</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">⚽</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">⚡</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">🧤</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">🏆</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">📊</th>
+                    <th className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg font-bold text-white">Form</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getRankedPlayers().map((player, index) => (
                     <tr key={player.id} className={`border-b border-slate-700/30 hover:bg-slate-700/20 transition-all ${index < 3 ? 'bg-gradient-to-r from-yellow-900/10 to-transparent' : ''}`}>
-                      <td className="p-4 md:p-6 font-black text-xl md:text-2xl">
+                      <td className="p-1 sm:p-2 md:p-4 font-black text-sm sm:text-base md:text-xl">
                         {index === 0 && '🥇'}
                         {index === 1 && '🥈'}
                         {index === 2 && '🥉'}
                         {index > 2 && (index + 1)}
                       </td>
-                      <td className="p-4 md:p-6 font-bold text-lg md:text-xl text-blue-300">
-                        {player.name}
-                        {player.currentBadges && player.currentBadges.length > 0 && (
-                          <span className="ml-2 md:ml-4">
-                            {player.currentBadges.map((badge: any, idx: number) => (
-                              <span key={idx} className="animate-pulse text-lg md:text-2xl mr-1">{badge}</span>
-                            ))}
-                          </span>
-                        )}
+                      <td className="p-1 sm:p-2 md:p-4 font-bold text-xs sm:text-sm md:text-lg text-blue-300">
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                          <span>{player.name}</span>
+                          {player.currentBadges && player.currentBadges.length > 0 && (
+                            <span className="ml-0 sm:ml-2">
+                              {player.currentBadges.map((badge: any, idx: number) => (
+                                <span key={idx} className="animate-pulse text-xs sm:text-sm md:text-lg mr-1">{badge}</span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="text-center p-4 md:p-6 text-lg md:text-xl text-green-400 font-bold">{player.goals}</td>
-                      <td className="text-center p-4 md:p-6 text-lg md:text-xl text-blue-400 font-bold">{player.assists}</td>
-                      <td className="text-center p-4 md:p-6 text-lg md:text-xl text-yellow-400 font-bold">{player.saves}</td>
-                      <td className="text-center p-4 md:p-6 text-lg md:text-xl text-purple-400 font-bold">{player.wins || 0}</td>
-                      <td className="text-center p-4 md:p-6 font-black text-xl md:text-2xl text-orange-400">{player.totalPoints}</td>
-                      <td className="text-center p-4 md:p-6 text-lg md:text-xl">
+                      <td className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg text-green-400 font-bold">{player.goals}</td>
+                      <td className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg text-blue-400 font-bold">{player.assists}</td>
+                      <td className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg text-yellow-400 font-bold">{player.saves}</td>
+                      <td className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg text-purple-400 font-bold">{player.wins || 0}</td>
+                      <td className="text-center p-1 sm:p-2 md:p-4 font-black text-sm sm:text-base md:text-xl text-orange-400">{player.totalPoints}</td>
+                      <td className="text-center p-1 sm:p-2 md:p-4 text-xs sm:text-sm md:text-lg">
                         {player.form === 'injured' && '🤕'}
                         {player.form === 'slightly_injured' && '😐'}
                         {player.form === 'fit' && '💪'}
