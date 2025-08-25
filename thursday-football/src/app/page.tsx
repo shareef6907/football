@@ -504,46 +504,46 @@ const ThursdayFootballApp = () => {
           {/* Rankings Table - Compact Mobile Table */}
           <div className="bg-gradient-to-br from-slate-800/60 to-green-900/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-slate-700/50 shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm sm:text-base md:text-lg">
+              <table className="w-full text-base sm:text-lg md:text-xl">
                 <thead className="bg-slate-700/50">
                   <tr>
-                    <th className="text-left p-2 sm:p-3 md:p-4 text-sm sm:text-base md:text-lg font-bold text-white">#</th>
-                    <th className="text-left p-2 sm:p-3 md:p-4 text-sm sm:text-base md:text-lg font-bold text-white">Player</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl font-bold text-white">⚽</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl font-bold text-white">⚡</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl font-bold text-white">🧤</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl font-bold text-white">🏆</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-sm sm:text-base md:text-lg font-bold text-white">📊</th>
-                    <th className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl font-bold text-white">💪</th>
+                    <th className="text-left p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">#</th>
+                    <th className="text-left p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">Player</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚽</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">⚡</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🧤</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">🏆</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl font-bold text-white">📊</th>
+                    <th className="text-center p-2 sm:p-3 md:p-4 text-xl sm:text-2xl md:text-3xl font-bold text-white">💪</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getRankedPlayers().map((player, index) => (
                     <tr key={player.id} className={`border-b border-slate-700/30 hover:bg-slate-700/20 transition-all ${index < 3 ? 'bg-gradient-to-r from-yellow-900/10 to-transparent' : ''}`}>
-                      <td className="p-2 sm:p-3 md:p-4 font-black text-base sm:text-lg md:text-xl">
+                      <td className="p-2 sm:p-3 md:p-4 font-black text-lg sm:text-xl md:text-2xl">
                         {index === 0 && '🥇'}
                         {index === 1 && '🥈'}
                         {index === 2 && '🥉'}
                         {index > 2 && (index + 1)}
                       </td>
-                      <td className="p-2 sm:p-3 md:p-4 font-bold text-sm sm:text-base md:text-lg text-blue-300">
+                      <td className="p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg md:text-xl text-blue-300">
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span>{player.name}</span>
                           {player.currentBadges && player.currentBadges.length > 0 && (
                             <span className="ml-0 sm:ml-2">
                               {player.currentBadges.map((badge: any, idx: number) => (
-                                <span key={idx} className="animate-pulse text-sm sm:text-base md:text-xl mr-1">{badge}</span>
+                                <span key={idx} className="animate-pulse text-base sm:text-lg md:text-2xl mr-1">{badge}</span>
                               ))}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl text-green-400 font-bold">{player.goals}</td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl text-blue-400 font-bold">{player.assists}</td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl text-yellow-400 font-bold">{player.saves}</td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl text-purple-400 font-bold">{player.wins || 0}</td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 font-black text-base sm:text-lg md:text-xl text-orange-400">{player.totalPoints}</td>
-                      <td className="text-center p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl">
+                      <td className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl text-green-400 font-bold">{player.goals}</td>
+                      <td className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl text-blue-400 font-bold">{player.assists}</td>
+                      <td className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl text-yellow-400 font-bold">{player.saves}</td>
+                      <td className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl text-purple-400 font-bold">{player.wins || 0}</td>
+                      <td className="text-center p-2 sm:p-3 md:p-4 font-black text-lg sm:text-xl md:text-2xl text-orange-400">{player.totalPoints}</td>
+                      <td className="text-center p-2 sm:p-3 md:p-4 text-lg sm:text-xl md:text-2xl">
                         {player.form === 'injured' && '🤕'}
                         {player.form === 'slightly_injured' && '😐'}
                         {player.form === 'fit' && '💪'}
