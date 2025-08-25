@@ -457,6 +457,7 @@ const ThursdayFootballApp = () => {
             )}
           </div>
         </div>
+        </div>
 
         {/* Player Rankings Table - Enhanced presentation */}
         <div className="bg-gray-700/60 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-green-500/40 shadow-xl ring-1 ring-green-400/15">
@@ -770,7 +771,6 @@ const ThursdayFootballApp = () => {
           </a>
         </div>
         
-      </div>
       </div>
       </div>
     </div>
