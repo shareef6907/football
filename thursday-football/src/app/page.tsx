@@ -267,16 +267,16 @@ const ThursdayFootballApp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white">
-      <div className="container mx-auto px-4 sm:px-8 py-8 sm:py-16 max-w-6xl">
+      <div className="container mx-auto px-6 sm:px-12 py-12 sm:py-24 max-w-7xl">
         
-        {/* Header Section - Responsive spacing */}
-        <div className="text-center mb-12 sm:mb-24">
+        {/* Header Section - Enhanced spacing */}
+        <div className="text-center mb-20 sm:mb-32">
           <h1 className="text-3xl sm:text-6xl font-bold text-white mb-6 sm:mb-12">
             ⚽ Thursday Football League ⚽
           </h1>
           
-          {/* Next Game Countdown - Glass morphism card */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-12 border border-blue-500/20 shadow-2xl">
+          {/* Next Game Countdown - Enhanced glass morphism card */}
+          <div className="bg-gray-800/60 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-8 sm:mb-16 border border-blue-500/30 shadow-2xl ring-1 ring-blue-400/10">
             <div className="flex flex-col sm:flex-row items-center justify-center mb-2 sm:mb-4">
               <Clock className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-blue-400" />
               <h2 className="text-lg sm:text-3xl font-semibold text-blue-300 text-center">
@@ -289,8 +289,8 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Stats Submission Section - Mobile responsive */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-purple-500/20">
+        {/* Stats Submission Section - Professional spacing */}
+        <div className="bg-gray-800/60 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-purple-500/30 shadow-xl ring-1 ring-purple-400/10">
           <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-6">
             <Target className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-purple-400" />
             <h3 className="text-xl sm:text-3xl font-bold text-purple-300 text-center">
@@ -438,8 +438,8 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Player Rankings Table - Mobile responsive */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-green-500/20">
+        {/* Player Rankings Table - Enhanced presentation */}
+        <div className="bg-gray-700/60 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-green-500/40 shadow-xl ring-1 ring-green-400/15">
           <div className="flex flex-col sm:flex-row items-center mb-6 sm:mb-8">
             <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-green-400" />
             <h3 className="text-2xl sm:text-3xl font-bold text-green-300">Player Rankings</h3>
@@ -495,8 +495,8 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Current Leaders Dashboard - Mobile responsive */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-yellow-500/20">
+        {/* Current Leaders Dashboard - Premium styling */}
+        <div className="bg-gradient-to-br from-gray-800/70 to-gray-700/70 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-yellow-500/40 shadow-2xl ring-1 ring-yellow-400/20">
           <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center text-yellow-400">
             🏆 Current Leaders 🏆
           </h3>
@@ -521,10 +521,10 @@ const ThursdayFootballApp = () => {
                 })()}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-900/60 to-cyan-900/60 backdrop-blur-sm p-6 rounded-2xl border border-blue-400/30">
-              <div className="text-4xl mb-3 text-center">⚡️</div>
-              <div className="font-semibold text-xl text-blue-300 text-center">Top Assists</div>
-              <div className="text-2xl text-white text-center mt-2">
+            <div className="bg-gradient-to-br from-blue-900/70 to-cyan-900/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-blue-400/30">
+              <div className="text-3xl sm:text-4xl mb-2 sm:mb-3 text-center">⚡️</div>
+              <div className="font-semibold text-base sm:text-xl text-blue-300 text-center">Top Assists</div>
+              <div className="text-lg sm:text-2xl text-white text-center mt-1 sm:mt-2">
                 {(() => {
                   const topAssists = [...players].sort((a, b) => b.assists - a.assists)[0];
                   return topAssists && topAssists.assists > 0 ? `${topAssists.name} (${topAssists.assists})` : 'No assists yet';
@@ -544,8 +544,8 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
-        {/* Team Generator - Mobile responsive */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-10 mb-10 sm:mb-20 border border-cyan-500/20">
+        {/* Team Generator - Professional layout */}
+        <div className="bg-gray-750/60 backdrop-blur-md rounded-3xl p-8 sm:p-12 mb-20 sm:mb-32 border border-cyan-500/30 shadow-xl ring-1 ring-cyan-400/10">
           <div className="flex flex-col sm:flex-row items-center mb-6 sm:mb-8">
             <Users className="w-6 h-6 sm:w-8 sm:h-8 mr-0 sm:mr-3 mb-2 sm:mb-0 text-cyan-400" />
             <h3 className="text-2xl sm:text-3xl font-bold text-cyan-300">Generate Balanced Teams</h3>
@@ -627,8 +627,8 @@ const ThursdayFootballApp = () => {
           )}
         </div>
 
-        {/* Scoring System & Prizes - Professional layout */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 mb-16 border border-indigo-500/20">
+        {/* Scoring System & Prizes - Executive presentation */}
+        <div className="bg-gradient-to-br from-gray-800/80 to-indigo-900/30 backdrop-blur-md rounded-3xl p-10 sm:p-14 mb-20 sm:mb-32 border border-indigo-500/40 shadow-2xl ring-1 ring-indigo-400/20">
           <div className="flex items-center mb-8">
             <Shield className="w-8 h-8 mr-3 text-indigo-400" />
             <h3 className="text-3xl font-bold text-indigo-300">Scoring System & Prizes</h3>
@@ -735,8 +735,11 @@ const ThursdayFootballApp = () => {
           </div>
         </div>
 
+        {/* Visual Separator */}
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-600/50 to-transparent mb-16 sm:mb-24"></div>
+        
         {/* Admin Access Button */}
-        <div className="text-center mt-8 mb-8">
+        <div className="text-center mt-12 mb-16">
           <a
             href="/admin"
             className="inline-flex items-center px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-all text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50"
