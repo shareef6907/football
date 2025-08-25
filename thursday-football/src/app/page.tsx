@@ -268,13 +268,15 @@ const ThursdayFootballApp = () => {
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
       <div className="relative z-10">
-        <div className="container mx-auto px-8 py-16 max-w-6xl space-y-32">
+        <div className="container mx-auto px-8 py-16 max-w-6xl space-y-48">
         
         {/* Hero Header */}
-        <section className="text-center space-y-12">
+        <section className="text-center space-y-12 mb-48">
           <div className="space-y-8">
-            <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 leading-tight">
+            <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 leading-tight flex items-center justify-center gap-6">
+              <span className="animate-bounce text-6xl md:text-8xl">⚽</span>
               Thursday Football League
+              <span className="animate-bounce text-6xl md:text-8xl" style={{animationDelay: '0.1s'}}>⚽</span>
             </h1>
             <p className="text-2xl text-gray-300 font-medium">Elite Competition • Professional Stats • Weekly Champions</p>
           </div>
@@ -297,7 +299,7 @@ const ThursdayFootballApp = () => {
         </section>
 
         {/* Stats Submission Section */}
-        <section className="space-y-12">
+        <section className="space-y-12 mb-48">
           {/* Section Header */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-purple-500/10 rounded-full border border-purple-500/20">
@@ -486,7 +488,7 @@ const ThursdayFootballApp = () => {
         </section>
 
         {/* Player Rankings Section */}
-        <section className="space-y-12">
+        <section className="space-y-12 mb-48">
           {/* Section Header */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-green-500/10 rounded-full border border-green-500/20">
@@ -552,7 +554,7 @@ const ThursdayFootballApp = () => {
         </section>
 
         {/* Current Leaders Dashboard */}
-        <section className="space-y-12">
+        <section className="space-y-12 mb-48">
           {/* Section Header */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-yellow-500/10 rounded-full border border-yellow-500/20">
@@ -616,7 +618,7 @@ const ThursdayFootballApp = () => {
         </section>
 
         {/* Team Generator Section */}
-        <section className="space-y-12">
+        <section className="space-y-12 mb-48">
           {/* Section Header */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-cyan-500/10 rounded-full border border-cyan-500/20">
@@ -709,7 +711,7 @@ const ThursdayFootballApp = () => {
         </section>
 
         {/* Scoring System Section */}
-        <section className="space-y-12">
+        <section className="space-y-12 mb-48">
           {/* Section Header */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-indigo-500/10 rounded-full border border-indigo-500/20">
