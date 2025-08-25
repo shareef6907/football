@@ -273,12 +273,12 @@ const ThursdayFootballApp = () => {
         {/* Hero Header */}
         <section className="text-center space-y-12 mb-48">
           <div className="space-y-8">
-            <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 leading-tight flex items-center justify-center gap-6">
-              <span className="animate-bounce text-6xl md:text-8xl">⚽</span>
-              Thursday Football League
-              <span className="animate-bounce text-6xl md:text-8xl" style={{animationDelay: '0.1s'}}>⚽</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 leading-tight flex items-center justify-center gap-2 sm:gap-4 md:gap-6 flex-wrap">
+              <span className="animate-bounce text-4xl sm:text-5xl md:text-6xl">⚽</span>
+              <span className="text-center">Thursday Football League</span>
+              <span className="animate-bounce text-4xl sm:text-5xl md:text-6xl" style={{animationDelay: '0.1s'}}>⚽</span>
             </h1>
-            <p className="text-2xl text-gray-300 font-medium">Elite Competition • Professional Stats • Weekly Champions</p>
+            <p className="text-xl sm:text-2xl text-gray-300 font-medium">Track Your Progress!</p>
           </div>
           
           {/* Next Game Countdown - Hero Card */}
@@ -291,8 +291,9 @@ const ThursdayFootballApp = () => {
                   Next Game: Thursday, {formatGameDate(nextGame)}, 8PM
                 </h2>
               </div>
-              <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-400 animate-pulse">
-                ⏰ {timeLeft}
+              <div className="text-5xl md:text-6xl font-black animate-pulse flex items-center justify-center gap-4">
+                <span className="text-white">⏰</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600">{timeLeft}</span>
               </div>
             </div>
           </div>
@@ -501,46 +502,46 @@ const ThursdayFootballApp = () => {
           </div>
 
           {/* Rankings Table */}
-          <div className="bg-gradient-to-br from-slate-800/60 to-green-900/20 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-800/60 to-green-900/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-slate-700/50 shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[600px] sm:min-w-full">
                 <thead className="bg-slate-700/50">
                   <tr>
-                    <th className="text-left p-6 text-xl font-bold text-white">#</th>
-                    <th className="text-left p-6 text-xl font-bold text-white">Player</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">⚽ Goals</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">⚡ Assists</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">🧤 Saves</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">🏆 Wins</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">📊 Total</th>
-                    <th className="text-center p-6 text-xl font-bold text-white">Form</th>
+                    <th className="text-left p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">#</th>
+                    <th className="text-left p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">Player</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">⚽ Goals</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">⚡ Assists</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">🧤 Saves</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">🏆 Wins</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">📊 Total</th>
+                    <th className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl font-bold text-white">Form</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getRankedPlayers().map((player, index) => (
                     <tr key={player.id} className={`border-b border-slate-700/30 hover:bg-slate-700/20 transition-all ${index < 3 ? 'bg-gradient-to-r from-yellow-900/10 to-transparent' : ''}`}>
-                      <td className="p-6 font-black text-2xl">
+                      <td className="p-2 sm:p-4 md:p-6 font-black text-lg sm:text-xl md:text-2xl">
                         {index === 0 && '🥇'}
                         {index === 1 && '🥈'}
                         {index === 2 && '🥉'}
                         {index > 2 && (index + 1)}
                       </td>
-                      <td className="p-6 font-bold text-xl text-blue-300">
+                      <td className="p-2 sm:p-4 md:p-6 font-bold text-sm sm:text-lg md:text-xl text-blue-300">
                         {player.name}
                         {player.currentBadges && player.currentBadges.length > 0 && (
-                          <span className="ml-4">
+                          <span className="ml-1 sm:ml-2 md:ml-4">
                             {player.currentBadges.map((badge: any, idx: number) => (
-                              <span key={idx} className="animate-pulse text-2xl mr-1">{badge}</span>
+                              <span key={idx} className="animate-pulse text-base sm:text-lg md:text-2xl mr-1">{badge}</span>
                             ))}
                           </span>
                         )}
                       </td>
-                      <td className="text-center p-6 text-xl text-green-400 font-bold">{player.goals}</td>
-                      <td className="text-center p-6 text-xl text-blue-400 font-bold">{player.assists}</td>
-                      <td className="text-center p-6 text-xl text-yellow-400 font-bold">{player.saves}</td>
-                      <td className="text-center p-6 text-xl text-purple-400 font-bold">{player.wins || 0}</td>
-                      <td className="text-center p-6 font-black text-2xl text-orange-400">{player.totalPoints}</td>
-                      <td className="text-center p-6 text-xl">
+                      <td className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl text-green-400 font-bold">{player.goals}</td>
+                      <td className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl text-blue-400 font-bold">{player.assists}</td>
+                      <td className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl text-yellow-400 font-bold">{player.saves}</td>
+                      <td className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl text-purple-400 font-bold">{player.wins || 0}</td>
+                      <td className="text-center p-2 sm:p-4 md:p-6 font-black text-lg sm:text-xl md:text-2xl text-orange-400">{player.totalPoints}</td>
+                      <td className="text-center p-2 sm:p-4 md:p-6 text-sm sm:text-lg md:text-xl">
                         {player.form === 'injured' && '🤕'}
                         {player.form === 'slightly_injured' && '😐'}
                         {player.form === 'fit' && '💪'}
