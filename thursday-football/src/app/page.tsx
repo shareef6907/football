@@ -527,10 +527,10 @@ const ThursdayFootballApp = () => {
                         {index > 2 && (index + 1)}
                       </td>
                       <td className="p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg md:text-xl text-blue-300">
-                        <div className="flex flex-col sm:flex-row sm:items-center">
+                        <div className="flex items-center justify-between">
                           <span>{player.name}</span>
                           {player.currentBadges && player.currentBadges.length > 0 && (
-                            <span className="ml-0 sm:ml-2">
+                            <span className="ml-2">
                               {player.currentBadges.map((badge: any, idx: number) => (
                                 <span key={idx} className="animate-pulse text-base sm:text-lg md:text-2xl mr-1">{badge}</span>
                               ))}
