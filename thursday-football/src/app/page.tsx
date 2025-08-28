@@ -45,19 +45,75 @@ const ThursdayFootballApp = () => {
   };
 
   const getNextThursday = () => {
-    const today = new Date();
-    const thursday = new Date();
-    thursday.setDate(today.getDate() + ((4 - today.getDay() + 7) % 7));
-    if (thursday <= today) {
-      thursday.setDate(thursday.getDate() + 7);
+    const now = new Date();
+    const today = new Date(now);
+    
+    // Get this Thursday at 8pm
+    const thisThursday = new Date(today);
+    const daysUntilThursday = (4 - today.getDay() + 7) % 7;
+    thisThursday.setDate(today.getDate() + daysUntilThursday);
+    thisThursday.setHours(20, 0, 0, 0); // 8PM
+    
+    // If it's Thursday and we're between 8PM (20:00) and 9:30PM (21:30), game is in progress
+    if (today.getDay() === 4) {
+      const currentHour = today.getHours();
+      const currentMinute = today.getMinutes();
+      const currentTimeInMinutes = currentHour * 60 + currentMinute;
+      const gameStartInMinutes = 20 * 60; // 8PM
+      const gameEndInMinutes = 21 * 60 + 30; // 9:30PM
+      
+      if (currentTimeInMinutes >= gameStartInMinutes && currentTimeInMinutes < gameEndInMinutes) {
+        // Game is in progress, return next Thursday
+        const nextThursday = new Date(thisThursday);
+        nextThursday.setDate(nextThursday.getDate() + 7);
+        return nextThursday;
+      } else if (currentTimeInMinutes >= gameEndInMinutes) {
+        // Game has ended, return next Thursday
+        const nextThursday = new Date(thisThursday);
+        nextThursday.setDate(nextThursday.getDate() + 7);
+        return nextThursday;
+      } else {
+        // Before game time, return today's game
+        return thisThursday;
+      }
     }
-    thursday.setHours(20, 0, 0, 0);
-    return thursday;
+    
+    // If we've passed this Thursday or it's not Thursday, return next Thursday
+    if (thisThursday <= now) {
+      const nextThursday = new Date(thisThursday);
+      nextThursday.setDate(nextThursday.getDate() + 7);
+      return nextThursday;
+    }
+    
+    return thisThursday;
   };
 
   const [nextGame, setNextGame] = useState(getNextThursday());
   const [previousGame, setPreviousGame] = useState(getPreviousThursday());
   const [timeLeft, setTimeLeft] = useState('');
+
+  // Update next game when time changes (especially after 9:30pm Thursday)
+  useEffect(() => {
+    const updateTimer = setInterval(() => {
+      const now = new Date();
+      
+      // Check if we need to update the next game time (every minute)
+      if (now.getDay() === 4) {
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+        const gameEndInMinutes = 21 * 60 + 30; // 9:30PM
+        
+        // If it's exactly 9:30pm Thursday, update to next game
+        if (currentTimeInMinutes === gameEndInMinutes) {
+          setNextGame(getNextThursday());
+          setPreviousGame(getPreviousThursday());
+        }
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(updateTimer);
+  }, []);
 
   // Load data from Supabase
   useEffect(() => {
@@ -114,6 +170,21 @@ const ThursdayFootballApp = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
+      
+      // Check if it's Thursday and we're in game time (8PM - 9:30PM)
+      if (now.getDay() === 4) {
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+        const gameStartInMinutes = 20 * 60; // 8PM
+        const gameEndInMinutes = 21 * 60 + 30; // 9:30PM
+        
+        if (currentTimeInMinutes >= gameStartInMinutes && currentTimeInMinutes < gameEndInMinutes) {
+          setTimeLeft('🔥 Game in Progress 🔥');
+          return;
+        }
+      }
+      
       const distance = nextGame.getTime() - now.getTime();
       
       if (distance > 0) {
