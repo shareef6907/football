@@ -126,8 +126,21 @@ export async function POST(request: NextRequest) {
 
 function getWeekStart(): string {
   const now = new Date()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - now.getDay() + 1)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
+  
+  // Convert to Bahrain time (UTC+3)
+  const bahrainTime = new Date(now.getTime() + (3 * 60 * 60 * 1000))
+  
+  // Get this week's Thursday at 6PM
+  const thursday = new Date(bahrainTime)
+  thursday.setDate(bahrainTime.getDate() - bahrainTime.getDay() + 4) // This week's Thursday
+  thursday.setHours(18, 0, 0, 0) // 6PM
+  
+  // If it's before Thursday 6PM, use previous Thursday 6PM
+  if (bahrainTime < thursday) {
+    thursday.setDate(thursday.getDate() - 7)
+  }
+  
+  // Convert back to UTC and return ISO date
+  const utcThursday = new Date(thursday.getTime() - (3 * 60 * 60 * 1000))
+  return utcThursday.toISOString().split('T')[0]
 }

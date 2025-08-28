@@ -25,23 +25,23 @@ const ThursdayFootballApp = () => {
   });
 
   const getPreviousThursday = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    let daysBack;
+    const now = new Date();
     
-    if (dayOfWeek === 4) {
-      const currentHour = today.getHours();
-      daysBack = currentHour >= 20 ? 0 : 7;
-    } else if (dayOfWeek > 4) {
-      daysBack = dayOfWeek - 4;
-    } else {
-      daysBack = dayOfWeek + 3;
+    // Convert to Bahrain time (UTC+3)
+    const bahrainTime = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+    
+    // Get this week's Thursday at 6PM
+    const thursday = new Date(bahrainTime);
+    thursday.setDate(bahrainTime.getDate() - bahrainTime.getDay() + 4); // This week's Thursday
+    thursday.setHours(18, 0, 0, 0); // 6PM
+    
+    // If it's before Thursday 6PM, use previous Thursday 6PM
+    if (bahrainTime < thursday) {
+      thursday.setDate(thursday.getDate() - 7);
     }
     
-    const previousThursday = new Date();
-    previousThursday.setDate(today.getDate() - daysBack);
-    previousThursday.setHours(20, 0, 0, 0);
-    return previousThursday;
+    // Convert back to local time for display
+    return new Date(thursday.getTime() - (3 * 60 * 60 * 1000));
   };
 
   const getNextThursday = () => {
@@ -359,7 +359,7 @@ const ThursdayFootballApp = () => {
               <div className="flex items-center justify-center gap-6 mb-8">
                 <Clock className="w-10 h-10 text-blue-400" />
                 <h2 className="text-3xl md:text-4xl font-bold text-white">
-                  Next Game: Thursday, {formatGameDate(nextGame)}, 8PM
+                  Next Game: Thursday, <span className="text-yellow-400">{formatGameDate(nextGame)}</span>, 8PM
                 </h2>
               </div>
               <div className="text-2xl md:text-3xl font-mono font-black animate-pulse flex items-center justify-center gap-4">
@@ -380,12 +380,12 @@ const ThursdayFootballApp = () => {
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white">
               Submit Stats for Thursday Game<br />
-              <span className="text-3xl md:text-4xl text-white font-bold">
+              <span className="text-3xl md:text-4xl text-yellow-400 font-bold">
                 {formatGameDate(previousGame).split(' ')[0]} {formatGameDate(previousGame).split(' ')[1]}
               </span>
             </h2>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              ⚠️ One submission per week only • Submission window: Thursday 8PM - Wednesday 11:59PM
+              ⚠️ One submission per week only • Submission window: Thursday 6PM - Wednesday 11:59PM (Bahrain time)
             </p>
           </div>
           
