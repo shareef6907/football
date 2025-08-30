@@ -88,8 +88,7 @@ export async function POST(request: NextRequest) {
           goals,
           assists,
           saves,
-          points_earned: points,
-          updated_at: new Date().toISOString()
+          points_earned: points
         })
         .eq('id', existing[0].id)
         .select()
