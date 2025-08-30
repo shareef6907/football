@@ -144,10 +144,13 @@ const AdminPanel = () => {
           won: result.currentStats.won
         });
       } else {
-        setStatsMessage(`❌ Error: ${result.error}`);
+        console.error('Admin: Fetch Stats Error:', result);
+        const errorMsg = result.details ? `${result.error}: ${result.details}` : result.error;
+        setStatsMessage(`❌ Error: ${errorMsg}`);
       }
     } catch (error) {
-      setStatsMessage('❌ Failed to fetch player stats');
+      console.error('Admin: Fetch Network Error:', error);
+      setStatsMessage(`❌ Failed to fetch player stats: ${error instanceof Error ? error.message : 'Network error'}`);
     } finally {
       setIsLoadingStats(false);
     }
@@ -194,10 +197,13 @@ const AdminPanel = () => {
         // Refresh the current stats
         await fetchPlayerStats(selectedPlayer);
       } else {
-        setStatsMessage(`❌ Error: ${result.error}`);
+        console.error('Admin: API Error Response:', result);
+        const errorMsg = result.details ? `${result.error}: ${result.details}` : result.error;
+        setStatsMessage(`❌ Error: ${errorMsg}`);
       }
     } catch (error) {
-      setStatsMessage('❌ Failed to update player stats');
+      console.error('Admin: Network/Parse Error:', error);
+      setStatsMessage(`❌ Failed to update player stats: ${error instanceof Error ? error.message : 'Network error'}`);
     } finally {
       setIsSavingStats(false);
     }

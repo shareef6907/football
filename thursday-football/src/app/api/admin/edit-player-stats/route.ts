@@ -8,17 +8,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { playerName, goals, assists, saves, won } = body
 
+    console.log('Admin API: Request data:', { playerName, goals, assists, saves, won })
+
     // Validate input
     if (!playerName || goals < 0 || assists < 0 || saves < 0) {
+      console.log('Admin API: Invalid input data')
       return NextResponse.json({ error: 'Invalid input data' }, { status: 400 })
     }
 
     console.log('Admin API: Getting Supabase admin client...')
+    console.log('Admin API: Environment check - URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Present' : 'Missing')
+    console.log('Admin API: Environment check - Service Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing')
+    
+    try {
+      const supabaseAdmin = getSupabaseAdmin()
+      console.log('Admin API: Supabase admin client created successfully')
+    } catch (envError) {
+      console.error('Admin API: Failed to create Supabase client:', envError)
+      return NextResponse.json({ 
+        error: 'Configuration error', 
+        details: envError instanceof Error ? envError.message : 'Unknown error'
+      }, { status: 500 })
+    }
+    
     const supabaseAdmin = getSupabaseAdmin()
     
     // Get player UUID
     const playerUUID = PLAYER_UUIDS[playerName]
+    console.log('Admin API: Player UUID lookup:', { playerName, playerUUID })
     if (!playerUUID) {
+      console.log('Admin API: Invalid player name:', playerName)
+      console.log('Admin API: Available players:', Object.keys(PLAYER_UUIDS))
       return NextResponse.json({ error: 'Invalid player name' }, { status: 400 })
     }
 
@@ -52,7 +72,10 @@ export async function POST(request: NextRequest) {
 
     if (checkError) {
       console.error('Admin API: Error checking existing stats:', checkError)
-      return NextResponse.json({ error: 'Database check error' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Database check error', 
+        details: checkError.message 
+      }, { status: 500 })
     }
 
     let result
@@ -75,7 +98,9 @@ export async function POST(request: NextRequest) {
         console.error('Admin API: Error updating stats:', error)
         return NextResponse.json({ 
           error: 'Failed to update stats', 
-          details: error.message 
+          details: error.message,
+          code: error.code,
+          hint: error.hint
         }, { status: 500 })
       }
       result = data
@@ -100,7 +125,9 @@ export async function POST(request: NextRequest) {
         console.error('Admin API: Error creating stats:', error)
         return NextResponse.json({ 
           error: 'Failed to create stats', 
-          details: error.message 
+          details: error.message,
+          code: error.code,
+          hint: error.hint
         }, { status: 500 })
       }
       result = data
