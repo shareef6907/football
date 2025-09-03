@@ -92,6 +92,13 @@ export async function DELETE() {
       .eq('is_active', true)
     
     if (error) {
+      // Check if table doesn't exist
+      if (error.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          message: 'No game settings to deactivate. System already uses default Thursday schedule.'
+        })
+      }
       console.error('Error deactivating game settings:', error)
       return NextResponse.json(
         { error: 'Failed to deactivate game settings' },

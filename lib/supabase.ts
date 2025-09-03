@@ -303,30 +303,46 @@ export interface GameSettings {
 
 // Get active game settings
 export async function getActiveGameSettings(): Promise<GameSettings | null> {
-  const { data, error } = await supabase
-    .from('game_settings')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-  
-  if (error) {
-    console.log('No active game settings found, using default')
+  try {
+    const { data, error } = await supabase
+      .from('game_settings')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    
+    if (error) {
+      // Check if table doesn't exist
+      if (error.code === 'PGRST205' || error.message?.includes('game_settings')) {
+        console.log('Game settings table not found, using default schedule')
+        return null
+      }
+      console.log('No active game settings found, using default')
+      return null
+    }
+    
+    return data
+  } catch (error) {
+    console.log('Error fetching game settings, using default:', error)
     return null
   }
-  
-  return data
 }
 
 // Create or update game settings
 export async function upsertGameSettings(settings: Omit<GameSettings, 'id' | 'created_at'>): Promise<boolean> {
   try {
     // First deactivate all existing settings
-    await supabase
+    const { error: updateError } = await supabase
       .from('game_settings')
       .update({ is_active: false })
       .eq('is_active', true)
+    
+    // If table doesn't exist, return false but don't crash
+    if (updateError?.code === 'PGRST205') {
+      console.log('Game settings table not found. Please run the database migration first.')
+      return false
+    }
     
     // Insert new active settings
     const { error } = await supabase
@@ -352,15 +368,25 @@ export async function upsertGameSettings(settings: Omit<GameSettings, 'id' | 'cr
 
 // Get all game settings (for admin view)
 export async function getAllGameSettings(): Promise<GameSettings[]> {
-  const { data, error } = await supabase
-    .from('game_settings')
-    .select('*')
-    .order('created_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching game settings:', error)
+  try {
+    const { data, error } = await supabase
+      .from('game_settings')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      // Check if table doesn't exist
+      if (error.code === 'PGRST205' || error.message?.includes('game_settings')) {
+        console.log('Game settings table not found')
+        return []
+      }
+      console.error('Error fetching game settings:', error)
+      return []
+    }
+    
+    return data || []
+  } catch (error) {
+    console.error('Error fetching all game settings:', error)
     return []
   }
-  
-  return data || []
 }
