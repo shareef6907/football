@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Trash2, Eye, EyeOff, Calendar, Edit3, Users, ChevronDown, Clock, Settings, Save } from 'lucide-react';
+import { Shield, Trash2, Eye, EyeOff, Calendar, Edit3, Users, ChevronDown, Clock, Settings } from 'lucide-react';
 import { PLAYERS, GameSettings } from '../../../lib/supabase';
 
 const AdminPanel = () => {

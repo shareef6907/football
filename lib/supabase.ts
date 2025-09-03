@@ -26,7 +26,7 @@ export interface PlayerStats {
   saves: number
   points_earned?: number
   team: string
-  confirmed_by?: any[]
+  confirmed_by?: string[]
   verification_count?: number
   verified?: boolean
   created_at?: string
@@ -239,7 +239,16 @@ export async function getPlayerRankings(): Promise<any[]> {
     return []
   }
   
-  const playerStats: { [key: string]: any } = {}
+  const playerStats: { [key: string]: { 
+    name: string; 
+    goals: number; 
+    assists: number; 
+    saves: number; 
+    wins: number; 
+    totalGames: number; 
+    totalPoints: number; 
+    form: string;
+  } } = {}
   
   // Initialize all players with default stats
   PLAYERS.forEach(playerName => {
@@ -262,7 +271,7 @@ export async function getPlayerRankings(): Promise<any[]> {
   })
   
   // Process database stats using UUID mapping from confirmed_by field
-  data?.forEach((stat: any) => {
+  data?.forEach((stat: PlayerStats) => {
     const confirmedBy = stat.confirmed_by
     if (confirmedBy && confirmedBy.length > 0) {
       const playerUUID = confirmedBy[0] // First UUID is the player
@@ -285,10 +294,10 @@ export async function getPlayerRankings(): Promise<any[]> {
   })
   
   // Convert to array - use database points, don't recalculate
-  return Object.values(playerStats).map((player: any) => ({
+  return Object.values(playerStats).map((player) => ({
     ...player
     // totalPoints already set from database points_earned
-  })).sort((a: any, b: any) => b.totalPoints - a.totalPoints)
+  })).sort((a, b) => b.totalPoints - a.totalPoints)
 }
 
 // Game Settings Types and Functions
