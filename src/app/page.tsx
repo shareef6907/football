@@ -287,18 +287,41 @@ const ThursdayFootballApp = () => {
     }
 
     const selectedPlayersData = players.filter((p: any) => selectedPlayers.includes(p.id));
-    const shuffled = [...selectedPlayersData].sort(() => Math.random() - 0.5);
+    
+    // Sort players by points (descending) for balanced distribution
+    const sortedPlayers = [...selectedPlayersData].sort((a, b) => b.totalPoints - a.totalPoints);
     
     const team1: any[] = [];
     const team2: any[] = [];
+    let team1Points = 0;
+    let team2Points = 0;
     
-    shuffled.forEach((player, index) => {
-      if (index % 2 === 0) {
+    // Distribute players to balance team points
+    sortedPlayers.forEach((player) => {
+      if (team1Points <= team2Points) {
         team1.push(player);
+        team1Points += player.totalPoints;
       } else {
         team2.push(player);
+        team2Points += player.totalPoints;
       }
     });
+    
+    // If teams have unequal player counts and the difference is more than 1, balance them
+    if (Math.abs(team1.length - team2.length) > 1) {
+      // Move the lowest point player from the larger team to smaller team
+      if (team1.length > team2.length) {
+        const playerToMove = team1.reduce((min, player) => 
+          player.totalPoints < min.totalPoints ? player : min, team1[0]);
+        team1.splice(team1.indexOf(playerToMove), 1);
+        team2.push(playerToMove);
+      } else {
+        const playerToMove = team2.reduce((min, player) => 
+          player.totalPoints < min.totalPoints ? player : min, team2[0]);
+        team2.splice(team2.indexOf(playerToMove), 1);
+        team1.push(playerToMove);
+      }
+    }
 
     setGeneratedTeams([team1, team2]);
     setShowTeams(true);
