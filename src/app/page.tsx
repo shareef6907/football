@@ -970,6 +970,13 @@ const ThursdayFootballApp = () => {
           </a>
         </div>
 
+        {/* Footer */}
+        <footer className="text-center py-8 mt-16 border-t border-slate-700/50">
+          <p className="text-gray-400 text-lg">
+            All rights reserved | www.Thursdayfootball.com
+          </p>
+        </footer>
+
         </div>
       </div>
     </div>
