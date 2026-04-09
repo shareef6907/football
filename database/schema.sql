@@ -39,19 +39,19 @@ INSERT INTO players (name) VALUES
   ('Shareef'),
   ('Shaheen'),
   ('Emaad'),
-  ('Darwish'),
   ('Luqman'),
   ('Nabeel'),
   ('Jinish'),
-  ('Afzal'),
+  ('Shammas'),
   ('Rathul'),
   ('Madan'),
   ('Waleed'),
-  ('Ahmed-Ateeq'),
+  ('Raihan'),
   ('Junaid'),
   ('Shafeer'),
   ('Fathah'),
-  ('Nithin')
+  ('Raed'),
+  ('Darwish')
 ON CONFLICT (name) DO NOTHING;
 
 -- Create indexes for better performance
