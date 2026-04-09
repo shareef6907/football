@@ -41,10 +41,10 @@ export interface Game {
 
 // Player names array (since no players table)
 export const PLAYERS = [
-  'Ahmed', 'Fasin', 'Hamsheed', 'Jalal', 'Shareef',
-  'Shaheen', 'Emaad', 'Darwish', 'Luqman', 'Nabeel',
-  'Jinish', 'Afzal', 'Rathul', 'Madan', 'Waleed',
-  'Ahmed-Ateeq', 'Junaid', 'Shafeer', 'Fathah', 'Nithin'
+  'Raihan', 'Fasin', 'Hamsheed', 'Jalal', 'Shareef',
+  'Shaheen', 'Emaad', 'Luqman', 'Nabeel', 'Jinish',
+  'Shammas', 'Rathul', 'Madan', 'Waleed', 'Junaid',
+  'Shafeer', 'Fathah', 'Raed', 'Ahmed', 'Darwish'
 ]
 
 // Deterministic UUID mapping for players
@@ -56,19 +56,19 @@ export const PLAYER_UUIDS: { [key: string]: string } = {
   "Shareef": "ba7c5acc-c94d-466e-8d5a-0c7773c2bf0c",
   "Shaheen": "10825c4b-23d0-4e93-8c49-eadface5aeb3",
   "Emaad": "ac54a34c-4448-4721-8442-5dde27973756",
-  "Darwish": "6c6b378f-2748-467a-8eca-62c782eacd0a",
   "Luqman": "df86a60e-5940-406a-8330-f74379c89da3",
   "Nabeel": "3b16e4b3-82f5-4a0e-80d3-86f6b149891a",
   "Jinish": "793fb65a-2b41-41d8-84d4-f4ab015c6aab",
-  "Afzal": "e30229fa-f9d5-4440-8dc4-471d213ffb6b",
+  "Shammas": "e30229fa-f9d5-4440-8dc4-471d213ffb6b",
   "Rathul": "d7a8e753-d98e-43d6-8c44-6eda18f32d4d",
   "Madan": "611a0a44-d1e2-40fe-8946-ba84e980a694",
   "Waleed": "1b6a5f4a-c0e8-4694-83cb-4da00c20545e",
-  "Ahmed-Ateeq": "149aedd7-a9a5-4810-8002-c67163cd5cf6",
+  "Raihan": "149aedd7-a9a5-4810-8002-c67163cd5cf6",
   "Junaid": "1215383b-bbb7-43f3-8759-2f5b69994330",
   "Shafeer": "dfea2af6-9ab5-4e88-8f0b-6860f83ae8ef",
   "Fathah": "ae977a0c-cfb6-4827-87c9-f2448f03164e",
-  "Nithin": "42c2e951-394b-4b32-8823-3b5f70d3a56d"
+  "Raed": "42c2e951-394b-4b32-8823-3b5f70d3a56d",
+  "Darwish": "6c6b378f-2748-467a-8eca-62c782eacd0a"
 }
 
 // Get all players (return from static list since no players table)
