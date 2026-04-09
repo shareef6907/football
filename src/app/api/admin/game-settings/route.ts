@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getActiveGameSettings, upsertGameSettings, getAllGameSettings } from '../../../../../lib/supabase'
+import { getActiveGameSettings, getAllGameSettings, updateGameSettings, getGameSettings } from '../../../lib/local-db-admin'
 
 export async function GET() {
   try {
     const activeSettings = await getActiveGameSettings()
-    const allSettings = await getAllGameSettings()
+    const allSettings = await getGameSettings()
     
     return NextResponse.json({
       success: true,
@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { gameDate, submissionStart, submissionEnd } = body
     
-    // Validate required fields
     if (!gameDate || !submissionStart || !submissionEnd) {
       return NextResponse.json(
         { error: 'Missing required fields: gameDate, submissionStart, submissionEnd' },
@@ -33,7 +32,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Validate date formats and logic
     const gameDateObj = new Date(gameDate)
     const submissionStartObj = new Date(submissionStart)
     const submissionEndObj = new Date(submissionEnd)
@@ -52,8 +50,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Upsert the game settings
-    const success = await upsertGameSettings({
+    const success = await updateGameSettings({
       game_date: gameDate,
       submission_start: submissionStart,
       submission_end: submissionEnd,
@@ -83,28 +80,13 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE() {
   try {
-    const supabaseAdmin = getSupabaseAdmin()
-    
     // Deactivate all active settings
-    const { error } = await supabaseAdmin
-      .from('game_settings')
-      .update({ is_active: false })
-      .eq('is_active', true)
-    
-    if (error) {
-      // Check if table doesn't exist
-      if (error.code === 'PGRST205') {
-        return NextResponse.json({
-          success: true,
-          message: 'No game settings to deactivate. System already uses default Thursday schedule.'
-        })
-      }
-      console.error('Error deactivating game settings:', error)
-      return NextResponse.json(
-        { error: 'Failed to deactivate game settings' },
-        { status: 500 }
-      )
-    }
+    const success = await updateGameSettings({
+      game_date: '',
+      submission_start: '',
+      submission_end: '',
+      is_active: false
+    })
     
     return NextResponse.json({
       success: true,

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '../../../../../lib/supabase'
+import { resetAllStats, resetWeeklyStats } from '../../../lib/local-db-admin'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Admin API: Reset stats request received')
+    console.log('Admin API: Reset stats request received (local mode)')
     
     const body = await request.json()
     const { action } = body
@@ -12,23 +12,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
-    console.log('Admin API: Getting Supabase admin client...')
-    const supabaseAdmin = getSupabaseAdmin()
-    
     if (action === 'reset_all') {
-      // Delete all player stats
       console.log('Admin API: Deleting all player stats...')
-      const { error } = await supabaseAdmin
-        .from('player_stats')
-        .delete()
-        .not('id', 'is', null) // Delete all records
+      const success = await resetAllStats()
       
-      if (error) {
-        console.error('Admin API: Error deleting stats:', error)
-        return NextResponse.json({ 
-          error: 'Failed to reset stats', 
-          details: error.message 
-        }, { status: 500 })
+      if (!success) {
+        return NextResponse.json({ error: 'Failed to reset stats' }, { status: 500 })
       }
       
       console.log('Admin API: All stats successfully reset')
@@ -38,57 +27,17 @@ export async function POST(request: NextRequest) {
       })
       
     } else if (action === 'reset_weekly') {
-      // Get current week start (Thursday 8PM to next Wednesday 11:59PM)
-      const getCurrentWeekRange = () => {
-        const now = new Date()
-        const currentDay = now.getDay()
-        const currentHour = now.getHours()
-        
-        // Thursday is day 4
-        let weekStart = new Date(now)
-        
-        if (currentDay < 4 || (currentDay === 4 && currentHour < 20)) {
-          // Before this week's Thursday 8PM, so current week starts last Thursday
-          const daysToLastThursday = currentDay + 3
-          weekStart.setDate(now.getDate() - daysToLastThursday)
-        } else {
-          // After this week's Thursday 8PM, current week is this Thursday
-          const daysToThursday = currentDay - 4
-          weekStart.setDate(now.getDate() - daysToThursday)
-        }
-        
-        weekStart.setHours(20, 0, 0, 0) // Thursday 8PM
-        
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekStart.getDate() + 6) // Next Wednesday
-        weekEnd.setHours(23, 59, 59, 999) // 11:59:59 PM
-        
-        return { start: weekStart, end: weekEnd }
-      }
-      
-      const { start: weekStart, end: weekEnd } = getCurrentWeekRange()
-      
       console.log('Admin API: Deleting current week stats only...')
-      console.log('Week range:', weekStart.toISOString(), 'to', weekEnd.toISOString())
+      const success = await resetWeeklyStats()
       
-      const { error } = await supabaseAdmin
-        .from('player_stats')
-        .delete()
-        .gte('created_at', weekStart.toISOString())
-        .lte('created_at', weekEnd.toISOString())
-      
-      if (error) {
-        console.error('Admin API: Error deleting weekly stats:', error)
-        return NextResponse.json({ 
-          error: 'Failed to reset weekly stats', 
-          details: error.message 
-        }, { status: 500 })
+      if (!success) {
+        return NextResponse.json({ error: 'Failed to reset weekly stats' }, { status: 500 })
       }
       
       console.log('Admin API: Current week stats successfully reset')
       return NextResponse.json({ 
         success: true, 
-        message: `Current week stats (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}) have been reset. Historical data preserved.` 
+        message: 'Current week stats have been reset. Historical data preserved.' 
       })
     }
     
