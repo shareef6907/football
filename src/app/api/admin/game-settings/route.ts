@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getActiveGameSettings, getAllGameSettings, updateGameSettings, getGameSettings } from '../../../lib/local-db-admin'
+import { getActiveGameSettings, getAllGameSettings, updateGameSettings, getGameSettings } from '../../../../lib/local-db-admin'
 
 export async function GET() {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resetAllStats, resetWeeklyStats } from '../../../lib/local-db-admin'
+import { resetAllStats, resetWeeklyStats } from '../../../../lib/local-db-admin'
 
 export async function POST(request: NextRequest) {
   try {

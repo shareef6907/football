@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { editPlayerStats, PLAYER_UUIDS } from '../../../lib/local-db-admin'
+import { editPlayerStats, PLAYER_UUIDS } from '../../../../lib/local-db-admin'
 
 function getWeekStart(): string {
   const now = new Date()

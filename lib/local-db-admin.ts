@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { PLAYER_UUIDS } from './local-db'
 
 const DATA_FILE = path.join(process.cwd(), 'lib', 'data.json')
 
@@ -55,7 +56,7 @@ export async function resetWeeklyStats(): Promise<boolean> {
 
 export async function editPlayerStats(playerName: string, stats: any): Promise<boolean> {
   const data = loadData()
-  const playerUUID = require('./local-db').PLAYER_UUIDS[playerName]
+  const playerUUID = PLAYER_UUIDS[playerName]
   
   if (!playerUUID) return false
   
