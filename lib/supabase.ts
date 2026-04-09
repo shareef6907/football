@@ -44,7 +44,7 @@ export const PLAYERS = [
   'Raihan', 'Fasin', 'Hamsheed', 'Jalal', 'Shareef',
   'Shaheen', 'Emaad', 'Luqman', 'Nabeel', 'Jinish',
   'Shammas', 'Rathul', 'Madan', 'Waleed', 'Junaid',
-  'Shafeer', 'Fathah', 'Raed', 'Ahmed', 'Darwish'
+  'Shafeer', 'Fathah', 'Raed', 'Ahmed', 'Ameen', 'Darwish'
 ]
 
 // Deterministic UUID mapping for players
@@ -68,6 +68,7 @@ export const PLAYER_UUIDS: { [key: string]: string } = {
   "Shafeer": "dfea2af6-9ab5-4e88-8f0b-6860f83ae8ef",
   "Fathah": "ae977a0c-cfb6-4827-87c9-f2448f03164e",
   "Raed": "42c2e951-394b-4b32-8823-3b5f70d3a56d",
+  "Ameen": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
   "Darwish": "6c6b378f-2748-467a-8eca-62c782eacd0a"
 }
 
