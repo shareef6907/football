@@ -1,5 +1,6 @@
 import NextLink from 'next/link'
-import { Home, Users, Trophy, Calendar, Coins, Settings, Star, Award } from 'lucide-react'
+import { Home, Users, Trophy, Calendar, Coins, Settings, Star, Award, LogIn, LogOut, User } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 const navItems = [
   { href: '/', icon: Home, label: 'Home' },
@@ -37,6 +38,9 @@ export function Navigation({ activePath = '/' }: { activePath?: string }) {
 }
 
 export function Header({ title = 'Thursday Football' }: { title?: string }) {
+  // Use 'any' type to handle SSR - show Login by default, update after hydration
+  const { user, profile } = useAuth() as any
+  
   return (
     <header className="sticky top-0 z-40 glass border-b border-white/10">
       <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
@@ -44,12 +48,31 @@ export function Header({ title = 'Thursday Football' }: { title?: string }) {
           <span className="text-2xl">⚽</span>
           <h1 className="font-bold text-lg">{title}</h1>
         </NextLink>
-        <NextLink 
-          href="/settings"
-          className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-        </NextLink>
+        <div className="flex items-center gap-2">
+          {user ? (
+            <NextLink 
+              href="/profile"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 text-sm font-medium"
+            >
+              <User className="w-4 h-4" />
+              {profile?.players?.name || (profile?.role === 'spectator' ? 'Spectator' : 'Profile')}
+            </NextLink>
+          ) : (
+            <NextLink 
+              href="/login"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500 text-black text-sm font-medium"
+            >
+              <LogIn className="w-4 h-4" />
+              Login
+            </NextLink>
+          )}
+          <NextLink 
+            href="/settings"
+            className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+          >
+            <Settings className="w-5 h-5" />
+          </NextLink>
+        </div>
       </div>
     </header>
   )
