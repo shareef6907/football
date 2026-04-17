@@ -37,6 +37,9 @@ export default function ProfilePage() {
     )
   }
 
+  // Only allow selecting player if not already linked (prevents cheating)
+  const canChangePlayer = !profile?.player_id
+
   return (
     <div className="min-h-screen pb-20">
       <header className="sticky top-0 z-40 glass border-b border-white/10">
@@ -44,6 +47,7 @@ export default function ProfilePage() {
           <h1 className="font-bold text-lg">Profile</h1>
         </div>
       </header>
+
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Profile Card */}
@@ -57,41 +61,44 @@ export default function ProfilePage() {
           <p className="text-gray-400">{user.email}</p>
         </div>
 
-        {/* Select Player Button */}
-        <button
-          onClick={() => setShowSelect(!showSelect)}
-          className="w-full py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between"
-        >
-          <span>Change Player</span>
-          <ChevronRight className={`w-5 h-5 transition-transform ${showSelect ? 'rotate-90' : ''}`} />
-        </button>
+        {/* Select Player Button - only if not linked */}
+        {canChangePlayer && (
+          <>
+            <button
+              onClick={() => setShowSelect(!showSelect)}
+              className="w-full py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between"
+            >
+              <span>Select Your Player</span>
+              <ChevronRight className={`w-5 h-5 transition-transform ${showSelect ? 'rotate-90' : ''}`} />
+            </button>
 
-        {/* Player Selection */}
-        {showSelect && (
-          <div className="grid grid-cols-2 gap-2">
-            {PLAYERS.map(player => (
-              <button
-                key={player.id}
-                onClick={() => handleSelectPlayer(player.id)}
-                className={`p-3 rounded-xl border text-left flex items-center gap-2 ${
-                  profile?.player_id === player.id
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-white/10 hover:border-white/30'
-                }`}
-              >
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{ backgroundColor: player.color }}
-                >
-                  {player.name.slice(0,2).toUpperCase()}
-                </div>
-                <span>{player.name}</span>
-                {profile?.player_id === player.id && (
-                  <Check className="w-5 h-5 text-green-400 ml-auto" />
-                )}
-              </button>
-            ))}
-          </div>
+            {/* Player Selection */}
+            {showSelect && (
+              <div className="grid grid-cols-2 gap-2">
+                {PLAYERS.map(player => (
+                  <button
+                    key={player.id}
+                    onClick={() => handleSelectPlayer(player.id)}
+                    className="p-3 rounded-xl border border-white/10 hover:border-white/30 text-left flex items-center gap-2"
+                  >
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                      style={{ backgroundColor: player.color }}
+                    >
+                      {player.name.slice(0,2).toUpperCase()}
+                    </div>
+                    <span>{player.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {!canChangePlayer && (
+          <p className="text-center text-sm text-gray-500">
+            Contact admin to change your player
+          </p>
         )}
 
         {/* Sign Out */}
