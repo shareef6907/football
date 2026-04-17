@@ -190,7 +190,7 @@ function LiveDraftContent() {
         className="text-center"
       >
         <Users className="w-12 h-12 mx-auto mb-2 text-purple-400" />
-        <h1 className="text-2xl font-bold">Live Draft</h1>
+        <h1 className="text-2xl font-bold">Live Team Selection by Captains</h1>
         <p className="text-gray-400">
           {draftState?.num_teams} teams • {draftState?.team_size}v{draftState?.team_size}
         </p>
@@ -324,7 +324,7 @@ function LiveDraftContent() {
 export default function LiveDraftPage() {
   return (
     <div className="min-h-screen pb-20">
-      <Header title="Live Draft" />
+      <Header title="Live Team Selection by Captains" />
       
       <main className="max-w-md mx-auto px-4 py-6">
         <Suspense fallback={

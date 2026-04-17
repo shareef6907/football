@@ -327,8 +327,8 @@ function MatchDayContent() {
             className="p-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 text-center disabled:opacity-50"
           >
             <UsersRound className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-            <div className="font-bold">Live Draft</div>
-            <div className="text-sm text-gray-400">Captains pick players</div>
+            <div className="font-bold">Live Team Selection by Captains</div>
+            <div className="text-sm text-gray-400">Captains choose their team one by one</div>
           </motion.button>
         </div>
       )}
