@@ -107,7 +107,7 @@ export default function HomePage() {
               className="glass rounded-2xl p-4 border border-white/10 card-hover"
             >
               <Trophy className="w-8 h-8 text-yellow-400 mb-2" />
-              <div className="font-semibold">Vote MOTM</div>
+              <div className="font-semibold">Vote Man of the Match</div>
               <div className="text-sm text-gray-400">Cast your vote</div>
             </motion.div>
           </Link>

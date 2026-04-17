@@ -167,6 +167,8 @@ CREATE INDEX IF NOT EXISTS idx_man_of_match_match ON man_of_the_match_votes(matc
 CREATE INDEX IF NOT EXISTS idx_coins_ledger_player ON coins_ledger(player_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_google ON user_profiles(google_id);
 CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date);
+CREATE INDEX IF NOT EXISTS idx_draft_sessions_match ON draft_sessions(match_id);
+CREATE INDEX IF NOT EXISTS idx_draft_picks_session ON draft_picks(draft_session_id);
 
 -- =====================================================
 -- ROW LEVEL SECURITY
@@ -183,6 +185,9 @@ ALTER TABLE man_of_the_match_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE man_of_the_match_winners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coins_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE draft_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE draft_captains ENABLE ROW LEVEL SECURITY;
+ALTER TABLE draft_picks ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- RLS POLICIES - Public Read Access
@@ -299,6 +304,45 @@ ON CONFLICT (id) DO UPDATE SET
   start_date = EXCLUDED.start_date,
   end_date = EXCLUDED.end_date,
   is_active = EXCLUDED.is_active;
+
+-- =====================================================
+-- LIVE DRAFT TABLES
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS draft_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id UUID REFERENCES matches(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'setup' CHECK (status IN ('setup', 'drafting', 'completed', 'cancelled')),
+  num_teams INTEGER NOT NULL,
+  team_size INTEGER NOT NULL,
+  current_turn_team INTEGER DEFAULT 1,
+  current_pick_number INTEGER DEFAULT 0,
+  pick_time_limit INTEGER DEFAULT 30,
+  snake_draft_order INTEGER[] DEFAULT '{}',
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS draft_captains (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE,
+  player_id UUID REFERENCES players(id),
+  team_number INTEGER NOT NULL,
+  was_auto_selected BOOLEAN DEFAULT TRUE,
+  UNIQUE(draft_session_id, team_number)
+);
+
+CREATE TABLE IF NOT EXISTS draft_picks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE,
+  pick_number INTEGER NOT NULL,
+  team_number INTEGER NOT NULL,
+  captain_id UUID REFERENCES players(id),
+  picked_player_id UUID REFERENCES players(id),
+  was_auto_pick BOOLEAN DEFAULT FALSE,
+  picked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(draft_session_id, pick_number)
+);
 
 -- =====================================================
 -- DATABASE FUNCTIONS (for anonymous aggregations)

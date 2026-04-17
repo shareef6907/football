@@ -12,7 +12,7 @@ const pointItems = [
   { icon: '🧤', label: 'GK Win Bonus', points: POINTS_SYSTEM.goalkeeperWinBonus, description: 'Winning team goalkeeper' },
   { icon: '✅', label: 'Attendance', points: POINTS_SYSTEM.attendance, description: 'Showed up & played' },
   { icon: '🔥', label: 'Streak Bonus', points: POINTS_SYSTEM.attendanceStreakBonus, description: 'Per consecutive week' },
-  { icon: '⭐', label: 'Man of the Match', points: POINTS_SYSTEM.manOfTheMatch, description: 'MOTM winner' },
+  { icon: '⭐', label: 'Man of the Match', points: POINTS_SYSTEM.manOfTheMatch, description: 'Man of the Match winner' },
 ]
 
 export default function PointsPage() {
@@ -79,7 +79,7 @@ export default function PointsPage() {
             <p>• Playmaker — Most assists</p>
             <p>• Best Defender — Highest avg defender rating</p>
             <p>• Golden Glove — Highest avg goalkeeper rating</p>
-            <p>• Man of the Season — Most MOTM awards</p>
+            <p>• Man of the Season — Most Man of the Match awards</p>
             <p>• Iron Man — Best attendance</p>
             <p>• Coin King — Most coins</p>
           </div>
