@@ -1,0 +1,221 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
+import { Clock, Trophy, Target, Calendar, Users, ArrowRight, Star, Share2, Download, X } from 'lucide-react'
+import { Navigation, Header } from '../components/Navigation'
+
+// Next game date calculator - next Thursday 8PM
+function getNextThursday() {
+  const now = new Date()
+  const daysUntilThursday = (4 - now.getDay() + 7) % 7 || 7
+  const nextThursday = new Date(now)
+  nextThursday.setDate(now.getDate() + daysUntilThursday)
+  nextThursday.setHours(20, 0, 0, 0)
+  return nextThursday
+}
+
+export default function HomePage() {
+  const [countdown, setCountdown] = useState('')
+  const [nextGame, setNextGame] = useState(getNextThursday)
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false)
+  const [dismissedPwa, setDismissedPwa] = useState(false)
+
+  useEffect(() => {
+    // PWA prompt after 5 seconds
+    const timer = setTimeout(() => {
+      if (!dismissedPwa && !window.matchMedia('(display-mode: standalone)').matches) {
+        setShowPwaPrompt(true)
+      }
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [dismissedPwa])
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date()
+      const distance = nextGame.getTime() - now.getTime()
+      
+      if (distance < 0) {
+        setCountdown('🎉 Game Day!')
+        return
+      }
+      
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+      
+      setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+    }
+    
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [nextGame])
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-GB', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric'
+    })
+  }
+
+  return (
+    <div className="min-h-screen pb-20">
+      <Header />
+      
+      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* Hero: Next Game Countdown */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-3xl blur-xl" />
+          <div className="relative glass rounded-3xl p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-6 h-6 text-green-400" />
+              <span className="text-gray-400">Next Game</span>
+            </div>
+            <h2 className="text-xl font-bold mb-2">{formatDate(nextGame)}</h2>
+            <h2 className="text-xl font-bold mb-4">8:00 PM</h2>
+            <div className="text-center py-4">
+              <div className="text-3xl font-black gradient-text">{countdown}</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <Link href="/match-day">
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              className="glass rounded-2xl p-4 border border-white/10 card-hover"
+            >
+              <Target className="w-8 h-8 text-green-400 mb-2" />
+              <div className="font-semibold">Set Up Match</div>
+              <div className="text-sm text-gray-400">Create teams</div>
+            </motion.div>
+          </Link>
+          
+          <Link href="/man-of-the-match">
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              className="glass rounded-2xl p-4 border border-white/10 card-hover"
+            >
+              <Trophy className="w-8 h-8 text-yellow-400 mb-2" />
+              <div className="font-semibold">Vote MOTM</div>
+              <div className="text-sm text-gray-400">Cast your vote</div>
+            </motion.div>
+          </Link>
+          
+          <Link href="/standings">
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              className="glass rounded-2xl p-4 border border-white/10 card-hover"
+            >
+              <Trophy className="w-8 h-8 text-blue-400 mb-2" />
+              <div className="font-semibold">Standings</div>
+              <div className="text-sm text-gray-400">League table</div>
+            </motion.div>
+          </Link>
+          
+          <Link href="/players">
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              className="glass rounded-2xl p-4 border border-white/10 card-hover"
+            >
+              <Users className="w-8 h-8 text-purple-400 mb-2" />
+              <div className="font-semibold">Players</div>
+              <div className="text-sm text-gray-400">View cards</div>
+            </motion.div>
+          </Link>
+        </div>
+
+        {/* Man of the Match Banner */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="glass rounded-2xl p-4 border border-yellow-500/30"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <Star className="w-5 h-5 text-yellow-400" />
+            <span className="text-yellow-400 font-semibold">Man of the Match</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-lg font-bold">Jinish</div>
+              <div className="text-sm text-gray-400">Last match winner</div>
+            </div>
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-full bg-white/10"
+                title="Share"
+              >
+                <Share2 className="w-5 h-5" />
+              </motion.button>
+              <Link href="/man-of-the-match">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500 text-black font-semibold"
+                >
+                  Vote <ArrowRight className="w-4 h-4" />
+                </motion.button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Points System Link */}
+        <Link href="/points" className="block">
+          <motion.div 
+            whileTap={{ scale: 0.98 }}
+            className="glass rounded-2xl p-4 border border-white/10 text-center"
+          >
+            <span className="text-gray-400">How do points work?</span>
+            <span className="ml-2 text-green-400">See points system →</span>
+          </motion.div>
+        </Link>
+      </main>
+
+      <Navigation activePath="/" />
+
+      {/* PWA Install Prompt */}
+      <AnimatePresence>
+        {showPwaPrompt && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-20 left-4 right-4 z-50 glass rounded-2xl p-4 border border-green-500/30"
+          >
+            <div className="flex items-start gap-3">
+              <Download className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-bold mb-1">Add to Home Screen</h3>
+                <p className="text-sm text-gray-400 mb-2">
+                  For the best experience, install our app:
+                </p>
+                <div className="text-sm space-y-1">
+                  <p><span className="text-gray-500">iOS:</span> Tap Share → Add to Home Screen</p>
+                  <p><span className="text-gray-500">Android:</span> Tap menu → Install App</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setShowPwaPrompt(false); setDismissedPwa(true) }}
+                className="p-1"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
