@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PLAYERS, Position, type PlayerId, type PlayerName } from '@/lib/constants'
-import { Users, Shuffle, ArrowLeft, Trophy } from 'lucide-react'
+import { Users, Shuffle, ArrowLeft, Trophy, Check } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
 interface PlayerWithRating {
@@ -155,9 +155,18 @@ function AutoBalanceContent() {
         Re-balance
       </button>
 
+      {/* Confirm Teams Button */}
+      <button 
+        onClick={() => router.push('/match-day/submit')}
+        className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+      >
+        <Check className="w-5 h-5" />
+        Confirm Teams & Start Match
+      </button>
+
       <button 
         onClick={() => router.push('/match-day')}
-        className="w-full py-3 rounded-xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Match Day

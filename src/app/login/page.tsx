@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Shield, Eye, CheckCircle, X, ArrowRight, User, Users } from 'lucide-react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,10 +17,19 @@ export default function LoginPage() {
     setError('')
     
     try {
-      // This will be handled by Supabase Auth UI
-      // For now, show the flow explanation
-      router.push('/login/select-profile')
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      
+      if (error) {
+        console.error('Google login error:', error)
+        setError(error.message)
+      }
     } catch (err) {
+      console.error('Login error:', err)
       setError('Failed to sign in. Please try again.')
     } finally {
       setIsLoading(false)

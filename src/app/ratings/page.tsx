@@ -20,9 +20,16 @@ function RatingsContent() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
   
-  const [ratings, setRatings] = useState<Record<string, PlayerRating>>({})
+  // Initialize ratings for all players with default value 5
+  const defaultRatings: Record<string, PlayerRating> = {}
+  PLAYERS.filter(p => p.id !== profile?.player_id).forEach(p => {
+    defaultRatings[p.id] = { forward: 5, midfielder: 5, defender: 5, goalkeeper: 5 }
+  })
+  
+  const [ratings, setRatings] = useState<Record<string, PlayerRating>>(defaultRatings)
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
 
@@ -59,27 +66,44 @@ function RatingsContent() {
   }
 
   const handleSubmit = async () => {
-    if (!profile?.player_id) return
+    if (!profile?.player_id) {
+      setSubmitError('You must be logged in as a player to submit ratings')
+      return
+    }
     
     setIsSubmitting(true)
+    setSubmitError('')
     
-    // Insert ratings for each player
-    const insertPromises = Object.entries(ratings).map(([playerId, playerRatings]) =>
-      supabase.from('player_ratings').insert({
-        rater_id: profile.player_id,
-        rated_player_id: playerId,
-        rating_month: currentMonth,
-        rating_year: currentYear,
-        forward_rating: playerRatings.forward,
-        midfielder_rating: playerRatings.midfielder,
-        defender_rating: playerRatings.defender,
-        goalkeeper_rating: playerRatings.goalkeeper,
-      })
-    )
-    
-    await Promise.all(insertPromises)
-    setSubmitted(true)
-    setIsSubmitting(false)
+    try {
+      // Insert ratings for each player
+      const insertPromises = Object.entries(ratings).map(([playerId, playerRatings]) =>
+        supabase.from('player_ratings').insert({
+          rater_id: profile.player_id,
+          rated_player_id: playerId,
+          rating_month: currentMonth,
+          rating_year: currentYear,
+          forward_rating: playerRatings.forward,
+          midfielder_rating: playerRatings.midfielder,
+          defender_rating: playerRatings.defender,
+          goalkeeper_rating: playerRatings.goalkeeper,
+        })
+      )
+      
+      const results = await Promise.all(insertPromises)
+      
+      // Check for errors
+      const hasError = results.some(r => r.error)
+      if (hasError) {
+        setSubmitError('Failed to submit some ratings. Please try again.')
+      } else {
+        setSubmitted(true)
+      }
+    } catch (err) {
+      setSubmitError('Failed to submit ratings. Please try again.')
+      console.error('Submit error:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const playersToRate = PLAYERS.filter(p => p.id !== profile?.player_id)
@@ -156,20 +180,27 @@ function RatingsContent() {
       ))}
 
       {/* Submit */}
-      {!submitted && Object.keys(ratings).length > 0 && (
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          disabled={isSubmitting}
-          onClick={handleSubmit}
-          className="w-full py-4 rounded-2xl bg-purple-500 text-black font-bold disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? 'Submitting...' : (
-            <>
-              <Check className="w-5 h-5" />
-              Submit Ratings
-            </>
+      {!submitted && (
+        <>
+          {submitError && (
+            <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-center">
+              {submitError}
+            </div>
           )}
-        </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            disabled={isSubmitting}
+            onClick={handleSubmit}
+            className="w-full py-4 rounded-2xl bg-purple-500 text-black font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? 'Submitting...' : (
+              <>
+                <Check className="w-5 h-5" />
+                Submit Ratings
+              </>
+            )}
+          </motion.button>
+        </>
       )}
 
       {/* Not a player */}

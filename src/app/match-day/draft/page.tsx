@@ -301,6 +301,17 @@ function LiveDraftContent() {
         </div>
       )}
 
+      {/* Draft Complete - Show Confirm Button */}
+      {draftState?.status === 'drafting' && picks.length >= (draftState.num_teams * draftState.team_size) && (
+        <button 
+          onClick={() => router.push('/match-day/submit')}
+          className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+        >
+          <Check className="w-5 h-5" />
+          Confirm Teams & Start Match
+        </button>
+      )}
+
       {!isCaptain && (
         <div className="text-center p-4 rounded-xl bg-white/5">
           <p className="text-gray-400">You're spectating the draft</p>

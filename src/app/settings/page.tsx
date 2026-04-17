@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { Settings as SettingsIcon, Calendar, Save, Check } from 'lucide-react'
+import { PLAYERS } from '@/lib/constants'
+import { supabase } from '@/lib/supabase/client'
+import { Settings as SettingsIcon, Calendar, Save, Check, Users, Trophy, Trash2, Plus } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -13,10 +15,13 @@ export default function SettingsPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
   
-  const [gameDay, setGameDay] = useState(4) // Thursday
+  const [gameDay, setGameDay] = useState(4)
   const [gameTime, setGameTime] = useState('20:00')
   const [saved, setSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [seasons, setSeasons] = useState<any[]>([])
+  const [showCreateSeason, setShowCreateSeason] = useState(false)
+  const [newSeason, setNewSeason] = useState({ name: '', start: new Date().toISOString().split('T')[0], end: '' })
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -29,7 +34,14 @@ export default function SettingsPage() {
     const savedTime = localStorage.getItem('game_time')
     if (savedDay) setGameDay(parseInt(savedDay))
     if (savedTime) setGameTime(savedTime)
+    
+    fetchSeasons()
   }, [])
+
+  const fetchSeasons = async () => {
+    const { data } = await supabase.from('seasons').select('*').order('start_date', { ascending: false })
+    if (data) setSeasons(data)
+  }
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -38,6 +50,21 @@ export default function SettingsPage() {
     setSaved(true)
     setIsSaving(false)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleCreateSeason = async () => {
+    if (!newSeason.name || !newSeason.start || !newSeason.end) return
+    
+    await supabase.from('seasons').insert({
+      name: newSeason.name,
+      start_date: newSeason.start,
+      end_date: newSeason.end,
+      is_active: seasons.length === 0,
+    })
+    
+    setShowCreateSeason(false)
+    setNewSeason({ name: '', start: new Date().toISOString().split('T')[0], end: '' })
+    fetchSeasons()
   }
 
   if (!authLoading && !user) {
@@ -65,9 +92,9 @@ export default function SettingsPage() {
           >
             <SettingsIcon className="w-12 h-12 mx-auto mb-2 text-gray-400" />
             <h1 className="text-2xl font-bold">Settings</h1>
-            <p className="text-gray-400">Configure your preferences</p>
           </motion.div>
 
+          {/* Game Schedule */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -104,25 +131,76 @@ export default function SettingsPage() {
             </div>
           </motion.div>
 
+          {/* Seasons */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass rounded-2xl p-6 border border-white/10 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                Seasons
+              </h2>
+              <button
+                onClick={() => setShowCreateSeason(true)}
+                className="p-2 rounded-full bg-green-500/20 text-green-400"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {seasons.map(season => (
+                <div key={season.id} className="flex justify-between items-center p-2 rounded-lg bg-white/5">
+                  <div>
+                    <div className="font-semibold">{season.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(season.start_date).toLocaleDateString()} - {new Date(season.end_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${season.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                    {season.is_active ? 'Active' : 'Ended'}
+                  </span>
+                </div>
+              ))}
+              {seasons.length === 0 && (
+                <p className="text-sm text-gray-500">No seasons yet</p>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Players List (Read-only) */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass rounded-2xl p-6 border border-white/10 space-y-4"
+          >
+            <h2 className="font-bold flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-400" />
+              Players ({PLAYERS.length})
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {PLAYERS.slice(0, 6).map(player => (
+                <div key={player.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/5">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: player.color }}>
+                    {player.name.slice(0,1)}
+                  </div>
+                  <span className="text-sm">{player.name}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">Total {PLAYERS.length} players in roster</p>
+          </motion.div>
+
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSave}
             disabled={isSaving}
             className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
           >
-            {saved ? (
-              <>
-                <Check className="w-5 h-5" />
-                Saved!
-              </>
-            ) : isSaving ? (
-              'Saving...'
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                Save Settings
-              </>
-            )}
+            {saved ? <><Check className="w-5 h-5" /> Saved!</> : isSaving ? 'Saving...' : <><Save className="w-5 h-5" /> Save Settings</>}
           </motion.button>
 
           {profile && (
@@ -139,9 +217,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Google ID</span>
-                  <span className="text-gray-500 font-mono text-xs">
-                    {user?.id?.slice(0, 8)}...
-                  </span>
+                  <span className="text-gray-500 font-mono text-xs">{user?.id?.slice(0, 8)}...</span>
                 </div>
               </div>
             </motion.div>
