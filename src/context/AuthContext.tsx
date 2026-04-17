@@ -92,17 +92,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const linkPlayer = async (playerId: string) => {
-    if (!user) return
+    if (!user) {
+      console.error('No user logged in')
+      return
+    }
     
-    await supabase
+    console.log('Linking player:', playerId, 'to google_id:', user.id)
+    
+    const { error } = await supabase
       .from('user_profiles')
       .upsert({
         google_id: user.id,
         player_id: playerId,
         role: 'player',
-      })
+      }, { onConflict: 'google_id' })
     
+    if (error) {
+      console.error('Upsert error:', error)
+      return
+    }
+    
+    // Refresh profile
     await fetchProfile(user.id)
+    console.log('Profile linked successfully')
   }
 
   return (

@@ -16,16 +16,24 @@ export default function SelectProfilePage() {
   const [isSpectator, setIsSpectator] = useState(false)
 
   const handleConfirm = async () => {
-    if (!user) return
+    if (!user) {
+      alert('Please log in first')
+      return
+    }
     setIsLoading(true)
+    console.log('Confirm clicked, user:', user.id, 'selected:', selectedPlayer, 'spectator:', isSpectator)
     
     if (isSpectator) {
       // Mark as spectator
-      await supabase.from('user_profiles').upsert({
+      const { error } = await supabase.from('user_profiles').upsert({
         google_id: user.id,
         player_id: null,
         role: 'spectator',
-      })
+      }, { onConflict: 'google_id' })
+      if (error) {
+        console.error('Spectator error:', error)
+        alert('Error: ' + error.message)
+      }
     } else if (selectedPlayer) {
       await linkPlayer(selectedPlayer)
     }
