@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PLAYERS, Position } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
@@ -9,9 +9,8 @@ import { Trophy, Target, Shield, Star, Coins, Calendar, Medal } from 'lucide-rea
 import { Navigation, Header } from '@/components/Navigation'
 
 function PlayerDetailContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const playerId = searchParams.get('id')
+  const params = useParams()
+  const playerId = params.id as string
   
   const player = PLAYERS.find(p => p.id === playerId)
   
