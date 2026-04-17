@@ -1,11 +1,11 @@
 import NextLink from 'next/link'
-import { Home, Users, Trophy, Calendar, Coins, Settings } from 'lucide-react'
+import { Home, Users, Trophy, Calendar, Coins, Settings, Star } from 'lucide-react'
 
 const navItems = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/standings', icon: Trophy, label: 'Standings' },
   { href: '/players', icon: Users, label: 'Players' },
-  { href: '/match-day', icon: Calendar, label: 'Match' },
+  { href: '/seasons', icon: Star, label: 'Seasons' },
   { href: '/coins', icon: Coins, label: 'Coins' },
 ]
 
