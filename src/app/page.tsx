@@ -5,22 +5,62 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Clock, Trophy, Target, Calendar, Users, ArrowRight, Star, Share2, Download, X } from 'lucide-react'
 import { Navigation, Header } from '../components/Navigation'
+import { supabase } from '@/lib/supabase/client'
 
-// Next game date calculator - next Thursday 8PM
-function getNextThursday() {
+// Next game date calculator - uses settings from Supabase/localStorage
+function getNextGameDate(gameDay: number, gameTime: string) {
   const now = new Date()
-  const daysUntilThursday = (4 - now.getDay() + 7) % 7 || 7
-  const nextThursday = new Date(now)
-  nextThursday.setDate(now.getDate() + daysUntilThursday)
-  nextThursday.setHours(20, 0, 0, 0)
-  return nextThursday
+  const [hours, minutes] = gameTime.split(':').map(Number)
+  const daysUntilGameDay = (gameDay - now.getDay() + 7) % 7 || 7
+  const nextGame = new Date(now)
+  nextGame.setDate(now.getDate() + daysUntilGameDay)
+  nextGame.setHours(hours || 20, minutes || 0, 0, 0)
+  return nextGame
 }
 
 export default function HomePage() {
   const [countdown, setCountdown] = useState('')
-  const [nextGame, setNextGame] = useState(getNextThursday)
+  const [nextGame, setNextGame] = useState(() => getNextGameDate(4, '20:00'))
+  const [gameTimeDisplay, setGameTimeDisplay] = useState('8:00 PM')
   const [showPwaPrompt, setShowPwaPrompt] = useState(false)
   const [dismissedPwa, setDismissedPwa] = useState(false)
+
+  // Load game settings from Supabase/localStorage
+  useEffect(() => {
+    const loadSettings = async () => {
+      // Try localStorage first (faster)
+      const localDay = localStorage.getItem('game_day')
+      const localTime = localStorage.getItem('game_time')
+      
+      let gameDay = localDay ? parseInt(localDay) : 4
+      let gameTime = localTime || '20:00'
+      
+      // Also try Supabase
+      try {
+        const { data } = await supabase.from('game_settings').select('key, value')
+        if (data) {
+          data.forEach(({ key, value }) => {
+            if (key === 'game_day') gameDay = parseInt(value)
+            if (key === 'game_time') gameTime = value
+          })
+        }
+      } catch (err) {
+        // Supabase not available, use localStorage
+      }
+      
+      const newNextGame = getNextGameDate(gameDay, gameTime)
+      setNextGame(newNextGame)
+      
+      // Format time for display
+      const [h, m] = gameTime.split(':')
+      const hour = parseInt(h)
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hour12 = hour % 12 || 12
+      setGameTimeDisplay(`${hour12}:${m || '00'} ${ampm}`)
+    }
+    
+    loadSettings()
+  }, [])
 
   useEffect(() => {
     // PWA prompt after 5 seconds
@@ -81,7 +121,7 @@ export default function HomePage() {
               <span className="text-gray-400">Next Game</span>
             </div>
             <h2 className="text-xl font-bold mb-2">{formatDate(nextGame)}</h2>
-            <h2 className="text-xl font-bold mb-4">8:00 PM</h2>
+            <h2 className="text-xl font-bold mb-4">{gameTimeDisplay}</h2>
             <div className="text-center py-4">
               <div className="text-3xl font-black text-red-500">{countdown}</div>
             </div>

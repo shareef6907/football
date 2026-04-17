@@ -308,7 +308,7 @@ function MatchDayContent() {
       </div>
 
       {/* Mode Selection */}
-      {totalPlayers >= 4 && !authLoading && (
+      {totalPlayers >= setup.teamSize * setup.numTeams && !authLoading && (
         <div className="grid grid-cols-2 gap-4 pt-4">
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -316,8 +316,8 @@ function MatchDayContent() {
             className="p-6 rounded-2xl border border-green-500/30 bg-green-500/10 text-center"
           >
             <Zap className="w-8 h-8 mx-auto mb-2 text-green-400" />
-            <div className="font-bold">Auto Balance</div>
-            <div className="text-sm text-gray-400">Instant balanced teams</div>
+            <div className="font-bold">Auto Balance Teams</div>
+            <div className="text-sm text-gray-400">Generate balanced teams</div>
           </motion.button>
           
           <motion.button
@@ -328,8 +328,17 @@ function MatchDayContent() {
           >
             <UsersRound className="w-8 h-8 mx-auto mb-2 text-purple-400" />
             <div className="font-bold">Live Draft</div>
-            <div className="text-sm text-gray-400">Captains pick in real-time</div>
+            <div className="text-sm text-gray-400">Captains pick players</div>
           </motion.button>
+        </div>
+      )}
+
+      {/* Show prompt if not enough players */}
+      {totalPlayers > 0 && totalPlayers < setup.teamSize * setup.numTeams && !authLoading && (
+        <div className="text-center p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+          <p className="text-yellow-400">
+            Select {setup.teamSize * setup.numTeams - totalPlayers} more player(s) to generate teams
+          </p>
         </div>
       )}
 

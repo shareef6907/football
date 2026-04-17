@@ -45,8 +45,19 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true)
+    
+    // Save to localStorage as backup
     localStorage.setItem('game_day', gameDay.toString())
     localStorage.setItem('game_time', gameTime)
+    
+    // Save to Supabase
+    try {
+      await supabase.from('game_settings').upsert({ key: 'game_day', value: gameDay.toString() }, { onConflict: 'key' })
+      await supabase.from('game_settings').upsert({ key: 'game_time', value: gameTime }, { onConflict: 'key' })
+    } catch (err) {
+      console.error('Failed to save to Supabase:', err)
+    }
+    
     setSaved(true)
     setIsSaving(false)
     setTimeout(() => setSaved(false), 2000)
@@ -169,6 +180,71 @@ export default function SettingsPage() {
               )}
             </div>
           </motion.div>
+
+          {/* Create Season Modal */}
+          {showCreateSeason && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            >
+              <motion.div 
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                className="glass rounded-2xl p-6 border border-white/20 w-full max-w-sm"
+              >
+                <h3 className="font-bold text-xl mb-4">Create New Season</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm text-gray-400">Season Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g., Season 1"
+                      value={newSeason.name}
+                      onChange={(e) => setNewSeason(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-gray-400">Start Date</label>
+                    <input 
+                      type="date" 
+                      value={newSeason.start}
+                      onChange={(e) => setNewSeason(prev => ({ ...prev, start: e.target.value }))}
+                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-gray-400">End Date</label>
+                    <input 
+                      type="date" 
+                      value={newSeason.end}
+                      onChange={(e) => setNewSeason(prev => ({ ...prev, end: e.target.value }))}
+                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button 
+                    onClick={() => setShowCreateSeason(false)}
+                    className="flex-1 py-3 rounded-xl bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleCreateSeason}
+                    className="flex-1 py-3 rounded-xl bg-green-500 text-black font-bold"
+                  >
+                    Create
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
 
           {/* Players List (Read-only) */}
           <motion.div 

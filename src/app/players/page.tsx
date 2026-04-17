@@ -36,12 +36,9 @@ function PlayerCard({ player, index }: { player: typeof PLAYERS[number], index: 
   return (
     <Link href={`/players/${player.id}`}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: index * 0.05 }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="relative overflow-hidden rounded-2xl border border-white/10 card-hover cursor-pointer"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="relative overflow-hidden rounded-2xl border border-white/10 card-hover cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
         style={{ 
           background: `linear-gradient(135deg, ${player.color}15 0%, transparent 50%)`
         }}

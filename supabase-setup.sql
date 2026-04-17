@@ -390,3 +390,26 @@ BEGIN
   GROUP BY coins_ledger.player_id;
 END;
 $$ LANGUAGE plpgsql;
+-- Game settings table
+CREATE TABLE IF NOT EXISTS game_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default settings
+INSERT INTO game_settings (key, value) VALUES 
+  ('game_day', '4'),
+  ('game_time', '20:00')
+ON CONFLICT (key) DO NOTHING;
+
+-- Enable RLS
+ALTER TABLE game_settings ENABLE ROW LEVEL SECURITY;
+
+-- Policy: everyone can read settings
+CREATE POLICY "game_settings_read" ON game_settings FOR SELECT USING (true);
+
+-- Policy: only authenticated users can update
+CREATE POLICY "game_settings_update" ON game_settings FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "game_settings_insert" ON game_settings FOR INSERT WITH CHECK (auth.role() = 'authenticated');
