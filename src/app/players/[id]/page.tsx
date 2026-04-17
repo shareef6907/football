@@ -104,7 +104,6 @@ function PlayerDetailContent() {
         
         {/* Overall Rating */}
         <div className="mt-4">
-          <div className="text-sm text-gray-500">OVR</div>
           <div className="text-4xl font-black" style={{ color: player.color }}>
             {overallRating}
           </div>

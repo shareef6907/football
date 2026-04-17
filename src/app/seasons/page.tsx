@@ -181,7 +181,7 @@ function SeasonsContent() {
         </motion.div>
       )}
 
-      {profile?.role === 'player' && currentSeason && (
+      {user && (
         <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowCreate(true)} className="w-full py-4 rounded-2xl bg-purple-500 text-black font-bold flex items-center justify-center gap-2">
           <Plus className="w-5 h-5" />
           Create New Season

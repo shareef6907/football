@@ -100,7 +100,7 @@ function CoinsContent() {
         <div className="text-sm text-gray-400">Your Coin Balance</div>
         <div className="text-5xl font-black text-yellow-400">{balance}</div>
         <p className="text-sm text-gray-500 mt-2">
-          {player?.name}'s account
+          {player ? `${player.name}'s account` : 'Your account'}
         </p>
       </motion.div>
 

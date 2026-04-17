@@ -1,11 +1,12 @@
 import NextLink from 'next/link'
-import { Home, Users, Trophy, Calendar, Coins, Settings, Star } from 'lucide-react'
+import { Home, Users, Trophy, Calendar, Coins, Settings, Star, Award } from 'lucide-react'
 
 const navItems = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/standings', icon: Trophy, label: 'Standings' },
   { href: '/players', icon: Users, label: 'Players' },
-  { href: '/seasons', icon: Star, label: 'Seasons' },
+  { href: '/ratings', icon: Star, label: 'Ratings' },
+  { href: '/seasons', icon: Award, label: 'Seasons' },
   { href: '/coins', icon: Coins, label: 'Coins' },
 ]
 
@@ -44,7 +45,7 @@ export function Header({ title = 'Thursday Football' }: { title?: string }) {
           <h1 className="font-bold text-lg">{title}</h1>
         </NextLink>
         <NextLink 
-          href="/login"
+          href="/settings"
           className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
         >
           <Settings className="w-5 h-5" />

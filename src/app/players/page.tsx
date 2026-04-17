@@ -75,7 +75,6 @@ function PlayerCard({ player, index }: { player: typeof PLAYERS[number], index: 
           {/* Overall Rating */}
           <div className="flex items-end justify-between">
             <div>
-              <div className="text-3xl font-black text-gray-400">OVR</div>
               <div className="text-2xl font-bold" style={{ color: player.color }}>
                 {overall}
               </div>
@@ -84,10 +83,10 @@ function PlayerCard({ player, index }: { player: typeof PLAYERS[number], index: 
             {/* Position Ratings */}
             <div className="text-right space-y-1">
               <div className="flex gap-2 text-xs">
-                <span className="text-red-400">F:{ratings.forward}</span>
-                <span className="text-blue-400">M:{ratings.midfielder}</span>
-                <span className="text-green-400">D:{ratings.defender}</span>
-                <span className="text-yellow-400">G:{ratings.goalkeeper}</span>
+                <span className="text-red-400">FWD:{ratings.forward}</span>
+                <span className="text-blue-400">MID:{ratings.midfielder}</span>
+                <span className="text-green-400">DEF:{ratings.defender}</span>
+                <span className="text-yellow-400">GK:{ratings.goalkeeper}</span>
               </div>
             </div>
           </div>

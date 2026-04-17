@@ -83,7 +83,7 @@ export default function HomePage() {
             <h2 className="text-xl font-bold mb-2">{formatDate(nextGame)}</h2>
             <h2 className="text-xl font-bold mb-4">8:00 PM</h2>
             <div className="text-center py-4">
-              <div className="text-3xl font-black gradient-text">{countdown}</div>
+              <div className="text-3xl font-black text-red-500">{countdown}</div>
             </div>
           </div>
         </motion.div>
