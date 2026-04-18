@@ -32,6 +32,7 @@ export default function HomePage() {
   const [motmMatch, setMotmMatch] = useState<{id: string, date: string} | null>(null)
   const [motmWinners, setMotmWinners] = useState<{id: string, name: string, color: string}[]>([])
   const [motmLoading, setMotmLoading] = useState(true)
+  const [votingOpen, setVotingOpen] = useState(true)
 
   // Load game settings from Supabase/localStorage
   useEffect(() => {
@@ -80,15 +81,37 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [dismissedPwa])
 
-  // Load Man of the Match from database - count actual votes
+  // Load Man of the Match from database - count actual votes for previous Thursday
   useEffect(() => {
     const loadMotm = async () => {
       setMotmLoading(true)
+      
+      // Check voting window
+      const now = new Date()
+      const day = now.getDay()
+      const hours = now.getHours()
+      const minutes = now.getMinutes()
+      
+      // Thursday 6PM to 9:30PM - voting CLOSED
+      if (day === 4 && hours >= 18 && (hours < 21 || (hours === 21 && minutes <= 30))) {
+        setVotingOpen(false)
+      } else {
+        setVotingOpen(true)
+      }
+      
       try {
-        // Get latest match
+        // Get previous Thursday's match
+        const now = new Date()
+        const dayOfWeek = now.getDay()
+        const daysSinceThursday = (dayOfWeek - 4 + 7) % 7 || 7
+        const prevThursday = new Date(now)
+        prevThursday.setDate(now.getDate() - daysSinceThursday)
+        const prevThursdayStr = prevThursday.toISOString().split('T')[0]
+        
         const { data: matches } = await supabase
           .from('matches')
           .select('id, match_date')
+          .lte('match_date', prevThursdayStr)
           .order('match_date', { ascending: false })
           .limit(1)
           .single()
@@ -255,6 +278,7 @@ export default function HomePage() {
             <span className="text-yellow-400 font-semibold">
               Man of the Match
               {motmMatch?.date && ` - ${new Date(motmMatch.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+              {votingOpen && <span className="ml-2 text-green-400 text-xs">Vote now!</span>}
             </span>
           </div>
           <div className="flex items-center justify-between">

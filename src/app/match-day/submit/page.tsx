@@ -9,6 +9,44 @@ import { supabase } from '@/lib/supabase/client'
 import { Check, Trophy, Target, Save, Users } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
+// Get the previous Thursday (for stats submission)
+function getPreviousThursday(): Date {
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const daysSinceThursday = (dayOfWeek - 4 + 7) % 7 || 7
+  const previousThursday = new Date(now)
+  previousThursday.setDate(now.getDate() - daysSinceThursday)
+  previousThursday.setHours(20, 0, 0, 0) // 8 PM
+  return previousThursday
+}
+
+// Check if stats submission window is open (Thursday 8PM to Wednesday 11:55PM)
+function isSubmissionWindowOpen(): boolean {
+  const now = new Date()
+  const day = now.getDay()
+  const hours = now.getHours()
+  const minutes = now.getMinutes()
+  
+  // Thursday (4) from 8PM to end of day
+  if (day === 4 && (hours >= 20 || (hours === 19 && minutes >= 55))) return true
+  // Friday, Sat, Sun, Mon, Tue - open
+  if (day === 5 || day === 6 || day === 0 || day === 1 || day === 2) return true
+  // Wednesday (3) until 11:55 PM
+  if (day === 3 && (hours < 23 || (hours === 23 && minutes < 55))) return true
+  // Other times closed
+  return false
+}
+
+function getNextThursdayDate(): Date {
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const daysUntilThursday = (4 - dayOfWeek + 7) % 7 || 7
+  const nextThursday = new Date(now)
+  nextThursday.setDate(now.getDate() + daysUntilThursday)
+  nextThursday.setHours(20, 0, 0, 0)
+  return nextThursday
+}
+
 interface StatsForm {
   goals: number
   assists: number
@@ -24,9 +62,13 @@ function StatsSubmissionContent() {
   const [matchId, setMatchId] = useState<string | null>(null)
   const [matchDate, setMatchDate] = useState<string>('')
 
-  // Auto-find most recent match if no match param provided
+  // Auto-find match for previous Thursday
   useEffect(() => {
     const findMatch = async () => {
+      // Get previous Thursday date
+      const prevThursday = getPreviousThursday()
+      const prevThursdayStr = prevThursday.toISOString().split('T')[0]
+      
       const paramMatch = searchParams.get('match')
       if (paramMatch) {
         setMatchId(paramMatch)
@@ -34,8 +76,16 @@ function StatsSubmissionContent() {
         if (data) setMatchDate(data.match_date)
         return
       }
-      // Find most recent match
-      const { data: matches } = await supabase.from('matches').select('id, match_date').order('match_date', { ascending: false }).limit(1).single()
+      
+      // Find match that matches previous Thursday
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, match_date')
+        .lte('match_date', prevThursdayStr)
+        .order('match_date', { ascending: false })
+        .limit(1)
+        .single()
+      
       if (matches) {
         setMatchId(matches.id)
         setMatchDate(matches.match_date)
@@ -54,6 +104,12 @@ function StatsSubmissionContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isWindowOpen, setIsWindowOpen] = useState(true)
+
+  // Check submission window on mount
+  useEffect(() => {
+    setIsWindowOpen(isSubmissionWindowOpen())
+  }, [])
 
   // Check submission when matchId is ready
   useEffect(() => {
@@ -128,6 +184,19 @@ function StatsSubmissionContent() {
 
   return (
     <div className="space-y-6">
+      {/* Submission window status */}
+      {!isWindowOpen && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl p-6 border border-yellow-500/30 text-center"
+        >
+          <Target className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
+          <h2 className="text-xl font-bold mb-2">Submission Closed</h2>
+          <p className="text-gray-400">Opens next Thursday at 8:00 PM</p>
+        </motion.div>
+      )}
+
       {/* Player Name */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

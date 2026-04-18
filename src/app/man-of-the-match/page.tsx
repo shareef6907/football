@@ -9,6 +9,36 @@ import { supabase } from '@/lib/supabase/client'
 import { Trophy, Vote, Share2, Copy, Check, X } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
+// Get the previous Thursday (for MOTM voting)
+function getPreviousThursday(): Date {
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const daysSinceThursday = (dayOfWeek - 4 + 7) % 7 || 7
+  const previousThursday = new Date(now)
+  previousThursday.setDate(now.getDate() - daysSinceThursday)
+  previousThursday.setHours(20, 0, 0, 0)
+  return previousThursday
+}
+
+// Check if voting window is open (Thursday 6PM to 9:30PM is CLOSED, otherwise open for previous game)
+function isVotingWindowOpen(): { open: boolean; message: string } {
+  const now = new Date()
+  const day = now.getDay()
+  const hours = now.getHours()
+  const minutes = now.getMinutes()
+  
+  // Thursday 6PM to 9:30PM - voting is CLOSED (game in progress)
+  if (day === 4) {
+    if (hours >= 18 && (hours < 21 || (hours === 21 && minutes <= 30))) {
+      return { open: false, message: 'Voting closes after the game (9:30 PM)' }
+    }
+  }
+  
+  // After 9:30PM Thursday, new voting window opens for that day's game
+  // Other times: can vote for previous game
+  return { open: true, message: '' }
+}
+
 export default function ManOfTheMatchPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
@@ -18,14 +48,24 @@ export default function ManOfTheMatchPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
-const [winners, setWinners] = useState<any[]>([])
+  const [winners, setWinners] = useState<any[]>([])
+  const [votingOpen, setVotingOpen] = useState<{ open: boolean; message: string }>({ open: true, message: '' })
 
   useEffect(() => {
-    // Fetch latest match and check if user voted
+    // Check voting window
+    setVotingOpen(isVotingWindowOpen())
+    
+    // Fetch previous Thursday's match for voting
     const fetchData = async () => {
+      // Get previous Thursday
+      const prevThursday = getPreviousThursday()
+      const prevThursdayStr = prevThursday.toISOString().split('T')[0]
+      
+      // Find match on or before previous Thursday
       const { data: matches } = await supabase
         .from('matches')
-        .select('id')
+        .select('id, match_date')
+        .lte('match_date', prevThursdayStr)
         .order('match_date', { ascending: false })
         .limit(1)
       
@@ -99,13 +139,26 @@ const [winners, setWinners] = useState<any[]>([])
     setTimeout(() => setShareCopied(false), 2000)
   }
 
-  const canVote = user && profile?.player_id && !hasVoted
+  const canVote = user && profile?.player_id && !hasVoted && votingOpen.open
 
   return (
     <div className="min-h-screen pb-20">
       <Header title="Man of the Match" />
       
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* Voting closed message */}
+        {!votingOpen.open && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-2xl p-6 border border-yellow-500/30 text-center"
+          >
+            <Vote className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
+            <h2 className="text-xl font-bold mb-2">Voting Closed</h2>
+            <p className="text-gray-400">{votingOpen.message}</p>
+          </motion.div>
+        )}
+
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
