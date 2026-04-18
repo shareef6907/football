@@ -206,6 +206,32 @@ export default function HomePage() {
           </div>
         </motion.div>
 
+        {/* Previous Match Info */}
+        {motmMatch && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass rounded-2xl p-4 border border-blue-500/30"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              <span className="text-blue-400 font-semibold">Previous Match</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">
+                  {new Date(motmMatch.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+                <div className="text-sm text-gray-400">Thursday 8:00 PM</div>
+              </div>
+              <Link href="/standings" className="text-green-400 text-sm hover:underline">
+                View Standings →
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 gap-4">
           <Link href="/match-day">
