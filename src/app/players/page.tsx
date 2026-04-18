@@ -36,6 +36,7 @@ function getPositionAbbrev(position: Position) {
 
 export default function PlayersPage() {
   const [playerStats, setPlayerStats] = useState<Record<string, PlayerStats>>({})
+  const [playerRatings, setPlayerRatings] = useState<Record<string, { forward: number, midfielder: number, defender: number, goalkeeper: number, count: number }>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,11 +44,11 @@ export default function PlayersPage() {
       setLoading(true)
       
       // Parallel queries for speed
-      const [matchesRes, statsRes, motmRes, coinsRes] = await Promise.all([
+      const [matchesRes, statsRes, motmRes, ratingsRes] = await Promise.all([
         supabase.from('matches').select('id').order('match_date', { ascending: false }),
         supabase.from('match_stats').select('*'),
         supabase.from('man_of_the_match_winners').select('player_id, match_id'),
-        supabase.from('coins_ledger').select('player_id, amount'),
+        supabase.from('player_ratings').select('*').order('rating_year', { ascending: false }).order('rating_month', { ascending: false }),
       ])
       
       const matches = matchesRes.data
@@ -59,10 +60,11 @@ export default function PlayersPage() {
       const matchIds = matches.map(m => m.id)
       const stats = statsRes.data || []
       const motmWins = motmRes.data || []
-      const coins = coinsRes.data || []
+      const ratings = ratingsRes.data || []
       
       // Build stats per player
       const statsMap: Record<string, PlayerStats> = {}
+      const ratingsMap: Record<string, { forward: number, midfielder: number, defender: number, goalkeeper: number, count: number }> = {}
       
       PLAYERS.forEach(p => {
         statsMap[p.id] = {
@@ -74,6 +76,7 @@ export default function PlayersPage() {
           motm_count: 0,
           coins: 0,
         }
+        ratingsMap[p.id] = { forward: 0, midfielder: 0, defender: 0, goalkeeper: 0, count: 0 }
       })
       
       // Count stats
@@ -90,6 +93,13 @@ export default function PlayersPage() {
           if (s.clean_sheet) {
             statsMap[s.player_id].clean_sheets += 1
           }
+          // Calculate coins = points (not from ledger)
+          const playerPoints = (s.goals || 0) * POINTS_SYSTEM.goal +
+                              (s.assists || 0) * POINTS_SYSTEM.assist +
+                              (s.is_winner ? POINTS_SYSTEM.matchWin : 0) +
+                              (s.clean_sheet ? POINTS_SYSTEM.cleanSheet : 0) +
+                              (s.played_as_gk && s.clean_sheet ? POINTS_SYSTEM.goalkeeperWinBonus : 0)
+          statsMap[s.player_id].coins += playerPoints
         }
       })
       
@@ -97,24 +107,53 @@ export default function PlayersPage() {
       motmWins.filter(m => matchIds.includes(m.match_id)).forEach(m => {
         if (statsMap[m.player_id]) {
           statsMap[m.player_id].motm_count += 1
+          // Add MOTM points to coins
+          statsMap[m.player_id].coins += POINTS_SYSTEM.manOfTheMatch
         }
       })
       
-      // Sum coins directly from ledger
-      coins.forEach(c => {
-        if (statsMap[c.player_id]) {
-          statsMap[c.player_id].coins += c.amount || 0
+      // Calculate average ratings per player
+      ratings.forEach(r => {
+        if (ratingsMap[r.rated_player_id]) {
+          ratingsMap[r.rated_player_id].forward += r.forward_rating || 0
+          ratingsMap[r.rated_player_id].midfielder += r.midfielder_rating || 0
+          ratingsMap[r.rated_player_id].defender += r.defender_rating || 0
+          ratingsMap[r.rated_player_id].goalkeeper += r.goalkeeper_rating || 0
+          ratingsMap[r.rated_player_id].count += 1
         }
       })
       
       setPlayerStats(statsMap)
+      setPlayerRatings(ratingsMap)
       setLoading(false)
     }
     
     loadStats()
   }, [])
 
-  const getOverallRating = () => 7 // Placeholder
+  // Calculate overall rating from peer ratings (average of all position ratings)
+  const getPlayerOverallRating = (playerId: string) => {
+    const r = playerRatings[playerId]
+    if (!r || r.count === 0) return 5 // Default if no ratings
+    const avgForward = r.forward / r.count
+    const avgMidfielder = r.midfielder / r.count
+    const avgDefender = r.defender / r.count
+    const avgGoalkeeper = r.goalkeeper / r.count
+    return Math.round((avgForward + avgMidfielder + avgDefender + avgGoalkeeper) / 4 * 10) / 10
+  }
+  
+  // Get position-specific rating
+  const getPositionRating = (playerId: string, position: string) => {
+    const r = playerRatings[playerId]
+    if (!r || r.count === 0) return 5
+    switch (position) {
+      case 'forward': return Math.round((r.forward / r.count) * 10) / 10
+      case 'midfielder': return Math.round((r.midfielder / r.count) * 10) / 10
+      case 'defender': return Math.round((r.defender / r.count) * 10) / 10
+      case 'goalkeeper': return Math.round((r.goalkeeper / r.count) * 10) / 10
+      default: return 5
+    }
+  }
 
   return (
     <div className="min-h-screen pb-20">
@@ -132,7 +171,11 @@ export default function PlayersPage() {
             <div className="grid grid-cols-2 gap-4">
               {PLAYERS.map((player, index) => {
                 const stats = playerStats[player.id] || { goals: 0, assists: 0, wins: 0, clean_sheets: 0, gk_bonuses: 0, motm_count: 0, coins: 0 }
-                const overall = getOverallRating()
+                const overall = getPlayerOverallRating(player.id)
+                const fwdRating = getPositionRating(player.id, 'forward')
+                const midRating = getPositionRating(player.id, 'midfielder')
+                const defRating = getPositionRating(player.id, 'defender')
+                const gkRating = getPositionRating(player.id, 'goalkeeper')
                 
                 return (
                   <motion.div
@@ -181,6 +224,14 @@ export default function PlayersPage() {
                         {stats.motm_count > 0 && (
                           <div className="text-yellow-400 text-sm">⭐ {stats.motm_count}</div>
                         )}
+                      </div>
+
+                      {/* Position Ratings Breakdown */}
+                      <div className="mt-2 text-xs text-gray-500 flex gap-2">
+                        <span className="text-red-400">F:{fwdRating}</span>
+                        <span className="text-blue-400">M:{midRating}</span>
+                        <span className="text-green-400">D:{defRating}</span>
+                        <span className="text-yellow-400">G:{gkRating}</span>
                       </div>
 
                       {/* Actual Stats from DB */}
