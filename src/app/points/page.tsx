@@ -8,7 +8,7 @@ const pointItems = [
   { icon: '⚽', label: 'Goal', points: POINTS_SYSTEM.goal, description: 'Scored by the forward/midfielder' },
   { icon: '⚡', label: 'Assist', points: POINTS_SYSTEM.assist, description: 'Pass leading to a goal' },
   { icon: '🏆', label: 'Match Win', points: POINTS_SYSTEM.matchWin, description: 'Entire winning team' },
-  { icon: '🛡️', label: 'Clean Sheet', points: POINTS_SYSTEM.cleanSheet, description: 'Defenders + GK on winning team' },
+  { icon: '🛡️', label: 'Defender Bonus', points: POINTS_SYSTEM.cleanSheet, description: 'Your team conceded zero goals' },
   { icon: '🧤', label: 'GK Win Bonus', points: POINTS_SYSTEM.goalkeeperWinBonus, description: 'Winning team goalkeeper' },
   { icon: '✅', label: 'Attendance', points: POINTS_SYSTEM.attendance, description: 'Showed up & played' },
   { icon: '🔥', label: 'Streak Bonus', points: POINTS_SYSTEM.attendanceStreakBonus, description: 'Per consecutive week' },

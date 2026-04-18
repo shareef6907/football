@@ -105,10 +105,43 @@ function StatsSubmissionContent() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isWindowOpen, setIsWindowOpen] = useState(true)
+  const [windowMessage, setWindowMessage] = useState('')
 
   // Check submission window on mount
   useEffect(() => {
-    setIsWindowOpen(isSubmissionWindowOpen())
+    const checkWindow = () => {
+      const now = new Date()
+      const day = now.getDay()
+      const hours = now.getHours()
+      const minutes = now.getMinutes()
+      
+      // Thursday from 8PM onward - open
+      if (day === 4 && hours >= 20) {
+        setIsWindowOpen(true)
+        setWindowMessage('Submit by Wednesday 11:55 PM')
+      }
+      // Friday, Saturday, Sunday - open
+      else if (day === 5 || day === 6 || day === 0) {
+        setIsWindowOpen(true)
+        setWindowMessage('Submit by Wednesday 11:55 PM')
+      }
+      // Monday, Tuesday - open  
+      else if (day === 1 || day === 2) {
+        setIsWindowOpen(true)
+        setWindowMessage('Submit by Wednesday 11:55 PM')
+      }
+      // Wednesday until 11:55 PM - open
+      else if (day === 3 && (hours < 23 || (hours === 23 && minutes < 55))) {
+        setIsWindowOpen(true)
+        setWindowMessage('Submit by 11:55 PM')
+      }
+      // Before Thursday 8PM - closed
+      else {
+        setIsWindowOpen(false)
+        setWindowMessage('Opens Thursday at 8:00 PM')
+      }
+    }
+    checkWindow()
   }, [])
 
   // Check submission when matchId is ready
@@ -185,6 +218,21 @@ function StatsSubmissionContent() {
   return (
     <div className="space-y-6">
       {/* Submission window status */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl p-4 text-center ${isWindowOpen ? 'bg-green-500/10 border border-green-500/30' : 'glass border border-yellow-500/30'}`}
+      >
+        {isWindowOpen ? (
+          <p className="text-green-400 text-sm">{windowMessage}</p>
+        ) : (
+          <>
+            <p className="text-yellow-400 text-sm">Submission closed</p>
+            <p className="text-gray-400 text-xs">{windowMessage}</p>
+          </>
+        )}
+      </motion.div>
+
       {!isWindowOpen && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -193,7 +241,7 @@ function StatsSubmissionContent() {
         >
           <Target className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
           <h2 className="text-xl font-bold mb-2">Submission Closed</h2>
-          <p className="text-gray-400">Opens next Thursday at 8:00 PM</p>
+          <p className="text-gray-400">{windowMessage}</p>
         </motion.div>
       )}
 
@@ -286,10 +334,13 @@ function StatsSubmissionContent() {
           </label>
         </div>
 
-        {/* Clean Sheet */}
+        {/* Defender Bonus (was Clean Sheet) */}
         <div className="p-4 rounded-xl bg-white/5">
           <label className="flex items-center justify-between">
-            <span className="font-semibold">🛡️ Clean Sheet</span>
+            <div>
+              <span className="font-semibold">🛡️ Defender Bonus</span>
+              <p className="text-xs text-gray-500">Your team conceded zero goals</p>
+            </div>
             <input
               type="checkbox"
               checked={form.cleanSheet}
