@@ -62,7 +62,7 @@ function StatsSubmissionContent() {
   const [matchId, setMatchId] = useState<string | null>(null)
   const [matchDate, setMatchDate] = useState<string>('')
 
-  // Auto-find match for previous Thursday
+  // Auto-find match for previous Thursday (auto-create if not exists)
   useEffect(() => {
     const findMatch = async () => {
       // Get previous Thursday date
@@ -78,17 +78,33 @@ function StatsSubmissionContent() {
       }
       
       // Find match that matches previous Thursday
-      const { data: matches } = await supabase
+      let { data: matches } = await supabase
         .from('matches')
         .select('id, match_date')
         .lte('match_date', prevThursdayStr)
         .order('match_date', { ascending: false })
         .limit(1)
-        .single()
       
-      if (matches) {
-        setMatchId(matches.id)
-        setMatchDate(matches.match_date)
+      // If no match exists, auto-create one
+      if (!matches || matches.length === 0) {
+        const { data: newMatch, error } = await supabase
+          .from('matches')
+          .insert({
+            match_date: prevThursdayStr,
+            team_size: 5,
+            num_teams: 2,
+          })
+          .select()
+          .single()
+        
+        if (!error && newMatch) {
+          matches = [newMatch]
+        }
+      }
+      
+      if (matches && matches.length > 0) {
+        setMatchId(matches[0].id)
+        setMatchDate(matches[0].match_date)
       }
     }
     findMatch()

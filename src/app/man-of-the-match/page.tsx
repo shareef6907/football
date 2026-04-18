@@ -55,19 +55,36 @@ export default function ManOfTheMatchPage() {
     // Check voting window
     setVotingOpen(isVotingWindowOpen())
     
-    // Fetch previous Thursday's match for voting
+    // Fetch previous Thursday's match for voting (auto-create if not exists)
     const fetchData = async () => {
       // Get previous Thursday
       const prevThursday = getPreviousThursday()
       const prevThursdayStr = prevThursday.toISOString().split('T')[0]
       
       // Find match on or before previous Thursday
-      const { data: matches } = await supabase
+      let { data: matches } = await supabase
         .from('matches')
         .select('id, match_date')
         .lte('match_date', prevThursdayStr)
         .order('match_date', { ascending: false })
         .limit(1)
+      
+      // If no match exists, auto-create one for previous Thursday
+      if (!matches || matches.length === 0) {
+        const { data: newMatch, error } = await supabase
+          .from('matches')
+          .insert({
+            match_date: prevThursdayStr,
+            team_size: 5,
+            num_teams: 2,
+          })
+          .select()
+          .single()
+        
+        if (!error && newMatch) {
+          matches = [newMatch]
+        }
+      }
       
       if (matches?.length) {
         setMatchId(matches[0].id)
@@ -293,7 +310,7 @@ export default function ManOfTheMatchPage() {
         {!matchId && !authLoading && (
           <div className="glass rounded-2xl p-6 border border-white/10 text-center">
             <p className="text-gray-400">
-              No matches found. Create a match day to start voting.
+              Voting for previous match is not available.
             </p>
           </div>
         )}
