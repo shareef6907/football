@@ -41,7 +41,7 @@ function AdminContent() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
-  const [activeTab, setActiveTab] = useState<'ratings' | 'stats'>('ratings')
+  const [activeTab, setActiveTab] = useState<'ratings' | 'stats' | 'reset'>('ratings')
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   
@@ -180,6 +180,26 @@ function AdminContent() {
     }
   }
 
+  // Reset all stats and coins
+  const handleResetAllStats = async () => {
+    if (!confirm('Are you sure you want to DELETE ALL standings data? This cannot be undone!')) return
+    setSaving(true)
+    setSaveMessage('')
+    try {
+      // Delete in order to respect foreign keys
+      await supabase.from('man_of_the_match_votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('man_of_the_match_winners').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('match_stats').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('coins_ledger').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      setSaveMessage('✅ All standings reset to zero!')
+    } catch (err: any) {
+      setSaveMessage('Error: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const startEditRating = (rating: PlayerRating) => {
     setEditingRating(rating.rated_player_id)
     setEditForm({
@@ -304,6 +324,7 @@ function AdminContent() {
         <div className="flex gap-2">
           <button onClick={() => setActiveTab('ratings')} className={`flex-1 py-3 rounded-xl font-bold ${activeTab === 'ratings' ? 'bg-purple-500 text-black' : 'bg-white/5 text-gray-400'}`}>Ratings</button>
           <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3 rounded-xl font-bold ${activeTab === 'stats' ? 'bg-purple-500 text-black' : 'bg-white/5 text-gray-400'}`}>Stats</button>
+          <button onClick={() => setActiveTab('reset')} className={`flex-1 py-3 rounded-xl font-bold ${activeTab === 'reset' ? 'bg-red-500 text-white' : 'bg-white/5 text-gray-400'}`}>Reset</button>
         </div>
 
         {saveMessage && <div className={`p-3 rounded-xl text-center ${saveMessage.startsWith('Error') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{saveMessage}</div>}
@@ -445,6 +466,36 @@ function AdminContent() {
                   )
                 })
               )}
+            </div>
+          </div>
+        )}
+
+        {/* RESET TAB */}
+        {activeTab === 'reset' && (
+          <div className="space-y-4">
+            <div className="glass rounded-2xl p-6 border border-red-500/30">
+              <h3 className="text-xl font-bold text-red-400 mb-4">⚠️ Danger Zone</h3>
+              <p className="text-gray-400 mb-4">This will permanently delete all match stats, coins, and MOTM data.</p>
+              
+              <button 
+                onClick={handleResetAllStats}
+                disabled={saving}
+                className="w-full py-4 rounded-xl bg-red-500 text-white font-bold flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-5 h-5" />
+                Reset All Standings to Zero
+              </button>
+            </div>
+
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <h4 className="font-bold mb-2">What this does:</h4>
+              <ul className="text-sm text-gray-400 space-y-1">
+                <li>• Delete all match_stats records</li>
+                <li>• Delete all coins_ledger records</li>
+                <li>• Delete all MOTM votes</li>
+                <li>• Delete all attendance records</li>
+                <li>• Standings will show all zeros</li>
+              </ul>
             </div>
           </div>
         )}
