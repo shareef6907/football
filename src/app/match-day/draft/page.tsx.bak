@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { PLAYERS } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
-import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown, Sparkles } from 'lucide-react'
+import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
 interface DraftState {
@@ -27,12 +27,6 @@ interface DraftPick {
   was_auto_pick: boolean
 }
 
-interface Captain {
-  player_id: string
-  team_number: number
-  was_auto_selected: boolean
-}
-
 function LiveDraftContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -42,8 +36,6 @@ function LiveDraftContent() {
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [picks, setPicks] = useState<DraftPick[]>([])
   const [availablePlayers, setAvailPlayers] = useState<string[]>([])
-  const [captains, setCaptains] = useState<Captain[]>([])
-  const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(30)
   const [isMyTurn, setIsMyTurn] = useState(false)
   const [myTeam, setMyTeam] = useState<number | null>(null)
@@ -84,17 +76,6 @@ function LiveDraftContent() {
           if (attendance) {
             setAvailPlayers(attendance.map((a: any) => a.player_id))
           }
-        }
-        
-        // Load captains
-        const { data: draftCaptains } = await supabase
-          .from('draft_captains')
-          .select('*')
-          .eq('draft_session_id', sessionId)
-        
-        if (draftCaptains && draftCaptains.length > 0) {
-          setCaptains(draftCaptains)
-          setSelectedCaptains(draftCaptains.map((c: any) => c.player_id))
         }
         
         const { data: captain } = await supabase
@@ -186,149 +167,6 @@ function LiveDraftContent() {
   const teamColors = ['#EF4444', '#3B82F6', '#22C55E', '#EAB308']
 
   const getPlayerById = (id: string) => PLAYERS.find(p => p.id === id)
-
-  // === SETUP PHASE: Captain Selection (when status is 'setup' and no captains assigned yet) ===
-  if (draftState?.status === 'setup' && captains.length === 0) {
-    const numTeams = draftState.num_teams || 2
-    const captainsNeeded = numTeams
-
-    return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <Crown className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
-          <h1 className="text-2xl font-bold">Captain Selection</h1>
-          <p className="text-gray-400">
-            Select {captainsNeeded} captains for {numTeams} teams
-          </p>
-        </motion.div>
-
-        {/* Selected Captains */}
-        <div className="glass rounded-xl p-4 border border-yellow-500/30">
-          <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
-            <Crown className="w-4 h-4" />
-            Selected Captains ({selectedCaptains.length}/{captainsNeeded})
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {selectedCaptains.map((playerId, index) => {
-              const player = getPlayerById(playerId)
-              return player ? (
-                <motion.div
-                  key={playerId}
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center gap-2 p-2 rounded-lg"
-                  style={{ backgroundColor: teamColors[index] + '20', borderColor: teamColors[index] }}
-                >
-                  <Crown className="w-4 h-4" style={{ color: teamColors[index] }} />
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                    style={{ backgroundColor: player.color }}
-                  >
-                    {player.name.slice(0, 1)}
-                  </div>
-                  <span className="text-sm">{player.name}</span>
-                  <span className="text-xs text-gray-500">({teamNames[index]})</span>
-                </motion.div>
-              ) : null
-            })}
-          </div>
-        </div>
-
-        {/* Auto-select button */}
-        <button
-          onClick={() => setSelectedCaptains(availablePlayers.slice(0, numTeams))}
-          className="w-full py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-5 h-5 text-yellow-400" />
-          Auto-Select Captains
-        </button>
-
-        {/* Player Selection */}
-        <div className="space-y-3">
-          <h3 className="font-bold flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Tap to assign as captain:
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {availablePlayers.map((playerId: string) => {
-              const player = getPlayerById(playerId)
-              if (!player) return null
-              const isSelected = selectedCaptains.includes(playerId)
-              
-              return (
-                <motion.button
-                  key={playerId}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    if (selectedCaptains.includes(playerId)) {
-                      setSelectedCaptains(prev => prev.filter(id => id !== playerId))
-                    } else if (selectedCaptains.length < numTeams) {
-                      setSelectedCaptains(prev => [...prev, playerId])
-                    }
-                  }}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    isSelected
-                      ? 'border-yellow-500 bg-yellow-500/20'
-                      : 'border-white/10 hover:border-white/30 bg-white/5'
-                  }`}
-                >
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
-                    style={{ backgroundColor: player.color }}
-                  >
-                    {player.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="text-xs">{player.name}</div>
-                  {isSelected && (
-                    <Crown className="w-4 h-4 mx-auto mt-1 text-yellow-400" />
-                  )}
-                </motion.button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Start Draft Button */}
-        {selectedCaptains.length === captainsNeeded && (
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={async () => {
-              // Save captains to database
-              const captainRecords = selectedCaptains.map((playerId, index) => ({
-                draft_session_id: sessionId,
-                player_id: playerId,
-                team_number: index + 1,
-                was_auto_selected: false,
-              }))
-              await supabase.from('draft_captains').insert(captainRecords)
-              setCaptains(captainRecords)
-              // Update draft status to drafting
-              await supabase.from('draft_sessions').update({ status: 'drafting' }).eq('id', sessionId)
-              setDraftState(prev => prev ? { ...prev, status: 'drafting' } : null)
-            }}
-            className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"
-          >
-            <Crown className="w-5 h-5" />
-            Start Draft
-          </motion.button>
-        )}
-
-        {selectedCaptains.length < captainsNeeded && (
-          <div className="text-center p-4 rounded-xl bg-white/5">
-            <p className="text-gray-400">
-              Select {captainsNeeded - selectedCaptains.length} more captain{captainsNeeded - selectedCaptains.length === 1 ? '' : 's'}
-            </p>
-          </div>
-        )}
-      </div>
-    )
-  }
 
   if (draftState?.status === 'completed') {
     return (

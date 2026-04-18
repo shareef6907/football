@@ -32,6 +32,14 @@ function RatingsContent() {
   const [submitError, setSubmitError] = useState('')
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
+  
+  // Calculate next month
+  const getNextMonth = () => {
+    const now = new Date()
+    now.setMonth(now.getMonth() + 1)
+    return now.toLocaleString('default', { month: 'long' })
+  }
+  const nextMonth = getNextMonth()
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -132,8 +140,8 @@ function RatingsContent() {
           className="glass rounded-2xl p-6 border border-green-500/30 text-center"
         >
           <Check className="w-12 h-12 mx-auto mb-2 text-green-400" />
-          <h2 className="text-xl font-bold">Ratings Submitted!</h2>
-          <p className="text-gray-400">Thank you for rating</p>
+          <h2 className="text-xl font-bold">Ratings submitted for {currentMonth}/{currentYear}!</h2>
+          <p className="text-gray-400 mt-2">You've already rated for this month. Next rating opens {nextMonth}.</p>
         </motion.div>
       )}
 
@@ -179,7 +187,7 @@ function RatingsContent() {
         </motion.div>
       ))}
 
-      {/* Submit */}
+      {/* Submit Button */}
       {!submitted && (
         <>
           {submitError && (
@@ -189,9 +197,9 @@ function RatingsContent() {
           )}
           <motion.button
             whileTap={{ scale: 0.95 }}
-            disabled={isSubmitting}
+            disabled={isSubmitting || Object.keys(ratings).length === 0}
             onClick={handleSubmit}
-            className="w-full py-4 rounded-2xl bg-purple-500 text-black font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl bg-purple-500 text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSubmitting ? 'Submitting...' : (
               <>
@@ -201,6 +209,16 @@ function RatingsContent() {
             )}
           </motion.button>
         </>
+      )}
+      {/* Submitted - Greyed Out */}
+      {submitted && (
+        <motion.button
+          disabled
+          className="w-full py-4 rounded-2xl bg-gray-600 text-gray-400 font-bold cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <Lock className="w-5 h-5" />
+          Ratings Submitted
+        </motion.button>
       )}
 
       {/* Not a player */}

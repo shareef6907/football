@@ -21,8 +21,29 @@ function StatsSubmissionContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, profile, loading: authLoading } = useAuth()
-  const matchId = searchParams.get('match')
-  
+  const [matchId, setMatchId] = useState<string | null>(null)
+  const [matchDate, setMatchDate] = useState<string>('')
+
+  // Auto-find most recent match if no match param provided
+  useEffect(() => {
+    const findMatch = async () => {
+      const paramMatch = searchParams.get('match')
+      if (paramMatch) {
+        setMatchId(paramMatch)
+        const { data } = await supabase.from('matches').select('match_date').eq('id', paramMatch).single()
+        if (data) setMatchDate(data.match_date)
+        return
+      }
+      // Find most recent match
+      const { data: matches } = await supabase.from('matches').select('id, match_date').order('match_date', { ascending: false }).limit(1).single()
+      if (matches) {
+        setMatchId(matches.id)
+        setMatchDate(matches.match_date)
+      }
+    }
+    findMatch()
+  }, [])
+
   const [form, setForm] = useState<StatsForm>({
     goals: 0,
     assists: 0,
@@ -34,28 +55,20 @@ function StatsSubmissionContent() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
+  // Check submission when matchId is ready
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
+    if (!matchId || !profile?.player_id) return
+    const checkSubmission = async () => {
+      const { data } = await supabase.from('match_stats').select('id').eq('match_id', matchId).eq('player_id', profile.player_id).single()
+      if (data) setAlreadySubmitted(true)
     }
-    
-    if (matchId && profile?.player_id) {
-      const checkSubmission = async () => {
-        const { data } = await supabase
-          .from('match_stats')
-          .select('id')
-          .eq('match_id', matchId)
-          .eq('player_id', profile.player_id)
-          .single()
-        
-        if (data) {
-          setAlreadySubmitted(true)
-        }
-      }
-      
-      checkSubmission()
-    }
-  }, [user, profile, authLoading, matchId, router])
+    checkSubmission()
+  }, [matchId, profile])
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/login')
+  }, [user, authLoading, router])
 
   const calculatePoints = () => {
     let points = form.goals * POINTS_SYSTEM.goal + form.assists * POINTS_SYSTEM.assist
@@ -66,11 +79,11 @@ function StatsSubmissionContent() {
 
   const handleSubmit = async () => {
     if (!profile?.player_id || !matchId) return
-    
+
     setIsSubmitting(true)
-    
+
     const points = calculatePoints()
-    
+
     const { error } = await supabase
       .from('match_stats')
       .insert({
@@ -82,7 +95,7 @@ function StatsSubmissionContent() {
         played_as_gk: form.playedAsGK,
         clean_sheet: form.cleanSheet,
       })
-    
+
     if (error) {
       alert(error.message)
     } else {
@@ -93,11 +106,11 @@ function StatsSubmissionContent() {
         reason: `Match stats: ${form.goals} goals, ${form.assists} assists${form.isWinner ? ', win' : ''}`,
         match_id: matchId,
       })
-      
+
       setShowSuccess(true)
       setTimeout(() => router.push('/'), 3000)
     }
-    
+
     setIsSubmitting(false)
   }
 
@@ -121,6 +134,11 @@ function StatsSubmissionContent() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
+        {matchDate && (
+          <p className="text-sm text-gray-400 mb-1">
+            Match: {new Date(matchDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
+        )}
         <div className="text-3xl font-bold">{player?.name || 'Unknown'}</div>
         <p className="text-gray-400">Submit your match stats</p>
       </motion.div>
@@ -256,7 +274,7 @@ export default function SubmitStatsPage() {
   return (
     <div className="min-h-screen pb-20">
       <Header title="Submit Stats" />
-      
+
       <main className="max-w-md mx-auto px-4 py-6">
         <Suspense fallback={
           <div className="text-center p-8">
