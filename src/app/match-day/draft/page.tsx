@@ -40,27 +40,29 @@ function LiveDraftContent() {
   const { user, profile, loading: authLoading } = useAuth()
   
   // Get players from localStorage (set by /match-day page)
+  // Use a ref to track if we've already cleaned up
+  const playersRef = { cleaned: false }
+  
   const getInitialPlayers = () => {
     try {
       const stored = localStorage.getItem('draft_players')
-      // Clear it after reading to prevent stale data
-      localStorage.removeItem('draft_players')
+      // Don't clear immediately - only clear after we confirm we're in the draft
       return stored ? JSON.parse(stored) : []
     } catch {
-      localStorage.removeItem('draft_players')
       return []
     }
   }
   
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [picks, setPicks] = useState<DraftPick[]>([])
-  const [availablePlayers, setAvailPlayers] = useState<string[]>(getInitialPlayers())
+  const [availablePlayers, setAvailPlayers] = useState<string[]>([])
   const [captains, setCaptains] = useState<Captain[]>([])
   const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(30)
   const [isMyTurn, setIsMyTurn] = useState(false)
   const [myTeam, setMyTeam] = useState<number | null>(null)
   const [isCaptain, setIsCaptain] = useState(false)
+  const [localPlayersLoaded, setLocalPlayersLoaded] = useState(false)
 
   // Initial load
   useEffect(() => {
@@ -90,13 +92,25 @@ function LiveDraftContent() {
           const pickedIds = existingPicks.map((p: any) => p.picked_player_id)
           setAvailPlayers(prev => prev.filter((id: any) => !pickedIds.includes(id)))
         } else if (!draft.current_pick_number) {
+          // Try to load from attendance first
           const { data: attendance } = await supabase
             .from('attendance')
             .select('player_id')
             .eq('match_id', draft.match_id)
           
-          if (attendance) {
+          if (attendance && attendance.length > 0) {
             setAvailPlayers(attendance.map((a: any) => a.player_id))
+          } else {
+            // Fall back to localStorage if no attendance
+            try {
+              const stored = localStorage.getItem('draft_players')
+              if (stored) {
+                const localPlayers = JSON.parse(stored)
+                setAvailPlayers(localPlayers)
+                // Clear after use
+                localStorage.removeItem('draft_players')
+              }
+            } catch {}
           }
         }
         
@@ -201,10 +215,69 @@ function LiveDraftContent() {
 
   const getPlayerById = (id: string) => PLAYERS.find(p => p.id === id)
 
-  // === SETUP PHASE: Captain Selection (when status is 'setup' and no captains assigned yet) ===
-  if (draftState?.status === 'setup' && captains.length === 0) {
+  // === SETUP PHASE: Captain Selection (when status is 'setup')
+  if (draftState?.status === 'setup') {
     const numTeams = draftState.num_teams || 2
     const captainsNeeded = numTeams
+    const hasCaptains = captains.length > 0
+
+    // If already have captains, go straight to drafting view
+    if (hasCaptains && draftState.status === 'setup') {
+      // Update status to drafting
+      return (
+        <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <Crown className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
+            <h1 className="text-2xl font-bold">Ready to Draft!</h1>
+            <p className="text-gray-400">Captains are set, starting the draft...</p>
+          </motion.div>
+
+          <div className="glass rounded-xl p-4 border border-yellow-500/30">
+            <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
+              <Crown className="w-4 h-4" />
+              Selected Captains
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {captains.map((c: any) => {
+                const player = getPlayerById(c.player_id)
+                return player ? (
+                  <div
+                    key={c.player_id}
+                    className="flex items-center gap-2 p-2 rounded-lg"
+                    style={{ backgroundColor: teamColors[c.team_number - 1] + '20', borderColor: teamColors[c.team_number - 1] }}
+                  >
+                    <Crown className="w-4 h-4" style={{ color: teamColors[c.team_number - 1] }} />
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs" style={{ backgroundColor: player.color }}>
+                      {player.name.slice(0, 1)}
+                    </div>
+                    <span className="text-sm">{player.name}</span>
+                    <span className="text-xs text-gray-500">({teamNames[c.team_number - 1]})</span>
+                  </div>
+                ) : null
+              })}
+            </div>
+          </div>
+
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={async () => {
+              await supabase.from('draft_sessions').update({ status: 'drafting' }).eq('id', sessionId)
+              setDraftState(prev => prev ? { ...prev, status: 'drafting' } : null)
+            }}
+            className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"
+          >
+            <Crown className="w-5 h-5" />
+            Start Draft
+          </motion.button>
+        </div>
+      )
+    }
 
     return (
       <div className="space-y-6">
