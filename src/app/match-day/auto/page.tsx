@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PLAYERS, Position, type PlayerId, type PlayerName } from '@/lib/constants'
+import { supabase } from '@/lib/supabase/client'
 import { Users, Shuffle, ArrowLeft, Trophy, Check } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
@@ -34,10 +35,10 @@ function AutoBalanceContent() {
     }
   }, [playerIds.length])
 
-  const balanceTeams = () => {
+  const balanceTeams = async () => {
     setIsBalancing(true)
     
-    // Get player objects with ratings (only from valid PLAYERS)
+    // Get player objects with ratings from player_ratings table
     const playersWithRating = playerIds
       .map(id => PLAYERS.find(p => p.id === id))
       .filter((p): p is typeof PLAYERS[number] => p !== undefined)
@@ -47,13 +48,35 @@ function AutoBalanceContent() {
       return
     }
     
-    // Generate a rating based on position
-    const withRatings = playersWithRating.map(player => ({
-      ...player,
-      rating: player.position === 'goalkeeper' ? 6 :
-              player.position === 'defender' ? 7 :
-              player.position === 'midfielder' ? 8 : 7
-    }))
+    // Try to get latest ratings from database
+    const now = new Date()
+    const ratingMonth = now.getMonth() + 1
+    const ratingYear = now.getFullYear()
+    
+    const { data: dbRatings } = await supabase
+      .from('player_ratings')
+      .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating')
+      .eq('rating_month', ratingMonth)
+      .eq('rating_year', ratingYear)
+    
+    const ratingsMap = new Map()
+    dbRatings?.forEach(r => {
+      // Calculate average rating for this player
+      const avg = (r.forward_rating + r.midfielder_rating + r.defender_rating + r.goalkeeper_rating) / 4
+      ratingsMap.set(r.rated_player_id, avg)
+    })
+    
+    // Get players with ratings (from DB or default based on position)
+    const withRatings = playersWithRating.map(player => {
+      const dbRating = ratingsMap.get(player.id)
+      const defaultRating = player.position === 'goalkeeper' ? 6 :
+                           player.position === 'defender' ? 7 :
+                           player.position === 'midfielder' ? 8 : 7
+      return {
+        ...player,
+        rating: dbRating || defaultRating
+      }
+    })
     
     // Sort by rating (highest first)
     withRatings.sort((a, b) => b.rating - a.rating)
@@ -122,17 +145,29 @@ function AutoBalanceContent() {
         </div>
       ) : (
         <div className="space-y-4">
-          {teams.map((team, teamIndex) => (
+          {teams.map((team, teamIndex) => {
+            const teamNames = ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F']
+            const teamName = teamNames[teamIndex] || `Team ${teamIndex + 1}`
+            const borderColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#a855f7', '#f97316']
+            const bgColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#a855f7', '#f97316']
+            const borderColor = borderColors[teamIndex] || '#3b82f6'
+            const bgColor = bgColors[teamIndex] || '#3b82f6'
+            
+            return (
             <motion.div
               key={teamIndex}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: teamIndex * 0.1 }}
-              className={`glass rounded-2xl p-4 border ${teamIndex === 0 ? 'border-blue-500/30' : 'border-red-500/30'}`}
+              className="glass rounded-2xl p-4 border"
+              style={{ borderColor: borderColor + '40' }}
             >
               <div className="flex items-center justify-between mb-3">
-                <div className={`px-3 py-1 rounded-full text-sm font-bold ${teamIndex === 0 ? 'bg-blue-500' : 'bg-red-500'} text-white`}>
-                  {teamIndex === 0 ? 'Team A' : 'Team B'}
+                <div 
+                  className="px-3 py-1 rounded-full text-sm font-bold text-white"
+                  style={{ backgroundColor: bgColor }}
+                >
+                  {teamName}
                 </div>
                 <div className="text-sm text-gray-400">
                   Avg Rating: {(team.reduce((sum, p) => sum + p.rating, 0) / team.length).toFixed(1)}
@@ -162,7 +197,8 @@ function AutoBalanceContent() {
                 ))}
               </div>
             </motion.div>
-          ))}
+            )
+          })}
         </div>
       )}
 

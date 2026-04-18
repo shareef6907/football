@@ -87,13 +87,25 @@ function RatingsContent() {
     setSubmitError('')
     
     try {
+      // Get current month/year fresh
+      const now = new Date()
+      const ratingMonth = now.getMonth() + 1
+      const ratingYear = now.getFullYear()
+      
+      // First delete existing ratings for this rater this month to avoid UNIQUE constraint errors
+      await supabase.from('player_ratings')
+        .delete()
+        .eq('rater_id', profile.player_id)
+        .eq('rating_month', ratingMonth)
+        .eq('rating_year', ratingYear)
+      
       // Insert ratings for each player
       const insertPromises = Object.entries(ratings).map(([playerId, playerRatings]) =>
         supabase.from('player_ratings').insert({
           rater_id: profile.player_id,
           rated_player_id: playerId,
-          rating_month: currentMonth,
-          rating_year: currentYear,
+          rating_month: ratingMonth,
+          rating_year: ratingYear,
           forward_rating: playerRatings.forward,
           midfielder_rating: playerRatings.midfielder,
           defender_rating: playerRatings.defender,
@@ -104,9 +116,10 @@ function RatingsContent() {
       const results = await Promise.all(insertPromises)
       
       // Check for errors
-      const hasError = results.some(r => r.error)
-      if (hasError) {
-        setSubmitError('Failed to submit some ratings. Please try again.')
+      const errors = results.filter(r => r.error)
+      if (errors.length > 0) {
+        console.error('Rating insert errors:', errors)
+        setSubmitError(`Failed to submit ${errors.length} ratings. Please try again.`)
       } else {
         setSubmitted(true)
       }
