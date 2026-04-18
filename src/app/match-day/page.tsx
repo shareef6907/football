@@ -178,7 +178,7 @@ function MatchDayContent() {
     }
     
     setIsCreating(false)
-    router.push(`/match-day/draft?session=${draft.id}`)
+    router.push(`/match-day/draft?session=${draft.id}&players=${setup.attending.join(',')}`)
   }
 
   const totalPlayers = setup.attending.length + setup.guests.length

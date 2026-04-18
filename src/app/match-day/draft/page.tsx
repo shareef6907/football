@@ -37,11 +37,15 @@ function LiveDraftContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session')
+  const playersParam = searchParams.get('players') || ''
   const { user, profile, loading: authLoading } = useAuth()
+  
+  // Parse players from URL param
+  const initialPlayers = playersParam ? playersParam.split(',').filter(Boolean) : []
   
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [picks, setPicks] = useState<DraftPick[]>([])
-  const [availablePlayers, setAvailPlayers] = useState<string[]>([])
+  const [availablePlayers, setAvailPlayers] = useState<string[]>(initialPlayers)
   const [captains, setCaptains] = useState<Captain[]>([])
   const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(30)
