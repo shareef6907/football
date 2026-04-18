@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Clock, Trophy, Target, Calendar, Users, ArrowRight, Star, Share2, Download, X } from 'lucide-react'
 import { Navigation, Header } from '../components/Navigation'
 import { supabase } from '@/lib/supabase/client'
+import { PLAYERS } from '@/lib/constants'
 
 // Next game date calculator - uses settings from Supabase/localStorage
 function getNextGameDate(gameDay: number, gameTime: string) {
@@ -24,6 +25,11 @@ export default function HomePage() {
   const [gameTimeDisplay, setGameTimeDisplay] = useState('8:00 PM')
   const [showPwaPrompt, setShowPwaPrompt] = useState(false)
   const [dismissedPwa, setDismissedPwa] = useState(false)
+  
+  // Man of the Match data
+  const [motmMatch, setMotmMatch] = useState<{id: string, date: string} | null>(null)
+  const [motmWinners, setMotmWinners] = useState<{id: string, name: string, color: string}[]>([])
+  const [motmLoading, setMotmLoading] = useState(true)
 
   // Load game settings from Supabase/localStorage
   useEffect(() => {
@@ -71,6 +77,47 @@ export default function HomePage() {
     }, 5000)
     return () => clearTimeout(timer)
   }, [dismissedPwa])
+
+  // Load Man of the Match from database
+  useEffect(() => {
+    const loadMotm = async () => {
+      setMotmLoading(true)
+      try {
+        // Get latest match
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('id, match_date')
+          .order('match_date', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (!matches) {
+          setMotmLoading(false)
+          return
+        }
+        
+        setMotmMatch({ id: matches.id, date: matches.match_date })
+        
+        // Get winners for this match
+        const { data: winnerRecords } = await supabase
+          .from('man_of_the_match_winners')
+          .select('player_id, vote_count')
+          .eq('match_id', matches.id)
+          .order('vote_count', { ascending: false })
+        
+        if (winnerRecords && winnerRecords.length > 0) {
+          const maxVotes = winnerRecords[0].vote_count
+          const winningIds = winnerRecords.filter(w => w.vote_count === maxVotes).map(w => w.player_id)
+          const winners = PLAYERS.filter(p => winningIds.includes(p.id))
+          setMotmWinners(winners)
+        }
+      } catch (err) {
+        console.error('Error loading MOTM:', err)
+      }
+      setMotmLoading(false)
+    }
+    loadMotm()
+  }, [])
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -184,12 +231,28 @@ export default function HomePage() {
         >
           <div className="flex items-center gap-3 mb-3">
             <Star className="w-5 h-5 text-yellow-400" />
-            <span className="text-yellow-400 font-semibold">Man of the Match</span>
+            <span className="text-yellow-400 font-semibold">
+              Man of the Match
+              {motmMatch?.date && ` - ${new Date(motmMatch.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-lg font-bold">Jinish</div>
-              <div className="text-sm text-gray-400">Last match winner</div>
+              {motmLoading ? (
+                <div className="text-sm text-gray-400">Loading...</div>
+              ) : motmWinners.length > 0 ? (
+                <>
+                  <div className="text-lg font-bold">
+                    {motmWinners.map(p => p.name).join(' & ')}
+                  </div>
+                  <div className="text-sm text-gray-400">Vote winner</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-lg font-bold text-gray-400">No votes yet</div>
+                  <div className="text-sm text-gray-500">Cast your vote!</div>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <motion.button
