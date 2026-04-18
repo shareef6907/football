@@ -49,12 +49,13 @@ function LiveDraftContent() {
   const [myTeam, setMyTeam] = useState<number | null>(null)
   const [isCaptain, setIsCaptain] = useState(false)
 
+  // Initial load
   useEffect(() => {
     if (!sessionId) {
       router.push('/match-day')
       return
     }
-
+    
     const loadDraft = async () => {
       const { data: draft } = await supabase
         .from('draft_sessions')
