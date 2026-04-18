@@ -178,7 +178,9 @@ function MatchDayContent() {
     }
     
     setIsCreating(false)
-    router.push(`/match-day/draft?session=${draft.id}&players=${setup.attending.join(',')}`)
+    // Store players in localStorage for draft page
+    localStorage.setItem('draft_players', JSON.stringify(setup.attending))
+    router.push(`/match-day/draft?session=${draft.id}`)
   }
 
   const totalPlayers = setup.attending.length + setup.guests.length

@@ -37,15 +37,24 @@ function LiveDraftContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session')
-  const playersParam = searchParams.get('players') || ''
   const { user, profile, loading: authLoading } = useAuth()
   
-  // Parse players from URL param
-  const initialPlayers = playersParam ? playersParam.split(',').filter(Boolean) : []
+  // Get players from localStorage (set by /match-day page)
+  const getInitialPlayers = () => {
+    try {
+      const stored = localStorage.getItem('draft_players')
+      // Clear it after reading to prevent stale data
+      localStorage.removeItem('draft_players')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      localStorage.removeItem('draft_players')
+      return []
+    }
+  }
   
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [picks, setPicks] = useState<DraftPick[]>([])
-  const [availablePlayers, setAvailPlayers] = useState<string[]>(initialPlayers)
+  const [availablePlayers, setAvailPlayers] = useState<string[]>(getInitialPlayers())
   const [captains, setCaptains] = useState<Captain[]>([])
   const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(30)
