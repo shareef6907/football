@@ -67,7 +67,7 @@ function StatsSubmissionContent() {
     const findMatch = async () => {
       // Get previous Thursday date
       const prevThursday = getPreviousThursday()
-      const prevThursdayStr = prevThursday.toISOString().split('T')[0]
+      const prevThursdayStr = prevThursday.toLocaleDateString('en-CA')
       
       const paramMatch = searchParams.get('match')
       if (paramMatch) {
@@ -240,8 +240,12 @@ function StatsSubmissionContent() {
         <div className="bg-white/10 rounded-xl p-4 text-center">
           <p className="text-sm text-gray-400">Your stats:</p>
           <p className="text-xl font-bold text-green-400">
-            {form.goals} Goals, {form.assists} Assists{form.isWinner ? ', Won' : ''}
+            {form.goals} Goals, {form.assists} Assists
+            {form.isWinner && ', Won'}
+            {form.playedAsGK && form.cleanSheet && ', Clean Sheet'}
+            {form.playedAsGK && form.isWinner && ', GK Bonus'}
           </p>
+          <p className="text-sm text-yellow-400 mt-2">+{calculatePoints()} points earned</p>
         </div>
       </div>
     )

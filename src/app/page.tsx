@@ -106,7 +106,7 @@ export default function HomePage() {
         const daysSinceThursday = (dayOfWeek - 4 + 7) % 7 || 7
         const prevThursday = new Date(now)
         prevThursday.setDate(now.getDate() - daysSinceThursday)
-        const prevThursdayStr = prevThursday.toISOString().split('T')[0]
+        const prevThursdayStr = prevThursday.toLocaleDateString('en-CA')
         
         const { data: matches } = await supabase
           .from('matches')
@@ -114,20 +114,20 @@ export default function HomePage() {
           .lte('match_date', prevThursdayStr)
           .order('match_date', { ascending: false })
           .limit(1)
-          .single()
         
-        if (!matches) {
+        if (!matches || matches.length === 0) {
           setMotmLoading(false)
           return
         }
         
-        setMotmMatch({ id: matches.id, date: matches.match_date })
+        const match = matches[0]
+        setMotmMatch({ id: match.id, date: match.match_date })
         
         // Get ALL votes for this match and count them
         const { data: allVotes } = await supabase
           .from('man_of_the_match_votes')
           .select('voted_for_player_id')
-          .eq('match_id', matches.id)
+          .eq('match_id', match.id)
         
         if (allVotes && allVotes.length > 0) {
           // Count votes per player
