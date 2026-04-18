@@ -186,20 +186,20 @@ function AdminContent() {
     setSaving(true)
     setSaveMessage('')
     try {
-      // Get all IDs and delete - using select then delete approach
+      // Delete all from each table - use select('id') then delete by IDs
       const tables = ['draft_picks', 'draft_captains', 'draft_sessions', 'man_of_the_match_votes', 'man_of_the_match_winners', 'match_stats', 'attendance', 'match_team_players', 'match_teams', 'matches', 'coins_ledger', 'player_ratings']
       
       for (const table of tables) {
         const { data } = await supabase.from(table).select('id')
         if (data && data.length > 0) {
-          const ids = data.map((r: any) => r.id)
-          await supabase.from(table).delete().in('id', ids)
+          await supabase.from(table).delete().in('id', data.map((r: any) => r.id))
         }
       }
       
       setSaveMessage('✅ All data cleared!')
     } catch (err: any) {
       setSaveMessage('Error: ' + err.message)
+      console.error('Reset error:', err)
     } finally {
       setSaving(false)
     }
