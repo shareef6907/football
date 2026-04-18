@@ -182,17 +182,22 @@ function AdminContent() {
 
   // Reset all stats and coins
   const handleResetAllStats = async () => {
-    if (!confirm('Are you sure you want to DELETE ALL standings data? This cannot be undone!')) return
+    if (!confirm('Are you sure you want to DELETE ALL data? This cannot be undone!')) return
     setSaving(true)
     setSaveMessage('')
     try {
-      // Delete in order to respect foreign keys
-      await supabase.from('man_of_the_match_votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      await supabase.from('man_of_the_match_winners').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      await supabase.from('match_stats').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      await supabase.from('coins_ledger').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      await supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      setSaveMessage('✅ All standings reset to zero!')
+      // Get all IDs and delete - using select then delete approach
+      const tables = ['draft_picks', 'draft_captains', 'draft_sessions', 'man_of_the_match_votes', 'man_of_the_match_winners', 'match_stats', 'attendance', 'match_team_players', 'match_teams', 'matches', 'coins_ledger', 'player_ratings']
+      
+      for (const table of tables) {
+        const { data } = await supabase.from(table).select('id')
+        if (data && data.length > 0) {
+          const ids = data.map((r: any) => r.id)
+          await supabase.from(table).delete().in('id', ids)
+        }
+      }
+      
+      setSaveMessage('✅ All data cleared!')
     } catch (err: any) {
       setSaveMessage('Error: ' + err.message)
     } finally {
@@ -490,11 +495,12 @@ function AdminContent() {
             <div className="glass rounded-2xl p-4 border border-white/10">
               <h4 className="font-bold mb-2">What this does:</h4>
               <ul className="text-sm text-gray-400 space-y-1">
-                <li>• Delete all match_stats records</li>
-                <li>• Delete all coins_ledger records</li>
-                <li>• Delete all MOTM votes</li>
-                <li>• Delete all attendance records</li>
-                <li>• Standings will show all zeros</li>
+                <li>• Delete all matches</li>
+                <li>• Delete all match_stats, attendance, teams</li>
+                <li>• Delete all draft sessions and picks</li>
+                <li>• Delete all MOTM votes and winners</li>
+                <li>• Delete all coins_ledger</li>
+                <li>• Delete all player_ratings</li>
               </ul>
             </div>
           </div>
