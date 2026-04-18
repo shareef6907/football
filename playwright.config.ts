@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 0,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3003',
+    baseURL: 'http://localhost:3004',
     trace: 'on-first-retry',
   },
   projects: [

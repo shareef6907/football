@@ -144,9 +144,42 @@ export default function ManOfTheMatchPage() {
       setHasVoted(true)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
+      
+      // Auto-calculate and update winners
+      await determineWinner()
     }
     
     setIsSubmitting(false)
+  }
+  
+  // Determine winner based on vote count
+  const determineWinner = async () => {
+    const { data: votes } = await supabase
+      .from('man_of_the_match_votes')
+      .select('voted_for_player_id')
+      .eq('match_id', matchId)
+    
+    if (!votes || votes.length === 0) return
+    
+    // Count votes per player
+    const voteCounts: Record<string, number> = {}
+    votes.forEach(v => {
+      voteCounts[v.voted_for_player_id] = (voteCounts[v.voted_for_player_id] || 0) + 1
+    })
+    
+    // Find max
+    const maxVotes = Math.max(...Object.values(voteCounts))
+    const winnerIds = Object.entries(voteCounts).filter(([_, count]) => count === maxVotes).map(([id]) => id)
+    
+    // Delete old winners for this match
+    await supabase.from('man_of_the_match_winners').delete().eq('match_id', matchId)
+    
+    // Insert new winners
+    if (winnerIds.length > 0) {
+      await supabase.from('man_of_the_match_winners').insert(
+        winnerIds.map(player_id => ({ match_id: matchId, player_id, vote_count: maxVotes }))
+      )
+    }
   }
 
   const copyShareLink = () => {
