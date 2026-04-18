@@ -49,11 +49,17 @@ function AutoBalanceContent() {
     }
     
     // Try to get latest ratings from database (any month/year, order by most recent)
-    const { data: dbRatings } = await supabase
+    console.log('Fetching ratings from database...')
+    const { data: dbRatings, error: ratingsError } = await supabase
       .from('player_ratings')
       .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating, rating_year, rating_month')
       .order('rating_year', { ascending: false })
       .order('rating_month', { ascending: false })
+    
+    if (ratingsError) {
+      console.error('Error fetching ratings:', ratingsError)
+    }
+    console.log('DB Ratings fetched:', dbRatings?.length, 'ratings found')
     
     // Get latest rating per player (first occurrence of each player)
     const latestRatingsMap = new Map()
@@ -64,15 +70,30 @@ function AutoBalanceContent() {
       }
     })
     
+    console.log('Latest ratings map:', Object.fromEntries(latestRatingsMap))
+    
     // Get players with ratings (from DB or default based on position)
     const withRatings = playersWithRating.map(player => {
       const dbRating = latestRatingsMap.get(player.id)
       const defaultRating = player.position === 'goalkeeper' ? 6 :
                            player.position === 'defender' ? 7 :
                            player.position === 'midfielder' ? 8 : 7
+      
+      // Use the position-specific rating from DB, not the average
+      let positionRating = defaultRating
+      const ratingData = dbRatings?.find(r => r.rated_player_id === player.id)
+      if (ratingData) {
+        if (player.position === 'forward') positionRating = ratingData.forward_rating
+        else if (player.position === 'midfielder') positionRating = ratingData.midfielder_rating
+        else if (player.position === 'defender') positionRating = ratingData.defender_rating
+        else if (player.position === 'goalkeeper') positionRating = ratingData.goalkeeper_rating
+      }
+      
+      console.log(`${player.name} (${player.position}): DB rating = ${dbRating ? positionRating : 'none'}, using = ${dbRating ? positionRating : defaultRating}`)
+      
       return {
         ...player,
-        rating: dbRating || defaultRating
+        rating: dbRating ? positionRating : defaultRating
       }
     })
     
