@@ -100,14 +100,12 @@ function AutoBalanceContent() {
     // Sort by rating (highest first)
     withRatings.sort((a, b) => b.rating - a.rating)
     
-    // Snake draft distribution for balance
+    // Snake draft distribution for balance - fixed sequential assignment
     const newTeams: PlayerWithRating[][] = Array.from({ length: numTeams }, () => [])
     
     withRatings.forEach((player, index) => {
       const teamIndex = index % numTeams
-      const snakeIndex = Math.floor(index / numTeams)
-      const actualTeam = snakeIndex % 2 === 0 ? teamIndex : (numTeams - 1 - teamIndex)
-      newTeams[actualTeam].push(player)
+      newTeams[teamIndex].push(player)
     })
     
     setTeams(newTeams)
