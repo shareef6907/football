@@ -35,7 +35,7 @@ export const POINTS_SYSTEM = {
   goalkeeperWinBonus: 5,
   attendance: 2,
   attendanceStreakBonus: 1,
-  manOfTheMatch: 5,
+  manOfTheMatch: 15,
 } as const
 
 // Coins are earned 1:1 with points

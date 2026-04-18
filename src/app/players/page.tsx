@@ -42,35 +42,24 @@ export default function PlayersPage() {
     const loadStats = async () => {
       setLoading(true)
       
-      // Get all matches
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('id')
-        .order('match_date', { ascending: false })
+      // Parallel queries for speed
+      const [matchesRes, statsRes, motmRes, coinsRes] = await Promise.all([
+        supabase.from('matches').select('id').order('match_date', { ascending: false }),
+        supabase.from('match_stats').select('*'),
+        supabase.from('man_of_the_match_winners').select('player_id, match_id'),
+        supabase.from('coins_ledger').select('player_id, amount'),
+      ])
       
+      const matches = matchesRes.data
       if (!matches || matches.length === 0) {
         setLoading(false)
         return
       }
       
       const matchIds = matches.map(m => m.id)
-      
-      // Get all match stats
-      const { data: stats } = await supabase
-        .from('match_stats')
-        .select('*')
-        .in('match_id', matchIds)
-      
-      // Get all MOTM wins
-      const { data: motmWins } = await supabase
-        .from('man_of_the_match_winners')
-        .select('player_id')
-        .in('match_id', matchIds)
-      
-      // Get coins
-      const { data: coins } = await supabase
-        .from('coins_ledger')
-        .select('player_id, amount')
+      const stats = statsRes.data || []
+      const motmWins = motmRes.data || []
+      const coins = coinsRes.data || []
       
       // Build stats per player
       const statsMap: Record<string, PlayerStats> = {}
@@ -88,7 +77,7 @@ export default function PlayersPage() {
       })
       
       // Count stats
-      stats?.forEach(s => {
+      stats.filter(s => matchIds.includes(s.match_id)).forEach(s => {
         if (statsMap[s.player_id]) {
           statsMap[s.player_id].goals += s.goals || 0
           statsMap[s.player_id].assists += s.assists || 0
@@ -105,14 +94,14 @@ export default function PlayersPage() {
       })
       
       // Count MOTM
-      motmWins?.forEach(m => {
+      motmWins.filter(m => matchIds.includes(m.match_id)).forEach(m => {
         if (statsMap[m.player_id]) {
           statsMap[m.player_id].motm_count += 1
         }
       })
       
-      // Sum coins
-      coins?.forEach(c => {
+      // Sum coins directly from ledger
+      coins.forEach(c => {
         if (statsMap[c.player_id]) {
           statsMap[c.player_id].coins += c.amount || 0
         }
@@ -125,11 +114,7 @@ export default function PlayersPage() {
     loadStats()
   }, [])
 
-  const getOverallRating = (playerId: string) => {
-    // Get latest ratings for player (placeholder - use default 5)
-    // In future, query player_ratings table
-    return 7 // Placeholder
-  }
+  const getOverallRating = () => 7 // Placeholder
 
   return (
     <div className="min-h-screen pb-20">
@@ -147,14 +132,14 @@ export default function PlayersPage() {
             <div className="grid grid-cols-2 gap-4">
               {PLAYERS.map((player, index) => {
                 const stats = playerStats[player.id] || { goals: 0, assists: 0, wins: 0, clean_sheets: 0, gk_bonuses: 0, motm_count: 0, coins: 0 }
-                const overall = getOverallRating(player.id)
+                const overall = getOverallRating()
                 
                 return (
                   <motion.div
                     key={player.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.03 }}
                     className="relative overflow-hidden rounded-2xl border border-white/10"
                     style={{ 
                       background: `linear-gradient(135deg, ${player.color}15 0%, transparent 50%)`
@@ -193,6 +178,9 @@ export default function PlayersPage() {
                             {overall}
                           </div>
                         </div>
+                        {stats.motm_count > 0 && (
+                          <div className="text-yellow-400 text-sm">⭐ {stats.motm_count}</div>
+                        )}
                       </div>
 
                       {/* Actual Stats from DB */}

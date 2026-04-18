@@ -25,38 +25,44 @@ function AutoBalanceContent() {
   
   const [teams, setTeams] = useState<PlayerWithRating[][]>([])
   const [isBalancing, setIsBalancing] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     if (playerIds.length >= 4) {
       balanceTeams()
     }
-  }, [playerIds, teamSize, numTeams])
+  }, [playerIds.length])
 
   const balanceTeams = () => {
     setIsBalancing(true)
     
-    // Get player objects with ratings
-    const playersWithRating = playerIds.map(id => {
-      const player = PLAYERS.find(p => p.id === id)
-      if (!player) return null
-      
-      // Generate a rating based on position (in real app, fetch from DB)
-      const baseRating = player.position === 'goalkeeper' ? 6 :
-                        player.position === 'defender' ? 7 :
-                        player.position === 'midfielder' ? 8 : 7
-      
-      return { ...player, rating: baseRating }
-    }).filter(Boolean) as PlayerWithRating[]
+    // Get player objects with ratings (only from valid PLAYERS)
+    const playersWithRating = playerIds
+      .map(id => PLAYERS.find(p => p.id === id))
+      .filter((p): p is typeof PLAYERS[number] => p !== undefined)
+    
+    if (playersWithRating.length < 2) {
+      setIsBalancing(false)
+      return
+    }
+    
+    // Generate a rating based on position
+    const withRatings = playersWithRating.map(player => ({
+      ...player,
+      rating: player.position === 'goalkeeper' ? 6 :
+              player.position === 'defender' ? 7 :
+              player.position === 'midfielder' ? 8 : 7
+    }))
     
     // Sort by rating (highest first)
-    playersWithRating.sort((a, b) => b.rating - a.rating)
+    withRatings.sort((a, b) => b.rating - a.rating)
     
     // Snake draft distribution for balance
     const newTeams: PlayerWithRating[][] = Array.from({ length: numTeams }, () => [])
     
-    playersWithRating.forEach((player, index) => {
+    withRatings.forEach((player, index) => {
       const teamIndex = index % numTeams
-      // Snake pattern: 0,1,1,0,0,1,1,0...
       const snakeIndex = Math.floor(index / numTeams)
       const actualTeam = snakeIndex % 2 === 0 ? teamIndex : (numTeams - 1 - teamIndex)
       newTeams[actualTeam].push(player)
@@ -69,6 +75,19 @@ function AutoBalanceContent() {
   const getTeamColor = (index: number) => {
     const colors = ['bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500']
     return colors[index % colors.length]
+  }
+
+  // Prevent SSR issues - don't render until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen pb-20">
+        <Header title="Auto Balance" />
+        <main className="max-w-md mx-auto px-4 py-6">
+          <div className="text-center p-8">Loading...</div>
+        </main>
+        <Navigation activePath="/match-day" />
+      </div>
+    )
   }
 
   if (playerIds.length < 4) {

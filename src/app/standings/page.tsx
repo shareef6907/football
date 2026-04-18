@@ -17,7 +17,7 @@ interface PlayerStats {
   attendance: number
 }
 
-type SortKey = 'points' | 'goals' | 'assists' | 'wins' | 'coins'
+type SortKey = 'points' | 'goals' | 'assists' | 'wins' | 'motm' | 'coins'
 
 export default function StandingsPage() {
   const [sortBy, setSortBy] = useState<SortKey>('points')
@@ -28,41 +28,26 @@ export default function StandingsPage() {
     const loadStats = async () => {
       setLoading(true)
       
-      // Get all matches
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('id')
-        .order('match_date', { ascending: false })
+      // Parallel queries for speed
+      const [matchesRes, statsRes, motmRes, attendanceRes, coinsRes] = await Promise.all([
+        supabase.from('matches').select('id').order('match_date', { ascending: false }),
+        supabase.from('match_stats').select('*'),
+        supabase.from('man_of_the_match_winners').select('player_id, match_id'),
+        supabase.from('attendance').select('player_id, match_id'),
+        supabase.from('coins_ledger').select('player_id, amount'),
+      ])
       
+      const matches = matchesRes.data
       if (!matches || matches.length === 0) {
         setLoading(false)
         return
       }
       
       const matchIds = matches.map(m => m.id)
-      
-      // Get all match stats
-      const { data: stats } = await supabase
-        .from('match_stats')
-        .select('*')
-        .in('match_id', matchIds)
-      
-      // Get all MOTM wins
-      const { data: motmWins } = await supabase
-        .from('man_of_the_match_winners')
-        .select('player_id')
-        .in('match_id', matchIds)
-      
-      // Get attendance
-      const { data: attendance } = await supabase
-        .from('attendance')
-        .select('player_id, match_id')
-        .in('match_id', matchIds)
-      
-      // Get coins balances
-      const { data: coins } = await supabase
-        .from('coins_ledger')
-        .select('player_id, amount')
+      const stats = statsRes.data || []
+      const motmWins = motmRes.data || []
+      const attendance = attendanceRes.data || []
+      const coins = coinsRes.data || []
       
       // Build stats per player
       const statsMap: Record<string, PlayerStats> = {}
@@ -80,8 +65,8 @@ export default function StandingsPage() {
         }
       })
       
-      // Count stats
-      stats?.forEach(s => {
+      // Filter stats to relevant matches and count
+      stats.filter(s => matchIds.includes(s.match_id)).forEach(s => {
         if (statsMap[s.player_id]) {
           statsMap[s.player_id].goals += s.goals || 0
           statsMap[s.player_id].assists += s.assists || 0
@@ -98,25 +83,17 @@ export default function StandingsPage() {
       })
       
       // Count MOTM
-      motmWins?.forEach(m => {
+      motmWins.filter(m => matchIds.includes(m.match_id)).forEach(m => {
         if (statsMap[m.player_id]) {
           statsMap[m.player_id].motm_count += 1
         }
       })
       
       // Count attendance
-      attendance?.forEach(a => {
+      attendance.filter(a => matchIds.includes(a.match_id)).forEach(a => {
         if (statsMap[a.player_id]) {
           statsMap[a.player_id].attendance += 1
         }
-      })
-      
-      // Calculate points using formula
-      Object.values(statsMap).forEach(s => {
-        s.goals = s.goals
-        s.assists = s.assists
-        s.wins = s.wins
-        // Points = goals*5 + assists*3 + wins*10 + clean_sheet*4 + gk_win_bonus*5 + attendance*2 + motm*5
       })
       
       setPlayerStats(statsMap)
@@ -126,22 +103,22 @@ export default function StandingsPage() {
     loadStats()
   }, [])
 
-  // Add points calculation
+  // Points calculation using EXACT formula
   const getPoints = (stats: PlayerStats) => {
     return (
       stats.goals * POINTS_SYSTEM.goal +
       stats.assists * POINTS_SYSTEM.assist +
       stats.wins * POINTS_SYSTEM.matchWin +
-      stats.clean_sheets * 4 +  // Clean sheet points
+      stats.clean_sheets * POINTS_SYSTEM.cleanSheet +
       stats.gk_bonuses * POINTS_SYSTEM.goalkeeperWinBonus +
       stats.attendance * POINTS_SYSTEM.attendance +
       stats.motm_count * POINTS_SYSTEM.manOfTheMatch
     )
   }
 
-  // Add coins calculation
+  // Coins = points
   const getCoins = (stats: PlayerStats) => {
-    return getPoints(stats) // Coins = points
+    return getPoints(stats)
   }
 
   const sorted = PLAYERS.map(p => ({
@@ -156,6 +133,7 @@ export default function StandingsPage() {
       case 'goals': return bStats.goals - aStats.goals
       case 'assists': return bStats.assists - aStats.assists
       case 'wins': return bStats.wins - aStats.wins
+      case 'motm': return bStats.motm_count - aStats.motm_count
       case 'coins': return getCoins(bStats) - getCoins(aStats)
       default: return 0
     }
@@ -176,16 +154,17 @@ export default function StandingsPage() {
         {/* Sort Options */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
           {([
-            { key: 'points', label: 'Points' },
-            { key: 'goals', label: 'Goals' },
-            { key: 'assists', label: 'Assists' },
-            { key: 'wins', label: 'Wins' },
-            { key: 'coins', label: 'Coins' },
+            { key: 'points', label: '🏆 Points' },
+            { key: 'goals', label: '⚽ Goals' },
+            { key: 'assists', label: '🎯 Assists' },
+            { key: 'wins', label: '🎉 Wins' },
+            { key: 'motm', label: '⭐ Man of Match' },
+            { key: 'coins', label: '🪙 Coins' },
           ] as const).map(item => (
             <button
               key={item.key}
               onClick={() => setSortBy(item.key)}
-              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
+              className={`px-3 py-2 rounded-full text-xs whitespace-nowrap transition-colors ${
                 sortBy === item.key 
                   ? 'bg-green-500 text-black' 
                   : 'glass border border-white/10'
@@ -219,7 +198,7 @@ export default function StandingsPage() {
                   </div>
                   
                   <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-3"
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mr-3"
                     style={{ backgroundColor: player.color }}
                   >
                     {player.name.slice(0, 2).toUpperCase()}
@@ -228,7 +207,7 @@ export default function StandingsPage() {
                   <div className="flex-1">
                     <div className="font-bold">{player.name}</div>
                     <div className="text-xs text-gray-400">
-                      {stats.goals}G • {stats.assists}A • {stats.wins}W • {stats.motm_count}MOTM
+                      {stats.goals}G • {stats.assists}A • {stats.wins}W • {stats.motm_count > 0 ? `⭐ ${stats.motm_count}` : ''}
                     </div>
                   </div>
                   
