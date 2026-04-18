@@ -119,15 +119,21 @@ export default function PlayersPage() {
       <Header title="Players" />
       
       <main className="max-w-md mx-auto px-4 py-6">
-        <div className="grid grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-2 gap-4">
           {PLAYERS.map((player, index) => (
             <PlayerCard key={player.id} player={player} index={index} />
           ))}
         </div>
 
-        <div className="mt-4 text-center text-sm text-gray-500">
-          Tap a card to view full profile
-        </div>
+          <div className="mt-4 text-center text-sm text-gray-500">
+            Tap a card to view full profile
+          </div>
+        </motion.div>
       </main>
 
       <Navigation activePath="/players" />
