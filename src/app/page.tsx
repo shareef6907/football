@@ -214,19 +214,31 @@ export default function HomePage() {
             transition={{ delay: 0.1 }}
             className="glass rounded-2xl p-4 border border-blue-500/30"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <Calendar className="w-5 h-5 text-blue-400" />
-              <span className="text-blue-400 font-semibold">Previous Match</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-lg font-bold">
-                  {new Date(motmMatch.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </div>
-                <div className="text-sm text-gray-400">Thursday 8:00 PM</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-blue-400" />
+                <span className="text-blue-400 font-semibold">Last Game - {new Date(motmMatch.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
               </div>
-              <Link href="/standings" className="text-green-400 text-sm hover:underline">
-                View Standings →
+            </div>
+            
+            {/* MOTM Winner */}
+            <div className="mb-3">
+              {motmWinners.length > 0 ? (
+                <div className="text-sm text-gray-400">
+                  <span className="text-yellow-400 font-bold">★ MOTM:</span> {motmWinners.map(p => p.name).join(' & ')}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">No votes yet</div>
+              )}
+            </div>
+            
+            {/* Action Links */}
+            <div className="flex gap-4 text-sm">
+              <Link href="/match-day/submit" className="text-green-400 hover:underline">
+                Submit Stats →
+              </Link>
+              <Link href="/man-of-the-match" className="text-yellow-400 hover:underline">
+                Vote MOTM →
               </Link>
             </div>
           </motion.div>
