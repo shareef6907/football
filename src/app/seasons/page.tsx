@@ -59,16 +59,34 @@ function SeasonsContent() {
     if (!currentSeason) return
 
     const calculateAwards = async () => {
+      // Get all matches
+      const { data: matches } = await supabase.from('matches').select('id')
+      if (!matches) return
+      const matchIds = matches.map(m => m.id)
+      
+      // Get all stats for these matches
       const { data: allStats } = await supabase
         .from('match_stats')
-        .select('player_id, goals, assists, is_winner')
+        .select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet')
+      
+      // Get all MOTM winners
+      const { data: motmWinners } = await supabase
+        .from('man_of_the_match_winners')
+        .select('player_id, match_id')
+      
+      // Get all ratings
+      const { data: allRatings } = await supabase
+        .from('player_ratings')
+        .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating')
       
       if (!allStats) return
       
-      // Golden Boot
+      // Golden Boot - most goals
       const goalsByPlayer: Record<string, number> = {}
       allStats.forEach(s => {
-        goalsByPlayer[s.player_id] = (goalsByPlayer[s.player_id] || 0) + (s.goals || 0)
+        if (matchIds.includes(s.match_id)) {
+          goalsByPlayer[s.player_id] = (goalsByPlayer[s.player_id] || 0) + (s.goals || 0)
+        }
       })
       let maxGoals = 0, goldenBootWinner = ''
       Object.entries(goalsByPlayer).forEach(([pid, goals]) => {
@@ -76,10 +94,12 @@ function SeasonsContent() {
       })
       if (goldenBootWinner) setAwards(prev => ({ ...prev, goldenBoot: { player_id: goldenBootWinner, value: maxGoals } }))
 
-      // Playmaker
+      // Playmaker - most assists
       const assistsByPlayer: Record<string, number> = {}
       allStats.forEach(s => {
-        assistsByPlayer[s.player_id] = (assistsByPlayer[s.player_id] || 0) + (s.assists || 0)
+        if (matchIds.includes(s.match_id)) {
+          assistsByPlayer[s.player_id] = (assistsByPlayer[s.player_id] || 0) + (s.assists || 0)
+        }
       })
       let maxAssists = 0, playmakerWinner = ''
       Object.entries(assistsByPlayer).forEach(([pid, assists]) => {
@@ -87,28 +107,87 @@ function SeasonsContent() {
       })
       if (playmakerWinner) setAwards(prev => ({ ...prev, playmaker: { player_id: playmakerWinner, value: maxAssists } }))
 
-      // Iron Man
-      const winByPlayer: Record<string, number> = {}
-      allStats.filter(s => s.is_winner).forEach(s => {
-        winByPlayer[s.player_id] = (winByPlayer[s.player_id] || 0) + 1
+      // Iron Man - most matches played (attendance)
+      const matchesPlayed: Record<string, number> = {}
+      allStats.forEach(s => {
+        if (matchIds.includes(s.match_id)) {
+          matchesPlayed[s.player_id] = (matchesPlayed[s.player_id] || 0) + 1
+        }
       })
-      let maxWins = 0, ironManWinner = ''
-      Object.entries(winByPlayer).forEach(([pid, wins]) => {
-        if (wins > maxWins) { maxWins = wins; ironManWinner = pid }
+      let maxPlayed = 0, ironManWinner = ''
+      Object.entries(matchesPlayed).forEach(([pid, played]) => {
+        if (played > maxPlayed) { maxPlayed = played; ironManWinner = pid }
       })
-      if (ironManWinner) setAwards(prev => ({ ...prev, ironMan: { player_id: ironManWinner, value: maxWins } }))
+      if (ironManWinner) setAwards(prev => ({ ...prev, ironMan: { player_id: ironManWinner, value: maxPlayed } }))
 
-      // Coin King
-      const { data: coinData } = await supabase.from('coins_ledger').select('player_id, amount')
+      // Coin King - calculated from stats (same as standings/coins page)
       const coinsByPlayer: Record<string, number> = {}
-      coinData?.forEach(c => {
-        coinsByPlayer[c.player_id] = (coinsByPlayer[c.player_id] || 0) + c.amount
+      PLAYERS.forEach(p => coinsByPlayer[p.id] = 0)
+      allStats.forEach(s => {
+        if (matchIds.includes(s.match_id)) {
+          coinsByPlayer[s.player_id] = (coinsByPlayer[s.player_id] || 0) +
+            (s.goals || 0) * 5 +
+            (s.assists || 0) * 3 +
+            (s.is_winner ? 10 : 0) +
+            (s.clean_sheet ? 4 : 0) +
+            (s.played_as_gk && s.clean_sheet ? 5 : 0)
+        }
+      })
+      motmWinners?.forEach(m => {
+        if (matchIds.includes(m.match_id)) {
+          coinsByPlayer[m.player_id] = (coinsByPlayer[m.player_id] || 0) + 3
+        }
       })
       let maxCoins = 0, coinKingWinner = ''
       Object.entries(coinsByPlayer).forEach(([pid, coins]) => {
         if (coins > maxCoins) { maxCoins = coins; coinKingWinner = pid }
       })
       if (coinKingWinner) setAwards(prev => ({ ...prev, coinKing: { player_id: coinKingWinner, value: maxCoins } }))
+
+      // Man of the Season - most MOTM awards
+      const motmByPlayer: Record<string, number> = {}
+      motmWinners?.forEach(m => {
+        if (matchIds.includes(m.match_id)) {
+          motmByPlayer[m.player_id] = (motmByPlayer[m.player_id] || 0) + 1
+        }
+      })
+      let maxMotm = 0, motmWinner = ''
+      Object.entries(motmByPlayer).forEach(([pid, motm]) => {
+        if (motm > maxMotm) { maxMotm = motm; motmWinner = pid }
+      })
+      if (motmWinner) setAwards(prev => ({ ...prev, manOfSeason: { player_id: motmWinner, value: maxMotm } }))
+
+      // Best Defender - highest avg defender rating
+      if (allRatings && allRatings.length > 0) {
+        const defRatings: Record<string, { sum: number, count: number }> = {}
+        allRatings.forEach(r => {
+          if (!defRatings[r.rated_player_id]) defRatings[r.rated_player_id] = { sum: 0, count: 0 }
+          defRatings[r.rated_player_id].sum += r.defender_rating || 0
+          defRatings[r.rated_player_id].count += 1
+        })
+        let maxDefAvg = 0, bestDefWinner = ''
+        Object.entries(defRatings).forEach(([pid, data]) => {
+          const avg = data.sum / data.count
+          if (avg > maxDefAvg) { maxDefAvg = avg; bestDefWinner = pid }
+        })
+        if (bestDefWinner) setAwards(prev => ({ ...prev, bestDefender: { player_id: bestDefWinner, value: Math.round(maxDefAvg * 10) / 10 } }))
+      }
+
+      // Golden Glove - highest avg goalkeeper rating
+      if (allRatings && allRatings.length > 0) {
+        const gkRatings: Record<string, { sum: number, count: number }> = {}
+        allRatings.forEach(r => {
+          if (!gkRatings[r.rated_player_id]) gkRatings[r.rated_player_id] = { sum: 0, count: 0 }
+          gkRatings[r.rated_player_id].sum += r.goalkeeper_rating || 0
+          gkRatings[r.rated_player_id].count += 1
+        })
+        let maxGkAvg = 0, goldenGloveWinner = ''
+        Object.entries(gkRatings).forEach(([pid, data]) => {
+          const avg = data.sum / data.count
+          if (avg > maxGkAvg) { maxGkAvg = avg; goldenGloveWinner = pid }
+        })
+        if (goldenGloveWinner) setAwards(prev => ({ ...prev, goldenGlove: { player_id: goldenGloveWinner, value: Math.round(maxGkAvg * 10) / 10 } }))
+      }
     }
 
     calculateAwards()

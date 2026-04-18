@@ -24,6 +24,7 @@ function CoinsContent() {
   const [balance, setBalance] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [leaderboard, setLeaderboard] = useState<{player_id: string, total: number}[]>([])
+  const [showAllLeaderboard, setShowAllLeaderboard] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -63,25 +64,51 @@ function CoinsContent() {
     fetchTransactions()
   }, [profile])
 
-  // Get leaderboard (public)
+  // Get leaderboard - calculate from match_stats + MOTM (like standings)
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const { data } = await supabase
-        .from('coins_ledger')
-        .select('player_id, amount')
+      // Get all matches
+      const { data: matches } = await supabase.from('matches').select('id')
+      if (!matches) return
+      const matchIds = matches.map(m => m.id)
       
-      if (data) {
-        // Aggregate by player
-        const totals: Record<string, number> = {}
-        data.forEach(t => {
-          totals[t.player_id] = (totals[t.player_id] || 0) + t.amount
-        })
-        const sorted = Object.entries(totals)
-          .map(([player_id, total]) => ({ player_id, total }))
-          .sort((a, b) => b.total - a.total)
-          .slice(0, 10)
-        setLeaderboard(sorted)
-      }
+      // Get all stats for these matches
+      const { data: allStats } = await supabase.from('match_stats').select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet')
+      
+      // Get all MOTM winners
+      const { data: motmWinners } = await supabase.from('man_of_the_match_winners').select('player_id, match_id')
+      
+      // Calculate coins for each player
+      const coinsMap: Record<string, number> = {}
+      
+      // Initialize all players with 0
+      PLAYERS.forEach(p => coinsMap[p.id] = 0)
+      
+      // Add points from match stats
+      allStats?.forEach(s => {
+        if (matchIds.includes(s.match_id)) {
+          coinsMap[s.player_id] = (coinsMap[s.player_id] || 0) +
+            (s.goals || 0) * 5 +
+            (s.assists || 0) * 3 +
+            (s.is_winner ? 10 : 0) +
+            (s.clean_sheet ? 4 : 0) +
+            (s.played_as_gk && s.clean_sheet ? 5 : 0)
+        }
+      })
+      
+      // Add MOTM points
+      motmWinners?.forEach(m => {
+        if (matchIds.includes(m.match_id)) {
+          coinsMap[m.player_id] = (coinsMap[m.player_id] || 0) + 3
+        }
+      })
+      
+      // Create sorted leaderboard
+      const sorted = Object.entries(coinsMap)
+        .map(([player_id, total]) => ({ player_id, total }))
+        .sort((a, b) => b.total - a.total)
+      
+      setLeaderboard(sorted)
     }
     fetchLeaderboard()
   }, [])
@@ -144,22 +171,24 @@ function CoinsContent() {
           Coin Leaderboard
         </h2>
         
-        {leaderboard.map((entry, index) => {
+        {(showAllLeaderboard ? leaderboard : leaderboard.slice(0, 7)).map((entry, index) => {
           const p = PLAYERS.find(pl => pl.id === entry.player_id)
           if (!p) return null
+          
+          const displayIndex = showAllLeaderboard ? index : leaderboard.findIndex(e => e.player_id === entry.player_id)
           
           return (
             <motion.div
               key={entry.player_id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: (showAllLeaderboard ? index : displayIndex) * 0.05 }}
               className={`glass rounded-xl p-3 border ${
-                index === 0 ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-white/10'
+                displayIndex === 0 ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-white/10'
               } flex items-center gap-3`}
             >
               <div className="text-lg font-bold w-8">
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                {displayIndex === 0 ? '🥇' : displayIndex === 1 ? '🥈' : displayIndex === 2 ? '🥉' : displayIndex + 1}
               </div>
               <div 
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
@@ -172,6 +201,15 @@ function CoinsContent() {
             </motion.div>
           )
         })}
+        
+        {leaderboard.length > 7 && !showAllLeaderboard && (
+          <button
+            onClick={() => setShowAllLeaderboard(true)}
+            className="w-full py-2 text-center text-gray-400 hover:text-white text-sm"
+          >
+            View More ({leaderboard.length - 7} more)
+          </button>
+        )}
       </div>
 
       {/* Shop Preview */}
