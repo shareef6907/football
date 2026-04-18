@@ -49,19 +49,23 @@ function RatingsContent() {
     // Check if already submitted this month
     if (profile?.player_id) {
       const checkRating = async () => {
+        const now = new Date()
+        const month = now.getMonth() + 1
+        const year = now.getFullYear()
+        
         const { data } = await supabase
           .from('player_ratings')
           .select('id')
           .eq('rater_id', profile.player_id)
-          .eq('rating_month', currentMonth)
-          .eq('rating_year', currentYear)
+          .eq('rating_month', month)
+          .eq('rating_year', year)
           .single()
         
         if (data) setSubmitted(true)
       }
       checkRating()
     }
-  }, [user, profile, authLoading, router, currentMonth, currentYear])
+  }, [user, profile, authLoading, router])
 
   const updateRating = (playerId: string, position: string, value: number) => {
     setRatings(prev => ({

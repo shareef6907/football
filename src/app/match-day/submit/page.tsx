@@ -144,12 +144,22 @@ function StatsSubmissionContent() {
     checkWindow()
   }, [])
 
-  // Check submission when matchId is ready
+  // Check submission when matchId is ready - also get existing stats to show
   useEffect(() => {
     if (!matchId || !profile?.player_id) return
     const checkSubmission = async () => {
-      const { data } = await supabase.from('match_stats').select('id').eq('match_id', matchId).eq('player_id', profile.player_id).single()
-      if (data) setAlreadySubmitted(true)
+      const { data } = await supabase.from('match_stats').select('*').eq('match_id', matchId).eq('player_id', profile.player_id).single()
+      if (data) {
+        setAlreadySubmitted(true)
+        // Pre-fill form with existing stats to show what was submitted
+        setForm({
+          goals: data.goals || 0,
+          assists: data.assists || 0,
+          isWinner: data.is_winner || false,
+          playedAsGK: data.played_as_gk || false,
+          cleanSheet: data.clean_sheet || false,
+        })
+      }
     }
     checkSubmission()
   }, [matchId, profile])
@@ -210,7 +220,13 @@ function StatsSubmissionContent() {
       <div className="glass rounded-2xl p-8 border border-green-500/30">
         <Check className="w-16 h-16 mx-auto mb-4 text-green-400" />
         <h2 className="text-2xl font-bold mb-2">Stats Submitted!</h2>
-        <p className="text-gray-400">You've already submitted for this match</p>
+        <p className="text-gray-400 mb-4">You've already submitted for this match</p>
+        <div className="bg-white/10 rounded-xl p-4 text-center">
+          <p className="text-sm text-gray-400">Your stats:</p>
+          <p className="text-xl font-bold text-green-400">
+            {form.goals} Goals, {form.assists} Assists{form.isWinner ? ', Won' : ''}
+          </p>
+        </div>
       </div>
     )
   }
