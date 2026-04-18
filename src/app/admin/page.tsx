@@ -40,10 +40,19 @@ function AdminContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [activeTab, setActiveTab] = useState<'ratings' | 'stats' | 'reset'>('ratings')
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  
+  // Check localStorage on mount
+  useEffect(() => {
+    const savedAuth = localStorage.getItem('admin_auth')
+    if (savedAuth === 'true') {
+      setIsAuthenticated(true)
+    }
+  }, [])
   
   // Ratings data
   const [playerRatings, setPlayerRatings] = useState<PlayerRating[]>([])
@@ -130,6 +139,9 @@ function AdminContent() {
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       setIsAuthenticated(true)
       setLoginError('')
+      if (rememberMe) {
+        localStorage.setItem('admin_auth', 'true')
+      }
     } else {
       setLoginError('Invalid username or password')
     }
@@ -268,20 +280,58 @@ function AdminContent() {
   const handleSaveStats = async () => {
     if (!editingStats || !selectedMatch) return
     setSaving(true)
+    setSaveMessage('')
+    
+    // Find the current stats entry being edited
+    const currentStats = matchStats.find(s => s.player_id === editingStats)
+    const existingId = currentStats?.id
+    
     try {
-      await supabase.from('match_stats').update({
-        goals: statsForm.goals,
-        assists: statsForm.assists,
-        is_winner: statsForm.isWinner,
-        played_as_gk: statsForm.playedAsGK,
-        clean_sheet: statsForm.cleanSheet,
-      }).eq('player_id', editingStats).eq('match_id', selectedMatch)
+      if (existingId) {
+        // UPDATE existing row
+        const { error } = await supabase.from('match_stats').update({
+          goals: statsForm.goals,
+          assists: statsForm.assists,
+          is_winner: statsForm.isWinner,
+          played_as_gk: statsForm.playedAsGK,
+          clean_sheet: statsForm.cleanSheet,
+        }).eq('id', existingId)
+        
+        if (error) throw error
+        setSaveMessage('Stats saved!')
+      } else {
+        // INSERT new row
+        const { error } = await supabase.from('match_stats').insert({
+          match_id: selectedMatch,
+          player_id: editingStats,
+          goals: statsForm.goals,
+          assists: statsForm.assists,
+          is_winner: statsForm.isWinner,
+          played_as_gk: statsForm.playedAsGK,
+          clean_sheet: statsForm.cleanSheet,
+        })
+        
+        if (error) throw error
+        setSaveMessage('Stats saved!')
+      }
       
-      setSaveMessage('Stats updated!')
       setEditingStats(null)
-      // Reload
+      // Reload stats
       const { data } = await supabase.from('match_stats').select('*').eq('match_id', selectedMatch)
-      if (data) setMatchStats(data)
+      if (data) {
+        const statsMap = new Map(data.map(s => [s.player_id, s]))
+        const fullStats = PLAYERS.map(player => ({
+          id: statsMap.get(player.id)?.id || '',
+          match_id: selectedMatch,
+          player_id: player.id,
+          goals: statsMap.get(player.id)?.goals || 0,
+          assists: statsMap.get(player.id)?.assists || 0,
+          is_winner: statsMap.get(player.id)?.is_winner || false,
+          played_as_gk: statsMap.get(player.id)?.played_as_gk || false,
+          clean_sheet: statsMap.get(player.id)?.clean_sheet || false,
+        }))
+        setMatchStats(fullStats)
+      }
     } catch (err: any) {
       setSaveMessage('Error: ' + err.message)
     } finally {
@@ -300,6 +350,10 @@ function AdminContent() {
             <div className="space-y-4">
               <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10" placeholder="Username" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10" placeholder="Password" />
+              <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4" />
+                Remember me
+              </label>
               {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
               <button onClick={handleLogin} className="w-full py-3 rounded-xl bg-green-500 text-black font-bold">Login</button>
             </div>
