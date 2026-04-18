@@ -79,22 +79,34 @@ function MatchDayContent() {
     
     setIsCreating(true)
     
-    // Create match
-    const { data: match, error: matchError } = await supabase
+    // Check if match already exists for this date
+    const { data: existingMatch } = await supabase
       .from('matches')
-      .insert({
-        match_date: setup.date,
-        team_size: setup.teamSize,
-        num_teams: setup.numTeams,
-        created_by: profile?.player_id,
-      })
-      .select()
+      .select('id')
+      .eq('match_date', setup.date)
       .single()
     
-    if (matchError) {
-      alert(matchError.message)
-      setIsCreating(false)
-      return
+    let matchId = existingMatch?.id
+    
+    if (!matchId) {
+      // Create match only if it doesn't exist
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          match_date: setup.date,
+          team_size: setup.teamSize,
+          num_teams: setup.numTeams,
+          created_by: profile?.player_id,
+        })
+        .select()
+        .single()
+      
+      if (matchError) {
+        alert(matchError.message)
+        setIsCreating(false)
+        return
+      }
+      matchId = match.id
     }
     
     // Auto-add self if not attending
@@ -108,14 +120,14 @@ function MatchDayContent() {
     // Mark attendance for all attending players
     const attendanceRecords = setup.attending.map(playerId => ({
       player_id: playerId,
-      match_id: match.id,
+      match_id: matchId,
       attended: true,
     }))
     
     await supabase.from('attendance').insert(attendanceRecords)
     
     setIsCreating(false)
-    router.push(`/match-day/submit?match=${match.id}`)
+    router.push(`/match-day/submit?match=${matchId}`)
   }
 
   const handleLiveDraft = async () => {
@@ -131,28 +143,42 @@ function MatchDayContent() {
     
     setIsCreating(true)
     
-    // Create match first
-    const { data: match, error: matchError } = await supabase
+    // Check if match already exists for this date
+    const { data: existingMatch } = await supabase
       .from('matches')
-      .insert({
-        match_date: setup.date,
-        team_size: setup.teamSize,
-        num_teams: setup.numTeams,
-        created_by: profile?.player_id,
-      })
-      .select()
+      .select('id')
+      .eq('match_date', setup.date)
       .single()
     
-    if (matchError) {
-      alert(matchError.message)
-      setIsCreating(false)
-      return
+    let matchId = existingMatch?.id
+    let match = null
+    
+    if (!matchId) {
+      // Create match only if it doesn't exist
+      const { data: matchData, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          match_date: setup.date,
+          team_size: setup.teamSize,
+          num_teams: setup.numTeams,
+          created_by: profile?.player_id,
+        })
+        .select()
+        .single()
+      
+      if (matchError) {
+        alert(matchError.message)
+        setIsCreating(false)
+        return
+      }
+      matchId = matchData.id
+      match = matchData
     }
     
     // Mark attendance
     const attendanceRecords = setup.attending.map(playerId => ({
       player_id: playerId,
-      match_id: match.id,
+      match_id: matchId,
       attended: true,
     }))
     await supabase.from('attendance').insert(attendanceRecords)
@@ -161,7 +187,7 @@ function MatchDayContent() {
     const { data: draft, error: draftError } = await supabase
       .from('draft_sessions')
       .insert({
-        match_id: match.id,
+        match_id: matchId,
         num_teams: setup.numTeams,
         team_size: setup.teamSize,
         status: 'setup',
