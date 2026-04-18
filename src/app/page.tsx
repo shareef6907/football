@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { Clock, Trophy, Target, Calendar, Users, ArrowRight, Star, Share2, Download, X } from 'lucide-react'
+import { Clock, Trophy, Target, Calendar, Users, ArrowRight, Star, Share2, Download, X, Clipboard } from 'lucide-react'
 import { Navigation, Header } from '../components/Navigation'
 import { supabase } from '@/lib/supabase/client'
 import { PLAYERS } from '@/lib/constants'
+import { useAuth } from '@/context/AuthContext'
 
 // Next game date calculator - uses settings from Supabase/localStorage
 function getNextGameDate(gameDay: number, gameTime: string) {
@@ -20,6 +21,7 @@ function getNextGameDate(gameDay: number, gameTime: string) {
 }
 
 export default function HomePage() {
+  const { user, profile, loading: authLoading } = useAuth()
   const [countdown, setCountdown] = useState('')
   const [nextGame, setNextGame] = useState(() => getNextGameDate(4, '20:00'))
   const [gameTimeDisplay, setGameTimeDisplay] = useState('8:00 PM')
@@ -78,7 +80,7 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [dismissedPwa])
 
-  // Load Man of the Match from database
+  // Load Man of the Match from database - count actual votes
   useEffect(() => {
     const loadMotm = async () => {
       setMotmLoading(true)
@@ -98,16 +100,22 @@ export default function HomePage() {
         
         setMotmMatch({ id: matches.id, date: matches.match_date })
         
-        // Get winners for this match
-        const { data: winnerRecords } = await supabase
-          .from('man_of_the_match_winners')
-          .select('player_id, vote_count')
+        // Get ALL votes for this match and count them
+        const { data: allVotes } = await supabase
+          .from('man_of_the_match_votes')
+          .select('voted_for_player_id')
           .eq('match_id', matches.id)
-          .order('vote_count', { ascending: false })
         
-        if (winnerRecords && winnerRecords.length > 0) {
-          const maxVotes = winnerRecords[0].vote_count
-          const winningIds = winnerRecords.filter(w => w.vote_count === maxVotes).map(w => w.player_id)
+        if (allVotes && allVotes.length > 0) {
+          // Count votes per player
+          const voteCounts: Record<string, number> = {}
+          allVotes.forEach(v => {
+            voteCounts[v.voted_for_player_id] = (voteCounts[v.voted_for_player_id] || 0) + 1
+          })
+          
+          // Find max votes
+          const maxVotes = Math.max(...Object.values(voteCounts))
+          const winningIds = Object.entries(voteCounts).filter(([_, count]) => count === maxVotes).map(([id]) => id)
           const winners = PLAYERS.filter(p => winningIds.includes(p.id))
           setMotmWinners(winners)
         }
@@ -210,16 +218,29 @@ export default function HomePage() {
             </motion.div>
           </Link>
           
-          <Link href="/players">
-            <motion.div 
-              whileTap={{ scale: 0.95 }}
-              className="glass rounded-2xl p-4 border border-white/10 card-hover"
-            >
-              <Users className="w-8 h-8 text-purple-400 mb-2" />
-              <div className="font-semibold">Players</div>
-              <div className="text-sm text-gray-400">View cards</div>
-            </motion.div>
-          </Link>
+          {user && profile?.player_id ? (
+            <Link href="/match-day/submit">
+              <motion.div 
+                whileTap={{ scale: 0.95 }}
+                className="glass rounded-2xl p-4 border border-white/10 card-hover"
+              >
+                <Clipboard className="w-8 h-8 text-green-400 mb-2" />
+                <div className="font-semibold">Submit Stats</div>
+                <div className="text-sm text-gray-400">After the game</div>
+              </motion.div>
+            </Link>
+          ) : (
+            <Link href="/players">
+              <motion.div 
+                whileTap={{ scale: 0.95 }}
+                className="glass rounded-2xl p-4 border border-white/10 card-hover"
+              >
+                <Users className="w-8 h-8 text-purple-400 mb-2" />
+                <div className="font-semibold">Players</div>
+                <div className="text-sm text-gray-400">View cards</div>
+              </motion.div>
+            </Link>
+          )}
         </div>
 
         {/* Man of the Match Banner */}

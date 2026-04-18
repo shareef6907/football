@@ -96,17 +96,39 @@ function AdminContent() {
     loadMatches()
   }, [isAuthenticated])
 
-  // Load match stats when match selected
+  // Load match stats when match selected - get ALL attending players
   useEffect(() => {
     if (!selectedMatch) return
     
     const loadStats = async () => {
-      const { data } = await supabase
+      // Get attendance (all players who attended)
+      const { data: attendance } = await supabase
+        .from('attendance')
+        .select('player_id')
+        .eq('match_id', selectedMatch)
+      
+      // Get existing stats
+      const { data: existingStats } = await supabase
         .from('match_stats')
         .select('*')
         .eq('match_id', selectedMatch)
       
-      if (data) setMatchStats(data)
+      // Build full list: if player has stats, use it; else use default
+      const allPlayers = attendance?.map(a => a.player_id) || []
+      const statsMap = new Map((existingStats || []).map(s => [s.player_id, s]))
+      
+      const fullStats = allPlayers.map(playerId => ({
+        id: statsMap.get(playerId)?.id || '',
+        match_id: selectedMatch,
+        player_id: playerId,
+        goals: statsMap.get(playerId)?.goals || 0,
+        assists: statsMap.get(playerId)?.assists || 0,
+        is_winner: statsMap.get(playerId)?.is_winner || false,
+        played_as_gk: statsMap.get(playerId)?.played_as_gk || false,
+        clean_sheet: statsMap.get(playerId)?.clean_sheet || false,
+      }))
+      
+      setMatchStats(fullStats)
     }
     loadStats()
   }, [selectedMatch])
@@ -362,7 +384,7 @@ function AdminContent() {
             <div className="space-y-2">
               <h3 className="font-bold text-gray-400">Player Stats</h3>
               {matchStats.length === 0 ? (
-                <p className="text-center text-gray-500 p-4">No stats for this match</p>
+                <p className="text-center text-gray-500 p-4">No attendees for this match</p>
               ) : (
                 matchStats.map(stats => {
                   const player = getPlayerById(stats.player_id)
