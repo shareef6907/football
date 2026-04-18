@@ -48,27 +48,25 @@ function AutoBalanceContent() {
       return
     }
     
-    // Try to get latest ratings from database
-    const now = new Date()
-    const ratingMonth = now.getMonth() + 1
-    const ratingYear = now.getFullYear()
-    
+    // Try to get latest ratings from database (any month/year, order by most recent)
     const { data: dbRatings } = await supabase
       .from('player_ratings')
-      .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating')
-      .eq('rating_month', ratingMonth)
-      .eq('rating_year', ratingYear)
+      .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating, rating_year, rating_month')
+      .order('rating_year', { ascending: false })
+      .order('rating_month', { ascending: false })
     
-    const ratingsMap = new Map()
+    // Get latest rating per player (first occurrence of each player)
+    const latestRatingsMap = new Map()
     dbRatings?.forEach(r => {
-      // Calculate average rating for this player
-      const avg = (r.forward_rating + r.midfielder_rating + r.defender_rating + r.goalkeeper_rating) / 4
-      ratingsMap.set(r.rated_player_id, avg)
+      if (!latestRatingsMap.has(r.rated_player_id)) {
+        const avg = (r.forward_rating + r.midfielder_rating + r.defender_rating + r.goalkeeper_rating) / 4
+        latestRatingsMap.set(r.rated_player_id, avg)
+      }
     })
     
     // Get players with ratings (from DB or default based on position)
     const withRatings = playersWithRating.map(player => {
-      const dbRating = ratingsMap.get(player.id)
+      const dbRating = latestRatingsMap.get(player.id)
       const defaultRating = player.position === 'goalkeeper' ? 6 :
                            player.position === 'defender' ? 7 :
                            player.position === 'midfielder' ? 8 : 7
