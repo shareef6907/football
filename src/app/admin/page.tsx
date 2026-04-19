@@ -91,76 +91,53 @@ function AdminContent() {
     }
     loadRatings()
     
-    // Load only PAST matches (before or on last Thursday)
+    // Load only PAST Thursdays - generate dates even if no match exists
     const loadMatches = async () => {
-      // Calculate last Thursday
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const dayOfWeek = today.getDay()
-      // Days since last Thursday
+      
+      // Get last Thursday (past) - never include future
       const daysSinceThursday = (dayOfWeek + 6) % 7
       let lastThursday = new Date(today)
       lastThursday.setDate(today.getDate() - daysSinceThursday)
-      
       const cutoffDate = lastThursday.toISOString().split('T')[0]
-      console.log('Loading matches up to:', cutoffDate)
       
-      // First load existing matches up to last Thursday
+      // Generate last 12 Thursdays (about 3 months back)
+      const thursdayDates: string[] = []
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(lastThursday)
+        d.setDate(lastThursday.getDate() - (i * 7))
+        thursdayDates.push(d.toISOString().split('T')[0])
+      }
+      
+      // Load existing matches from DB
       const { data } = await supabase
         .from('matches')
         .select('*')
         .lte('match_date', cutoffDate)
         .order('match_date', { ascending: false })
-        .limit(20)
       
-      // Also check if there's a NEXT Thursday game (for new stats entry)
-      let nextThursdayMatch = null
-      const daysUntilNextThursday = (4 - dayOfWeek + 7) % 7 || 7
-      let nextThursday = new Date(today)
-      nextThursday.setDate(today.getDate() + daysUntilNextThursday)
+      // Build match list - include all Thursdays even if no match record
+      const matchList: { id: string; match_date: string }[] = []
       
-      // Check if we're past Thursday 8pm - can create next game stats
-      const hour = now.getHours()
-      const canCreateNext = dayOfWeek === 4 && hour >= 20 // Thursday after 8pm
-      
-      if (canCreateNext) {
-        const nextDate = nextThursday.toISOString().split('T')[0]
-        // Check if match exists for next Thursday
-        const { data: nextMatch } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('match_date', nextDate)
-          .single()
-        
-        if (nextMatch) {
-          nextThursdayMatch = nextMatch
-        } else {
-          // Create a placeholder match for next Thursday
-          const { data: newMatch } = await supabase
-            .from('matches')
-            .insert({
-              match_date: nextDate,
-              team_size: 7,
-              num_teams: 2,
-            })
-            .select()
-            .single()
-          if (newMatch) nextThursdayMatch = newMatch
+      // Add existing matches first
+      if (data) {
+        for (const m of data) {
+          matchList.push({ id: m.id, match_date: m.match_date })
+        }
+      }
+      // Add missing Thursdays as placeholder entries
+      for (const date of thursdayDates) {
+        if (!matchList.some(m => m.match_date === date)) {
+          matchList.push({ id: `new_${date}`, match_date: date })
         }
       }
       
-      // Combine past matches with next Thursday (if applicable)
-      const allMatches = nextThursdayMatch 
-        ? [nextThursdayMatch, ...(data || [])]
-        : (data || [])
-      
-      if (allMatches.length > 0) {
-        setMatches(allMatches)
-        // Select the most recent (first in sorted list)
-        setSelectedMatch(allMatches[0].id)
-      } else {
-        setMatches([])
-        setSelectedMatch(null)
+      setMatches(matchList)
+      // Default to most recent Thursday (index 0)
+      if (matchList.length > 0) {
+        setSelectedMatch(matchList[0].id)
       }
     }
     loadMatches()
@@ -352,6 +329,37 @@ function AdminContent() {
     setSaving(true)
     setSaveMessage('')
     
+    // Handle new match creation if needed
+    let actualMatchId = selectedMatch
+    
+    if (selectedMatch.startsWith('new_')) {
+      // Need to create the match first
+      const matchDate = selectedMatch.replace('new_', '')
+      const { data: newMatch, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          match_date: matchDate,
+          team_size: 7,
+          num_teams: 2,
+        })
+        .select()
+        .single()
+      
+      if (matchError) throw matchError
+      actualMatchId = newMatch.id
+      
+      // Update the match list with real ID (replace in place)
+      setMatches(prev => {
+        const updated = [...prev]
+        const idx = updated.findIndex(m => m.id === selectedMatch)
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], id: newMatch.id }
+        }
+        return updated
+      })
+      setSelectedMatch(newMatch.id)
+    }
+    
     // Find the current stats entry being edited
     const currentStats = matchStats.find(s => s.player_id === editingStats)
     const existingId = currentStats?.id
@@ -372,7 +380,7 @@ function AdminContent() {
       } else {
         // INSERT new row
         const { error } = await supabase.from('match_stats').insert({
-          match_id: selectedMatch,
+          match_id: actualMatchId,
           player_id: editingStats,
           goals: statsForm.goals,
           assists: statsForm.assists,
