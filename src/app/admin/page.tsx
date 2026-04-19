@@ -91,17 +91,32 @@ function AdminContent() {
     }
     loadRatings()
     
-    // Load matches
+    // Load only PAST matches (before or on last Thursday)
     const loadMatches = async () => {
+      // Calculate last Thursday
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const dayOfWeek = today.getDay()
+      // Days since last Thursday
+      const daysSinceThursday = (dayOfWeek + 6) % 7
+      let lastThursday = new Date(today)
+      lastThursday.setDate(today.getDate() - daysSinceThursday)
+      
+      const cutoffDate = lastThursday.toISOString().split('T')[0]
+      
       const { data } = await supabase
         .from('matches')
         .select('*')
+        .lte('match_date', cutoffDate)
         .order('match_date', { ascending: false })
         .limit(20)
       
-      if (data) {
+      if (data && data.length > 0) {
         setMatches(data)
-        if (data.length > 0) setSelectedMatch(data[0].id)
+        setSelectedMatch(data[0].id)
+      } else {
+        setMatches([])
+        setSelectedMatch(null)
       }
     }
     loadMatches()
@@ -521,7 +536,7 @@ function AdminContent() {
                             </div>
                             <div>
                               <div className="font-bold">{player.name}</div>
-                              <div className="text-xs text-gray-400">{stats.goals}G {stats.assists}A • {stats.is_winner ? '🏆' : '❌'} • {stats.played_as_gk ? '🧤' : ''} • {stats.clean_sheet ? '🛡️' : ''}</div>
+                              <div className="text-xs text-gray-400">{stats.goals}G {stats.assists}A • <span className={stats.is_winner ? 'text-green-400' : 'text-gray-500'}>{stats.is_winner ? 'W' : 'L'}</span> • {stats.played_as_gk ? '🧤' : ''} • {stats.clean_sheet ? '🛡️' : ''}</div>
                             </div>
                           </div>
                           <button onClick={() => startEditStats(stats)} className="p-2 rounded-lg bg-white/10"><Edit2 className="w-4 h-4" /></button>
