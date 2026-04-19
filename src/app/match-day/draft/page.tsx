@@ -332,8 +332,11 @@ function DraftContent() {
   }
 
   // ============== REALTIME SUBSCRIPTION ==============
+  // ============== REALTIME SUBSCRIPTION ==============
   useEffect(() => {
     if (!sessionId) return
+    
+    console.log('Setting up realtime for session:', sessionId)
     
     const channel = supabase
       .channel(`draft:${sessionId}`)
@@ -343,9 +346,29 @@ function DraftContent() {
         table: 'draft_sessions',
         filter: `id=eq.${sessionId}`,
       }, (payload) => {
+        console.log('draft_sessions change:', payload)
         if (payload.eventType === 'UPDATE') {
           setDraftSession(prev => prev ? { ...prev, ...payload.new } : null)
         }
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'draft_captains',
+        filter: `draft_session_id=eq.${sessionId}`,
+      }, (payload) => {
+        console.log('draft_captains change:', payload)
+        // Reload captains when they change
+        supabase
+          .from('draft_captains')
+          .select('*')
+          .eq('draft_session_id', sessionId)
+          .then(({ data }) => {
+            if (data) {
+              setCaptains(data)
+              setSelectedCaptainIds(data.map(c => c.player_id))
+            }
+          })
       })
       .on('postgres_changes', {
         event: 'INSERT',
@@ -353,14 +376,25 @@ function DraftContent() {
         table: 'draft_picks',
         filter: `draft_session_id=eq.${sessionId}`,
       }, (payload) => {
-        loadDraftSession()
+        console.log('New pick:', payload)
+        // Add pick to local state immediately
+        const newPick = payload.new as DraftPick
+        setPicks(prev => [...prev, newPick])
+        // Remove picked player from available
+        setAvailablePlayerIds(prev => prev.filter(id => id !== newPick.picked_player_id))
+        // Also update draft session turn
+        setDraftSession(prev => prev ? {
+          ...prev,
+          current_pick_number: prev.current_pick_number + 1,
+        } : null)
       })
       .subscribe()
     
     return () => {
+      console.log('Cleaning up realtime channel')
       supabase.removeChannel(channel)
     }
-  }, [sessionId, loadDraftSession])
+  }, [sessionId])
 
   // ============== HELPERS ==============
   const getTeamPicks = (teamNumber: number) => {
