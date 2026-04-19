@@ -236,9 +236,15 @@ function DraftContent() {
   const handleAutoPick = async () => {
     if (!draftSession || !canPick || availablePlayerIds.length === 0) return
     
-    // Get highest rated available player
-    // For now, just pick the first available
-    const pickPlayerId = availablePlayerIds[0]
+    // Get available players excluding captains
+    const availableForPick = availablePlayerIds.filter(
+      id => !captains.some(c => c.player_id === id)
+    )
+    
+    if (availableForPick.length === 0) return
+    
+    // Pick the first available (could be smarter with ratings)
+    const pickPlayerId = availableForPick[0]
     if (pickPlayerId) {
       await makePick(pickPlayerId, true)
     }
@@ -526,34 +532,36 @@ function SetupPhase({
         Share Draft Link
       </button>
 
-      {/* Selected Captains Display */}
+      {/* Selected Captains Display - Prominent at Top */}
       {hasCaptains && (
-        <div className="glass rounded-xl p-4 border border-yellow-500/30">
-          <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
-            <Crown className="w-4 h-4" />
-            Selected Captains ({captains.length}/{captainsNeeded})
+        <div className="rounded-xl p-4 border-2" style={{ borderColor: TEAM_COLORS[0], backgroundColor: '#111' }}>
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <Crown className="w-4 h-4 text-yellow-400" />
+            Selected Captains
           </h3>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {captains.map((c) => {
               const player = getPlayerById(c.player_id)
+              const teamColor = TEAM_COLORS[c.team_number - 1]
               return player ? (
                 <div
                   key={c.player_id}
-                  className="flex items-center gap-2 p-2 rounded-lg"
+                  className="flex items-center gap-2 p-2 rounded-lg border"
                   style={{ 
-                    backgroundColor: TEAM_COLORS[c.team_number - 1] + '20',
-                    borderColor: TEAM_COLORS[c.team_number - 1]
+                    backgroundColor: teamColor + '20',
+                    borderColor: teamColor
                   }}
                 >
-                  <Crown className="w-4 h-4" style={{ color: TEAM_COLORS[c.team_number - 1] }} />
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ backgroundColor: player.color }}
                   >
                     {player.name.charAt(0)}
                   </div>
-                  <span className="text-sm">{player.name}</span>
-                  <span className="text-xs text-gray-500">({TEAM_NAMES[c.team_number - 1]})</span>
+                  <div>
+                    <div className="font-bold text-sm">{player.name}</div>
+                    <div className="text-xs" style={{ color: teamColor }}>{TEAM_NAMES[c.team_number - 1]} Team</div>
+                  </div>
                 </div>
               ) : null
             })}
@@ -561,14 +569,14 @@ function SetupPhase({
         </div>
       )}
 
-      {/* Player Cards for Selection */}
+      {/* Available Players - excluding captains */}
       <div>
         <h3 className="font-bold mb-3 flex items-center gap-2">
           <Users className="w-4 h-4" />
-          Available Players
+          Available Players ({availablePlayerIds.filter(id => !selectedCaptainIds.includes(id)).length})
         </h3>
         <div className="grid grid-cols-3 gap-2">
-          {availablePlayerIds.map((playerId) => {
+          {availablePlayerIds.filter(id => !selectedCaptainIds.includes(id)).map((playerId) => {
             const player = getPlayerById(playerId)
             if (!player) return null
             
@@ -608,14 +616,18 @@ function SetupPhase({
 
       {/* Actions */}
       <div className="space-y-3">
-        <button
-          onClick={onAutoSelectCaptains}
-          className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" />
-          Auto-Select Captains
-        </button>
+        {/* Only show Auto-Select if no captains selected yet */}
+        {!hasCaptains && (
+          <button
+            onClick={onAutoSelectCaptains}
+            className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Auto-Select Captains
+          </button>
+        )}
 
+        {/* Show Start Draft when all captains are selected */}
         {captains.length === captainsNeeded && (
           <motion.button
             initial={{ opacity: 0 }}
@@ -774,7 +786,7 @@ function DraftingPhase({
         )}
       </div>
 
-      {/* Available Players for Picking */}
+      {/* Available Players for Picking - exclude captains since they're already on teams */}
       {canPick && availablePlayerIds.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-bold text-sm flex items-center gap-2">
@@ -782,7 +794,12 @@ function DraftingPhase({
             Pick a player:
           </h3>
           <div className="grid grid-cols-3 gap-2">
-            {availablePlayerIds.map((playerId) => {
+            {availablePlayerIds
+              .filter(id => {
+                // Exclude players who are captains
+                return !captains.some(c => c.player_id === id)
+              })
+              .map((playerId) => {
               const player = getPlayerById(playerId)
               if (!player) return null
               
