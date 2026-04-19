@@ -91,53 +91,45 @@ function AdminContent() {
     }
     loadRatings()
     
-    // Load only PAST Thursdays - generate dates even if no match exists
-    const loadMatches = async () => {
+    // Get the current/previous Thursday using exact logic
+    const getPreviousThursday = () => {
       const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const dayOfWeek = today.getDay()
+      const day = now.getDay() // 0=Sun, 4=Thu
+      const hour = now.getHours()
       
-      // Get last Thursday (past) - never include future
-      const daysSinceThursday = (dayOfWeek + 6) % 7
-      let lastThursday = new Date(today)
-      lastThursday.setDate(today.getDate() - daysSinceThursday)
-      const cutoffDate = lastThursday.toISOString().split('T')[0]
-      
-      // Generate last 12 Thursdays (about 3 months back)
-      const thursdayDates: string[] = []
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(lastThursday)
-        d.setDate(lastThursday.getDate() - (i * 7))
-        thursdayDates.push(d.toISOString().split('T')[0])
+      // If it's Thursday after 8PM, current Thursday is the match day
+      if (day === 4 && hour >= 20) {
+        return now
       }
       
-      // Load existing matches from DB
-      const { data } = await supabase
+      // Otherwise, find the most recent past Thursday
+      let daysBack = (day + 3) % 7 // days since Thursday
+      if (daysBack === 0) daysBack = 7 // if Thursday before 8PM
+      const prev = new Date(now)
+      prev.setDate(now.getDate() - daysBack)
+      prev.setHours(0, 0, 0, 0)
+      return prev
+    }
+    
+    // Load only ONE Thursday - the most recent past one
+    const loadMatches = async () => {
+      const prevThursday = getPreviousThursday()
+      const matchDate = prevThursday.toISOString().split('T')[0]
+      
+      // Try to find existing match for this date
+      const { data: existing } = await supabase
         .from('matches')
         .select('*')
-        .lte('match_date', cutoffDate)
-        .order('match_date', { ascending: false })
+        .eq('match_date', matchDate)
+        .single()
       
-      // Build match list - include all Thursdays even if no match record
-      const matchList: { id: string; match_date: string }[] = []
-      
-      // Add existing matches first
-      if (data) {
-        for (const m of data) {
-          matchList.push({ id: m.id, match_date: m.match_date })
-        }
-      }
-      // Add missing Thursdays as placeholder entries
-      for (const date of thursdayDates) {
-        if (!matchList.some(m => m.match_date === date)) {
-          matchList.push({ id: `new_${date}`, match_date: date })
-        }
-      }
-      
-      setMatches(matchList)
-      // Default to most recent Thursday (index 0)
-      if (matchList.length > 0) {
-        setSelectedMatch(matchList[0].id)
+      if (existing) {
+        setMatches([{ id: existing.id, match_date: existing.match_date }])
+        setSelectedMatch(existing.id)
+      } else {
+        // Create placeholder - will create on first save
+        setMatches([{ id: `new_${matchDate}`, match_date: matchDate }])
+        setSelectedMatch(`new_${matchDate}`)
       }
     }
     loadMatches()
@@ -534,13 +526,10 @@ function AdminContent() {
         {/* STATS TAB */}
         {activeTab === 'stats' && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Select Match</label>
-              <select value={selectedMatch || ''} onChange={(e) => setSelectedMatch(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10">
-                {matches.map(match => (
-                  <option key={match.id} value={match.id}>{formatDate(match.match_date)}</option>
-                ))}
-              </select>
+            {/* Single match display - no dropdown */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
+              <span className="text-gray-400">Match: </span>
+              <span className="font-bold">{matches[0] ? formatDate(matches[0].match_date) : 'Loading...'}</span>
             </div>
 
             <div className="space-y-2">
