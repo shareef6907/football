@@ -91,27 +91,20 @@ function AdminContent() {
     }
     loadRatings()
     
-    // Simple: find previous Thursday by going backwards day by day
+    // Use the working formula from home page
     const getPreviousThursday = () => {
       const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const dayOfWeek = now.getDay()
       
-      // If Thursday after 8PM, return today
-      if (today.getDay() === 4 && now.getHours() >= 20) {
-        today.setHours(0, 0, 0, 0)
-        return today
+      // If Thursday and after 8PM, return today
+      if (dayOfWeek === 4 && now.getHours() >= 20) {
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate())
       }
       
-      // Go backwards day by day until we find Thursday
-      const check = new Date(today)
-      for (let i = 1; i <= 7; i++) {
-        check.setDate(today.getDate() - i)
-        if (check.getDay() === 4) {
-          check.setHours(0, 0, 0, 0)
-          return check
-        }
-      }
-      return today
+      // Calculate days back to last Thursday
+      const daysSinceThursday = (dayOfWeek - 4 + 7) % 7 || 7
+      const prevThursday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceThursday)
+      return prevThursday
     }
     
     // Load only ONE Thursday - the most recent past one
@@ -181,7 +174,12 @@ function AdminContent() {
   }
 
   const getPlayerById = (id: string) => PLAYERS.find(p => p.id === id)
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  // Parse date in local timezone to avoid UTC shift
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
 
   const handleResetRatings = async () => {
     if (!confirm('Reset ALL ratings to 5/5/5/5? This cannot be undone.')) return
@@ -572,7 +570,7 @@ function AdminContent() {
                               <input type="checkbox" checked={statsForm.playedAsGK} onChange={(e) => setStatsForm(prev => ({ ...prev, playedAsGK: e.target.checked }))} className="w-5 h-5" />
                             </label>
                             <label className="col-span-2 flex items-center justify-between p-2 rounded bg-white/5">
-                              <span>Clean Sheet</span>
+                              <span>Defender Bonus</span>
                               <input type="checkbox" checked={statsForm.cleanSheet} onChange={(e) => setStatsForm(prev => ({ ...prev, cleanSheet: e.target.checked }))} className="w-5 h-5" />
                             </label>
                           </div>
@@ -608,7 +606,7 @@ function AdminContent() {
           <div className="space-y-4">
             <div className="glass rounded-2xl p-6 border border-red-500/30">
               <h3 className="text-xl font-bold text-red-400 mb-4">⚠️ Danger Zone</h3>
-              <p className="text-gray-400 mb-4">This will permanently delete all match stats, coins, and MOTM data.</p>
+              <p className="text-gray-400 mb-4">This will permanently delete all match stats, coins, and Man of the Match data.</p>
               
               <button 
                 onClick={handleResetAllStats}
@@ -626,7 +624,7 @@ function AdminContent() {
                 <li>• Delete all matches</li>
                 <li>• Delete all match_stats, attendance, teams</li>
                 <li>• Delete all draft sessions and picks</li>
-                <li>• Delete all MOTM votes and winners</li>
+                <li>• Delete all Man of the Match votes and winners</li>
                 <li>• Delete all coins_ledger</li>
                 <li>• Delete all player_ratings</li>
               </ul>

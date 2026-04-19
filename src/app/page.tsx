@@ -221,11 +221,11 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* MOTM Winner */}
+            {/* Man of the Match Winner */}
             <div className="mb-3">
               {motmWinners.length > 0 ? (
                 <div className="text-sm text-gray-400">
-                  <span className="text-yellow-400 font-bold">★ MOTM:</span> {motmWinners.map(p => p.name).join(' & ')}
+                  <span className="text-yellow-400 font-bold">★ Man of the Match:</span> {motmWinners.map(p => p.name).join(' & ')}
                 </div>
               ) : (
                 <div className="text-sm text-gray-500">No votes yet</div>
@@ -238,7 +238,7 @@ export default function HomePage() {
                 Submit Stats →
               </Link>
               <Link href="/man-of-the-match" className="text-yellow-400 hover:underline">
-                Vote MOTM →
+                Vote Man of the Match →
               </Link>
             </div>
           </motion.div>
