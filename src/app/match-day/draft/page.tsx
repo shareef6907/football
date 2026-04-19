@@ -105,6 +105,8 @@ function DraftContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastSyncedCaptains, setLastSyncedCaptains] = useState<string[]>([])
+  const isDraftComplete = draftSession?.status === 'drafting' && 
+    (captains.length + picks.length) >= ((draftSession?.num_teams || 2) * (draftSession?.team_size || 5))
 
   // ============== SYNC CAPTAINS TO DB ==============
   useEffect(() => {
@@ -247,12 +249,15 @@ function DraftContent() {
 
   // ============== TIMER ==============
   useEffect(() => {
-    if (!isCurrentCaptain || !draftSession || draftSession.status !== 'drafting') return
+    // Stop timer when draft is complete
+    const draftComplete = draftSession?.status === 'drafting' && 
+      (captains.length + picks.length) >= (draftSession.num_teams * draftSession.team_size)
+    
+    if (!isCurrentCaptain || !draftSession || draftSession.status !== 'drafting' || draftComplete) return
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Auto-pick when timer hits 0
           handleAutoPick()
           return PICK_TIME_LIMIT
         }
@@ -548,8 +553,48 @@ function DraftContent() {
         draftSession={draftSession}
         picks={picks}
         captains={captains}
-        onConfirm={() => {
-          router.push('/match-day/submit')
+        onConfirm={async () => {
+          // Save teams to match_teams and match_team_players
+          try {
+            // Create match teams
+            for (let i = 0; i < draftSession.num_teams; i++) {
+              const teamNum = i + 1
+              // Find this team's picks
+              const teamPicks = picks.filter(p => p.team_number === teamNum)
+              
+              // Create match team
+              const { data: matchTeam, error: teamError } = await supabase
+                .from('match_teams')
+                .insert({
+                  match_id: draftSession.match_id,
+                  team_number: teamNum,
+                })
+                .select()
+                .single()
+              
+              if (matchTeam && !teamError) {
+                // Add players to team
+                for (const pick of teamPicks) {
+                  await supabase.from('match_team_players').insert({
+                    match_team_id: matchTeam.id,
+                    player_id: pick.picked_player_id,
+                  })
+                }
+              }
+            }
+            
+            // Update draft status to completed
+            await supabase
+              .from('draft_sessions')
+              .update({ status: 'completed' })
+              .eq('id', sessionId)
+            
+            alert('Teams locked! Good luck!')
+            router.push('/')
+          } catch (err) {
+            console.error('Error saving teams:', err)
+            alert('Error saving teams')
+          }
         }}
         shareDraft={shareDraft}
       />
@@ -765,6 +810,8 @@ function DraftingPhase({
   shareDraft: () => void
 }) {
   const numTeams = draftSession.num_teams
+  const isDraftComplete = draftSession.status === 'drafting' && 
+    (captains.length + picks.length) >= (draftSession.num_teams * draftSession.team_size)
   const currentTeam = draftSession.current_turn_team
 
   // Get current captain name
@@ -931,15 +978,21 @@ function DraftingPhase({
       )}
 
       {/* Waiting View (captain but not my turn) */}
-      {isCaptain && !canPick && (
+      {/* Hide waiting section when draft complete */}
+      {isDraftComplete ? (
+        <div className="text-center p-3 rounded-xl bg-green-500/10 border border-green-500/30">
+          <Trophy className="w-4 h-4 mx-auto mb-1 text-green-400" />
+          <p className="text-sm text-green-400">Draft complete! Waiting for confirmation...</p>
+        </div>
+      ) : isCaptain && !canPick ? (
         <div className="text-center p-3 rounded-xl bg-white/5">
           <Clock className="w-4 h-4 mx-auto mb-1 text-gray-400" />
           <p className="text-sm text-gray-400">Waiting for your turn...</p>
         </div>
-      )}
+      ) : null}
 
-      {/* Show Teams Complete when all slots filled (captains + picks) */}
-      {draftSession?.status === 'drafting' && (captains.length + picks.length) >= (draftSession.num_teams * draftSession.team_size) && (
+      {/* Show Teams Complete when all slots filled - hide picking UI */}
+      {isDraftComplete && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -948,7 +1001,7 @@ function DraftingPhase({
           <Trophy className="w-12 h-12 mx-auto mb-2 text-green-400" />
           <h2 className="text-2xl font-bold text-green-400 mb-2">Teams Complete!</h2>
           <p className="text-gray-400 mb-4">
-            All {draftSession.num_teams} teams have {draftSession.team_size} players each
+            All {draftSession?.num_teams} teams have {draftSession?.team_size} players each
           </p>
         </motion.div>
       )}
@@ -1067,24 +1120,28 @@ function CompletedPhase({
         </button>
         
         <button
-          onClick={() => {
-            if (confirm('Restart draft? This will clear all picks.')) {
-              // Reset draft session to setup
-              supabase
+          onClick={async () => {
+            if (!confirm('Restart draft with same captains? All picks will be cleared.')) return
+            
+            try {
+              // Delete all picks
+              await supabase.from('draft_picks').delete().eq('draft_session_id', draftSession.id)
+              
+              // Reset draft session - keep as drafting, reset picks counter and turn
+              await supabase
                 .from('draft_sessions')
-                .update({ status: 'setup', current_pick_number: 0, current_turn_team: 1 })
+                .update({ 
+                  status: 'drafting', 
+                  current_pick_number: 0, 
+                  current_turn_team: 1 // Red team (captain 1) starts
+                })
                 .eq('id', draftSession.id)
-              .then(() => {
-                // Delete all picks
-                supabase.from('draft_picks').delete().eq('draft_session_id', draftSession.id)
-              })
-              .then(() => {
-                // Delete all captains
-                supabase.from('draft_captains').delete().eq('draft_session_id', draftSession.id)
-              })
-              .then(() => {
-                window.location.reload()
-              })
+              
+              // Reload page to get fresh state
+              window.location.reload()
+            } catch (err) {
+              console.error('Error restarting:', err)
+              alert('Error restarting draft')
             }
           }}
           className="w-full py-3 rounded-xl border border-white/20 text-gray-400"
