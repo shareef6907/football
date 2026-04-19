@@ -91,24 +91,27 @@ function AdminContent() {
     }
     loadRatings()
     
-    // Get the current/previous Thursday using exact logic
+    // Simple: find previous Thursday by going backwards day by day
     const getPreviousThursday = () => {
       const now = new Date()
-      const day = now.getDay() // 0=Sun, 4=Thu
-      const hour = now.getHours()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       
-      // If it's Thursday after 8PM, current Thursday is the match day
-      if (day === 4 && hour >= 20) {
-        return now
+      // If Thursday after 8PM, return today
+      if (today.getDay() === 4 && now.getHours() >= 20) {
+        today.setHours(0, 0, 0, 0)
+        return today
       }
       
-      // Otherwise, find the most recent past Thursday
-      let daysBack = (day + 3) % 7 // days since Thursday
-      if (daysBack === 0) daysBack = 7 // if Thursday before 8PM
-      const prev = new Date(now)
-      prev.setDate(now.getDate() - daysBack)
-      prev.setHours(0, 0, 0, 0)
-      return prev
+      // Go backwards day by day until we find Thursday
+      const check = new Date(today)
+      for (let i = 1; i <= 7; i++) {
+        check.setDate(today.getDate() - i)
+        if (check.getDay() === 4) {
+          check.setHours(0, 0, 0, 0)
+          return check
+        }
+      }
+      return today
     }
     
     // Load only ONE Thursday - the most recent past one
