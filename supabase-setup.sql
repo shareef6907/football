@@ -318,6 +318,7 @@ CREATE TABLE IF NOT EXISTS draft_sessions (
   current_turn_team INTEGER DEFAULT 1,
   current_pick_number INTEGER DEFAULT 0,
   pick_time_limit INTEGER DEFAULT 30,
+  attending_player_ids TEXT[] DEFAULT '{}',
   snake_draft_order INTEGER[] DEFAULT '{}',
   created_by UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

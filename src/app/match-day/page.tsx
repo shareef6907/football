@@ -192,6 +192,7 @@ function MatchDayContent() {
         team_size: setup.teamSize,
         status: 'setup',
         pick_time_limit: 30,
+        attending_player_ids: setup.attending,
         created_by: profile?.player_id,
       })
       .select()

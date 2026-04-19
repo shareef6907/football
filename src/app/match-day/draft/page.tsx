@@ -1,576 +1,788 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { PLAYERS } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
-import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown, Sparkles } from 'lucide-react'
+import { 
+  Crown, Clock, Trophy, Users, UserPlus, Zap, 
+  ArrowRight, Check, X, Sparkles, Eye, EyeOff,
+  ChevronDown, ChevronUp, Share2, RefreshCw
+} from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
-interface DraftState {
+// ============== TYPES ==============
+interface DraftSession {
   id: string
   match_id: string
-  status: string
+  status: 'setup' | 'drafting' | 'completed' | 'cancelled'
   num_teams: number
   team_size: number
   current_turn_team: number
   current_pick_number: number
   pick_time_limit: number
+  attending_player_ids: string[]
 }
 
-interface DraftPick {
-  pick_number: number
-  team_number: number
-  picked_player_id: string
-  was_auto_pick: boolean
-}
-
-interface Captain {
+interface DraftCaptain {
+  id: string
+  draft_session_id: string
   player_id: string
   team_number: number
   was_auto_selected: boolean
 }
 
-function LiveDraftContent() {
+interface DraftPick {
+  id: string
+  draft_session_id: string
+  pick_number: number
+  team_number: number
+  captain_id: string
+  picked_player_id: string
+  was_auto_pick: boolean
+  picked_at: string
+}
+
+// ============== CONSTANTS ==============
+const TEAM_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#EAB308'] // Red, Blue, Green, Yellow
+const TEAM_NAMES = ['Red', 'Blue', 'Green', 'Yellow']
+const PICK_TIME_LIMIT = 30
+
+// ============== HELPER FUNCTIONS ==============
+function getPlayerById(id: string) {
+  return PLAYERS.find(p => p.id === id)
+}
+
+// Generate snake draft order for N teams
+// 2 teams: [1,2,2,1,1,2,2,1...]
+// 3 teams: [1,2,3,3,2,1,1,2,3,3,2,1...]
+function generateSnakeOrder(numTeams: number, totalPicks: number): number[] {
+  const order: number[] = []
+  for (let i = 0; i < totalPicks; i++) {
+    const round = Math.floor(i / numTeams)
+    const positionInRound = i % numTeams
+    
+    // Snake: forward on odd rounds, backward on even rounds
+    if (round % 2 === 0) {
+      order.push(positionInRound + 1) // 1,2,3,4...
+    } else {
+      order.push(numTeams - positionInRound) // 4,3,2,1...
+    }
+  }
+  return order
+}
+
+// ============== MAIN COMPONENT ==============
+function DraftContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session')
   const { user, profile, loading: authLoading } = useAuth()
   
-  // Get players from localStorage (set by /match-day page)
-  // Use a ref to track if we've already cleaned up
-  const playersRef = { cleaned: false }
-  
-  const getInitialPlayers = () => {
-    try {
-      const stored = localStorage.getItem('draft_players')
-      // Don't clear immediately - only clear after we confirm we're in the draft
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  }
-  
-  const [draftState, setDraftState] = useState<DraftState | null>(null)
+  // Game state
+  const [draftSession, setDraftSession] = useState<DraftSession | null>(null)
+  const [captains, setCaptains] = useState<DraftCaptain[]>([])
   const [picks, setPicks] = useState<DraftPick[]>([])
-  const [availablePlayers, setAvailablePlayers] = useState<string[]>([])
-  const [captains, setCaptains] = useState<Captain[]>([])
-  const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
-  const [timeLeft, setTimeLeft] = useState(30)
-  const [isMyTurn, setIsMyTurn] = useState(false)
-  const [myTeam, setMyTeam] = useState<number | null>(null)
+  const [availablePlayerIds, setAvailablePlayerIds] = useState<string[]>([])
+  
+  // Identity
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null)
+  const [myTeamNumber, setMyTeamNumber] = useState<number | null>(null)
   const [isCaptain, setIsCaptain] = useState(false)
-  const [localPlayersLoaded, setLocalPlayersLoaded] = useState(false)
+  const [isCurrentCaptain, setIsCurrentCaptain] = useState(false)
+  
+  // Timer
+  const [timeLeft, setTimeLeft] = useState(PICK_TIME_LIMIT)
+  const [canPick, setCanPick] = useState(false)
+  
+  // Setup phase
+  const [selectedCaptainIds, setSelectedCaptainIds] = useState<string[]>([])
+  const [captainSelectMode, setCaptainSelectMode] = useState(false)
+  
+  // View state
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Initial load
-  useEffect(() => {
-    if (!sessionId) {
-      router.push('/match-day')
-      return
-    }
+  // ============== LOAD DRAFT SESSION ==============
+  const loadDraftSession = useCallback(async () => {
+    if (!sessionId) return
     
-    const loadDraft = async () => {
-      const { data: draft } = await supabase
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      // Load draft session
+      const { data: session, error: sessionError } = await supabase
         .from('draft_sessions')
         .select('*')
         .eq('id', sessionId)
         .single()
       
-      if (draft) {
-        setDraftState(draft)
-        
-        // Try URL params first, then localStorage fallback
-        let playerIds: string[] = []
-        const params = new URLSearchParams(window.location.search)
-        playerIds = params.get('players')?.split(',') || []
-        
-        // Fallback to localStorage
-        if (playerIds.length === 0) {
+      if (sessionError || !session) {
+        setError('Draft session not found')
+        setIsLoading(false)
+        return
+      }
+      
+      setDraftSession(session)
+      
+      // Get attending player IDs from session or localStorage
+      let playerIds: string[] = session.attending_player_ids || []
+      if (playerIds.length === 0) {
+        const stored = localStorage.getItem('draft_players')
+        if (stored) {
           try {
-            const stored = localStorage.getItem('draft_players')
-            if (stored) {
-              playerIds = JSON.parse(stored)
-            }
+            playerIds = JSON.parse(stored)
           } catch {}
         }
-        
-        // Check existing picks
-        const { data: existingPicks } = await supabase
-          .from('draft_picks')
-          .select('*')
-          .eq('draft_session_id', sessionId)
-          .order('pick_number')
-        
-        if (existingPicks) {
-          setPicks(existingPicks)
-          const pickedIds = existingPicks.map((p: any) => p.picked_player_id)
-          if (playerIds.length > 0) {
-            setAvailablePlayers(playerIds.filter((id: string) => !pickedIds.includes(id)))
-          }
-        } else if (!draft.current_pick_number) {
-          // Try attendance if still no players
-          if (playerIds.length > 0) {
-            setAvailablePlayers(playerIds)
-          } else {
-            const { data: attendance } = await supabase
-              .from('attendance')
-              .select('player_id')
-              .eq('match_id', draft.match_id)
-            
-            if (attendance && attendance.length > 0) {
-              setAvailablePlayers(attendance.map((a: any) => a.player_id))
-            }
-          }
-        }
-        
-        // Load captains
-        const { data: draftCaptains } = await supabase
-          .from('draft_captains')
-          .select('*')
-          .eq('draft_session_id', sessionId)
-        
-        if (draftCaptains && draftCaptains.length > 0) {
-          setCaptains(draftCaptains)
-          setSelectedCaptains(draftCaptains.map((c: any) => c.player_id))
-        }
-        
-        const { data: captain } = await supabase
-          .from('draft_captains')
-          .select('*')
-          .eq('draft_session_id', sessionId)
-          .eq('player_id', profile?.player_id)
-          .single()
-        
-        if (captain) {
-          setIsCaptain(true)
-          setMyTeam(captain.team_number)
-          
-          // IMMEDIATELY check if it's my turn after setting captain info
-          if (draft && draft.status === 'drafting') {
-            const myTurnNow = captain.team_number === draft.current_turn_team
-            setIsMyTurn(myTurnNow)
-          }
-        }
       }
+      setAvailablePlayerIds(playerIds)
+      
+      // Load captains
+      const { data: captainsData } = await supabase
+        .from('draft_captains')
+        .select('*')
+        .eq('draft_session_id', sessionId)
+      
+      if (captainsData) {
+        setCaptains(captainsData)
+        setSelectedCaptainIds(captainsData.map(c => c.player_id))
+      }
+      
+      // Load picks
+      const { data: picksData } = await supabase
+        .from('draft_picks')
+        .select('*')
+        .eq('draft_session_id', sessionId)
+        .order('pick_number')
+      
+      if (picksData) {
+        setPicks(picksData)
+        
+        // Remove picked players from available
+        const pickedIds = picksData.map(p => p.picked_player_id)
+        setAvailablePlayerIds(prev => prev.filter(id => !pickedIds.includes(id)))
+      }
+      
+    } catch (err) {
+      console.error('Error loading draft:', err)
+      setError('Failed to load draft session')
     }
+    
+    setIsLoading(false)
+  }, [sessionId])
 
-    if (!authLoading) {
-      loadDraft()
-    }
-  }, [sessionId, profile, authLoading, router])
-
+  // ============== SETUP AUTH & LOAD ==============
   useEffect(() => {
-    if (!draftState || draftState.status !== 'drafting') return
+    if (authLoading) return
+    
+    // Get my player ID from profile
+    if (profile?.player_id) {
+      setMyPlayerId(profile.player_id)
+    }
+    
+    if (sessionId) {
+      loadDraftSession()
+    }
+  }, [sessionId, profile, authLoading, loadDraftSession])
+
+  // ============== CHECK CAPTAIN IDENTITY ==============
+  useEffect(() => {
+    if (!draftSession || !myPlayerId || captains.length === 0) return
+    
+    const myCaptain = captains.find(c => c.player_id === myPlayerId)
+    if (myCaptain) {
+      setIsCaptain(true)
+      setMyTeamNumber(myCaptain.team_number)
+    }
+  }, [draftSession, myPlayerId, captains])
+
+  // ============== CHECK IF IT'S MY TURN ==============
+  useEffect(() => {
+    if (!draftSession || !isCaptain || !myTeamNumber) return
+    
+    const isMyTurn = draftSession.status === 'drafting' && 
+                    draftSession.current_turn_team === myTeamNumber
+    
+    setIsCurrentCaptain(isMyTurn)
+    setCanPick(isMyTurn)
+    
+    if (isMyTurn) {
+      setTimeLeft(PICK_TIME_LIMIT)
+    }
+  }, [draftSession, isCaptain, myTeamNumber])
+
+  // ============== TIMER ==============
+  useEffect(() => {
+    if (!isCurrentCaptain || !draftSession || draftSession.status !== 'drafting') return
     
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev <= 1 ? 30 : prev - 1)
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Auto-pick when timer hits 0
+          handleAutoPick()
+          return PICK_TIME_LIMIT
+        }
+        return prev - 1
+      })
     }, 1000)
     
     return () => clearInterval(timer)
-  }, [draftState])
+  }, [isCurrentCaptain, draftSession])
 
-  useEffect(() => {
-    if (!sessionId) return
-
-    const channel = supabase
-      .channel('draft:' + sessionId)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'draft_picks',
-        filter: 'draft_session_id=eq.' + sessionId,
-      }, (payload: any) => {
-        if (payload.eventType === 'INSERT') {
-          const newPick = payload.new
-          setPicks(prev => [...prev, newPick])
-          setAvailablePlayers(prev => 
-            prev.filter(id => id !== newPick.picked_player_id)
-          )
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [sessionId])
-
-  // Check turn whenever draftState changes (immediate reaction)
-  useEffect(() => {
-    if (!draftState || !isCaptain || !myTeam) return
-    const myTurnNow = draftState.current_turn_team === myTeam
-    setIsMyTurn(myTurnNow)
+  // ============== AUTO-PICK ==============
+  const handleAutoPick = async () => {
+    if (!draftSession || !canPick || availablePlayerIds.length === 0) return
     
-    // Reset timer when turn changes to this captain
-    if (myTurnNow) {
-      setTimeLeft(30)
-    }
-  }, [draftState?.current_turn_team, isCaptain, myTeam])
-
-  const handlePick = async (playerId: string) => {
-    if (!isMyTurn || !draftState || !profile?.player_id) return
-
-    const nextPickNum = draftState.current_pick_number + 1
-    const currentTeam = draftState.current_turn_team
-    
-    // Insert the pick
-    await supabase.from('draft_picks').insert({
-      draft_session_id: sessionId,
-      pick_number: nextPickNum,
-      team_number: currentTeam,
-      captain_id: profile.player_id,
-      picked_player_id: playerId,
-    })
-
-    // Calculate next team (snake draft: 1,2,3,1,2,3...)
-    const nextTeam = currentTeam % draftState.num_teams + 1
-    
-    // Update draft session
-    await supabase
-      .from('draft_sessions')
-      .update({
-        current_pick_number: nextPickNum,
-        current_turn_team: nextTeam,
-      })
-      .eq('id', sessionId)
-
-    // Update local state IMMEDIATELY
-    setAvailablePlayers(prev => prev.filter(id => id !== playerId))
-    
-    // Update picks from DB to ensure sync
-    const { data: updatedPicks } = await supabase
-      .from('draft_picks')
-      .select('*')
-      .eq('draft_session_id', sessionId)
-      .order('pick_number')
-    
-    if (updatedPicks) {
-      setPicks(updatedPicks)
-    }
-    
-    // Update the draft state locally
-    setDraftState(prev => prev ? {
-      ...prev,
-      current_pick_number: nextPickNum,
-      current_turn_team: nextTeam,
-    } : null)
-    
-    // Turn switches immediately
-    const isNowMyTurn = nextTeam === myTeam
-    setIsMyTurn(isNowMyTurn)
-    if (isNowMyTurn) {
-      setTimeLeft(30)
+    // Get highest rated available player
+    // For now, just pick the first available
+    const pickPlayerId = availablePlayerIds[0]
+    if (pickPlayerId) {
+      await makePick(pickPlayerId, true)
     }
   }
 
-  const teamNames = ['Red', 'Blue', 'Green', 'Yellow']
-  const teamColors = ['#EF4444', '#3B82F6', '#22C55E', '#EAB308']
-
-  const getPlayerById = (id: string) => PLAYERS.find(p => p.id === id)
-
-  // === SETUP PHASE: Captain Selection (when status is 'setup')
-  if (draftState?.status === 'setup') {
-    const numTeams = draftState.num_teams || 2
-    const captainsNeeded = numTeams
-    const hasCaptains = captains.length > 0
-
-    // If already have captains, go straight to drafting view
-    if (hasCaptains && draftState.status === 'setup') {
-      // Update status to drafting
-      return (
-        <div className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <Crown className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
-            <h1 className="text-2xl font-bold">Ready to Draft!</h1>
-            <p className="text-gray-400">Captains are set, starting the draft...</p>
-          </motion.div>
-
-          <div className="glass rounded-xl p-4 border border-yellow-500/30">
-            <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
-              <Crown className="w-4 h-4" />
-              Selected Captains
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {captains.map((c: any) => {
-                const player = getPlayerById(c.player_id)
-                return player ? (
-                  <div
-                    key={c.player_id}
-                    className="flex items-center gap-2 p-2 rounded-lg"
-                    style={{ backgroundColor: teamColors[c.team_number - 1] + '20', borderColor: teamColors[c.team_number - 1] }}
-                  >
-                    <Crown className="w-4 h-4" style={{ color: teamColors[c.team_number - 1] }} />
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs" style={{ backgroundColor: player.color }}>
-                      {player.name.slice(0, 1)}
-                    </div>
-                    <span className="text-sm">{player.name}</span>
-                    <span className="text-xs text-gray-500">({teamNames[c.team_number - 1]})</span>
-                  </div>
-                ) : null
-              })}
-            </div>
-          </div>
-
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={async () => {
-              await supabase.from('draft_sessions').update({ status: 'drafting' }).eq('id', sessionId)
-              setDraftState(prev => prev ? { ...prev, status: 'drafting' } : null)
-            }}
-            className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"
-          >
-            <Crown className="w-5 h-5" />
-            Start Draft
-          </motion.button>
-        </div>
-      )
+  // ============== MAKE A PICK ==============
+  const makePick = async (pickPlayerId: string, wasAuto: boolean = false) => {
+    if (!draftSession || !myPlayerId || !canPick) return
+    
+    const nextPickNum = (draftSession.current_pick_number || 0) + 1
+    const currentTeam = draftSession.current_turn_team
+    
+    try {
+      // Insert pick
+      const { error: pickError } = await supabase
+        .from('draft_picks')
+        .insert({
+          draft_session_id: sessionId,
+          pick_number: nextPickNum,
+          team_number: currentTeam,
+          captain_id: myPlayerId,
+          picked_player_id: pickPlayerId,
+          was_auto_pick: wasAuto,
+        })
+      
+      if (pickError) throw pickError
+      
+      // Calculate next team (snake draft)
+      const numTeams = draftSession.num_teams
+      const totalPicks = numTeams * draftSession.team_size
+      const snakeOrder = generateSnakeOrder(numTeams, totalPicks)
+      const nextTeamIndex = nextPickNum // 0-indexed
+      const nextTeam = nextTeamIndex < snakeOrder.length 
+        ? snakeOrder[nextPickNum] 
+        : ((nextPickNum - 1) % numTeams) + 1
+      
+      // Update draft session
+      const { error: updateError } = await supabase
+        .from('draft_sessions')
+        .update({
+          current_pick_number: nextPickNum,
+          current_turn_team: nextTeam,
+        })
+        .eq('id', sessionId)
+      
+      if (updateError) throw updateError
+      
+      // Reload to get latest state
+      await loadDraftSession()
+      
+    } catch (err) {
+      console.error('Error making pick:', err)
     }
+  }
 
+  // ============== REALTIME SUBSCRIPTION ==============
+  useEffect(() => {
+    if (!sessionId) return
+    
+    const channel = supabase
+      .channel(`draft:${sessionId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'draft_sessions',
+        filter: `id=eq.${sessionId}`,
+      }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setDraftSession(prev => prev ? { ...prev, ...payload.new } : null)
+        }
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'draft_picks',
+        filter: `draft_session_id=eq.${sessionId}`,
+      }, (payload) => {
+        loadDraftSession()
+      })
+      .subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [sessionId, loadDraftSession])
+
+  // ============== HELPERS ==============
+  const getTeamPicks = (teamNumber: number) => {
+    return picks.filter(p => p.team_number === teamNumber)
+  }
+
+  const getTeamCaptain = (teamNumber: number) => {
+    const captain = captains.find(c => c.team_number === teamNumber)
+    return captain ? getPlayerById(captain.player_id) : null
+  }
+
+  const shareDraft = () => {
+    const url = `${window.location.origin}/match-day/draft?session=${sessionId}`
+    navigator.clipboard.writeText(url)
+    alert('Draft URL copied to clipboard!')
+  }
+
+  // ============== REDIRECT IF NO SESSION ==============
+  if (!sessionId) {
     return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+      <div className="text-center p-8">
+        <p className="text-gray-400 mb-4">No draft session specified</p>
+        <button 
+          onClick={() => router.push('/match-day')}
+          className="px-6 py-3 bg-blue-500 rounded-xl"
         >
-          <Crown className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
-          <h1 className="text-2xl font-bold">Captain Selection</h1>
-          <p className="text-gray-400">
-            Select {captainsNeeded} captains for {numTeams} teams
-          </p>
-        </motion.div>
-
-        {/* Selected Captains */}
-        <div className="glass rounded-xl p-4 border border-yellow-500/30">
-          <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
-            <Crown className="w-4 h-4" />
-            Selected Captains ({selectedCaptains.length}/{captainsNeeded})
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {selectedCaptains.map((playerId, index) => {
-              const player = getPlayerById(playerId)
-              return player ? (
-                <motion.div
-                  key={playerId}
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center gap-2 p-2 rounded-lg"
-                  style={{ backgroundColor: teamColors[index] + '20', borderColor: teamColors[index] }}
-                >
-                  <Crown className="w-4 h-4" style={{ color: teamColors[index] }} />
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                    style={{ backgroundColor: player.color }}
-                  >
-                    {player.name.slice(0, 1)}
-                  </div>
-                  <span className="text-sm">{player.name}</span>
-                  <span className="text-xs text-gray-500">({teamNames[index]})</span>
-                </motion.div>
-              ) : null
-            })}
-          </div>
-        </div>
-
-        {/* Auto-select button */}
-        <button
-          onClick={() => setSelectedCaptains(availablePlayers.slice(0, numTeams))}
-          className="w-full py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-5 h-5 text-yellow-400" />
-          Auto-Select Captains
+          Go to Match Day
         </button>
-
-        {/* Player Selection */}
-        <div className="space-y-3">
-          <h3 className="font-bold flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Tap to assign as captain:
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {availablePlayers.map((playerId: string) => {
-              const player = getPlayerById(playerId)
-              if (!player) return null
-              const isSelected = selectedCaptains.includes(playerId)
-              
-              return (
-                <motion.button
-                  key={playerId}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    if (selectedCaptains.includes(playerId)) {
-                      setSelectedCaptains(prev => prev.filter(id => id !== playerId))
-                    } else if (selectedCaptains.length < numTeams) {
-                      setSelectedCaptains(prev => [...prev, playerId])
-                    }
-                  }}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    isSelected
-                      ? 'border-yellow-500 bg-yellow-500/20'
-                      : 'border-white/10 hover:border-white/30 bg-white/5'
-                  }`}
-                >
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
-                    style={{ backgroundColor: player.color }}
-                  >
-                    {player.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="text-xs">{player.name}</div>
-                  {isSelected && (
-                    <Crown className="w-4 h-4 mx-auto mt-1 text-yellow-400" />
-                  )}
-                </motion.button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Start Draft Button */}
-        {selectedCaptains.length === captainsNeeded && (
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={async () => {
-              // Save captains to database
-              const captainRecords = selectedCaptains.map((playerId, index) => ({
-                draft_session_id: sessionId,
-                player_id: playerId,
-                team_number: index + 1,
-                was_auto_selected: false,
-              }))
-              await supabase.from('draft_captains').insert(captainRecords)
-              setCaptains(captainRecords)
-              // Update draft status to drafting
-              await supabase.from('draft_sessions').update({ status: 'drafting' }).eq('id', sessionId)
-              setDraftState(prev => prev ? { ...prev, status: 'drafting' } : null)
-            }}
-            className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"
-          >
-            <Crown className="w-5 h-5" />
-            Start Draft
-          </motion.button>
-        )}
-
-        {selectedCaptains.length < captainsNeeded && (
-          <div className="text-center p-4 rounded-xl bg-white/5">
-            <p className="text-gray-400">
-              Select {captainsNeeded - selectedCaptains.length} more captain{captainsNeeded - selectedCaptains.length === 1 ? '' : 's'}
-            </p>
-          </div>
-        )}
       </div>
     )
   }
 
-  if (draftState?.status === 'completed') {
+  // ============== LOADING ==============
+  if (isLoading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass rounded-2xl p-8 border border-green-500/30 text-center"
-      >
-        <Trophy className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-        <h2 className="text-2xl font-bold mb-2">Draft Complete!</h2>
-        <p className="text-gray-400">Teams have been selected</p>
-      </motion.div>
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-pulse text-gray-400">Loading draft...</div>
+      </div>
     )
+  }
+
+  // ============== ERROR ==============
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button 
+          onClick={() => router.push('/match-day')}
+          className="px-6 py-3 bg-blue-500 rounded-xl"
+        >
+          Go to Match Day
+        </button>
+      </div>
+    )
+  }
+
+  // ============== STATE 1: SETUP (captain selection) ==============
+  if (draftSession?.status === 'setup') {
+    return (
+      <SetupPhase
+        draftSession={draftSession}
+        availablePlayerIds={availablePlayerIds}
+        selectedCaptainIds={selectedCaptainIds}
+        setSelectedCaptainIds={setSelectedCaptainIds}
+        captains={captains}
+        onStartDraft={async () => {
+          // Update status to drafting
+          await supabase
+            .from('draft_sessions')
+            .update({ status: 'drafting' })
+            .eq('id', sessionId)
+          
+          await loadDraftSession()
+        }}
+        onAutoSelectCaptains={async () => {
+          const numTeams = draftSession.num_teams
+          // Get top N rated players as captains
+          const topPlayers = availablePlayerIds.slice(0, numTeams)
+          
+          // Delete existing captains
+          await supabase
+            .from('draft_captains')
+            .delete()
+            .eq('draft_session_id', sessionId)
+          
+          // Insert new captains
+          for (let i = 0; i < topPlayers.length; i++) {
+            await supabase
+              .from('draft_captains')
+              .insert({
+                draft_session_id: sessionId,
+                player_id: topPlayers[i],
+                team_number: i + 1,
+                was_auto_selected: true,
+              })
+          }
+          
+          await loadDraftSession()
+        }}
+        shareDraft={shareDraft}
+      />
+    )
+  }
+
+  // ============== STATE 2: DRAFTING ==============
+  if (draftSession?.status === 'drafting') {
+    return (
+      <DraftingPhase
+        draftSession={draftSession}
+        availablePlayerIds={availablePlayerIds}
+        picks={picks}
+        captains={captains}
+        isCurrentCaptain={isCurrentCaptain}
+        isCaptain={isCaptain}
+        canPick={canPick}
+        timeLeft={timeLeft}
+        myTeamNumber={myTeamNumber}
+        onPick={makePick}
+        shareDraft={shareDraft}
+      />
+    )
+  }
+
+  // ============== STATE 3: COMPLETED ==============
+  if (draftSession?.status === 'completed') {
+    return (
+      <CompletedPhase
+        draftSession={draftSession}
+        picks={picks}
+        captains={captains}
+        onConfirm={() => {
+          router.push('/match-day/submit')
+        }}
+        shareDraft={shareDraft}
+      />
+    )
+  }
+
+  // Unknown state
+  return (
+    <div className="text-center p-8">
+      <p className="text-gray-400">Unknown draft state</p>
+    </div>
+  )
+}
+
+// ============== SETUP PHASE COMPONENT ==============
+function SetupPhase({
+  draftSession,
+  availablePlayerIds,
+  selectedCaptainIds,
+  setSelectedCaptainIds,
+  captains,
+  onStartDraft,
+  onAutoSelectCaptains,
+  shareDraft,
+}: {
+  draftSession: DraftSession
+  availablePlayerIds: string[]
+  selectedCaptainIds: string[]
+  setSelectedCaptainIds: (ids: string[]) => void
+  captains: DraftCaptain[]
+  onStartDraft: () => void
+  onAutoSelectCaptains: () => void
+  shareDraft: () => void
+}) {
+  const numTeams = draftSession.num_teams
+  const captainsNeeded = numTeams
+  const hasCaptains = captains.length > 0
+
+  const toggleCaptain = (playerId: string) => {
+    if (selectedCaptainIds.includes(playerId)) {
+      setSelectedCaptainIds(selectedCaptainIds.filter(id => id !== playerId))
+    } else if (selectedCaptainIds.length < captainsNeeded) {
+      setSelectedCaptainIds([...selectedCaptainIds, playerId])
+    }
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <Users className="w-12 h-12 mx-auto mb-2 text-purple-400" />
-        <h1 className="text-2xl font-bold">Live Team Selection by Captains</h1>
+        <Crown className="w-12 h-12 mx-auto mb-2 text-yellow-400" />
+        <h1 className="text-2xl font-bold">Captain Selection</h1>
         <p className="text-gray-400">
-          {draftState?.num_teams} teams • {draftState?.team_size}v{draftState?.team_size}
+          Select {captainsNeeded} captains for {numTeams} teams
         </p>
       </motion.div>
 
-      <AnimatePresence>
-        {isMyTurn && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass rounded-2xl p-6 border border-yellow-500/30 animate-pulse"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Crown className="w-6 h-6 text-yellow-400" />
-              <span className="font-bold text-yellow-400">Your Turn!</span>
-              <Crown className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Clock className="w-5 h-5" />
-              <span className="text-3xl font-black">{timeLeft}s</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Share Button */}
+      <button
+        onClick={shareDraft}
+        className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
+      >
+        <Share2 className="w-4 h-4" />
+        Share Draft Link
+      </button>
 
-      <div className="grid grid-cols-2 gap-4">
-        {Array.from({ length: draftState?.num_teams || 2 }, (_, i) => i + 1).map(teamNum => {
+      {/* Selected Captains Display */}
+      {hasCaptains && (
+        <div className="glass rounded-xl p-4 border border-yellow-500/30">
+          <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
+            <Crown className="w-4 h-4" />
+            Selected Captains ({captains.length}/{captainsNeeded})
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {captains.map((c) => {
+              const player = getPlayerById(c.player_id)
+              return player ? (
+                <div
+                  key={c.player_id}
+                  className="flex items-center gap-2 p-2 rounded-lg"
+                  style={{ 
+                    backgroundColor: TEAM_COLORS[c.team_number - 1] + '20',
+                    borderColor: TEAM_COLORS[c.team_number - 1]
+                  }}
+                >
+                  <Crown className="w-4 h-4" style={{ color: TEAM_COLORS[c.team_number - 1] }} />
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ backgroundColor: player.color }}
+                  >
+                    {player.name.charAt(0)}
+                  </div>
+                  <span className="text-sm">{player.name}</span>
+                  <span className="text-xs text-gray-500">({TEAM_NAMES[c.team_number - 1]})</span>
+                </div>
+              ) : null
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Player Cards for Selection */}
+      <div>
+        <h3 className="font-bold mb-3 flex items-center gap-2">
+          <Users className="w-4 h-4" />
+          Available Players
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          {availablePlayerIds.map((playerId) => {
+            const player = getPlayerById(playerId)
+            if (!player) return null
+            
+            const isSelected = selectedCaptainIds.includes(playerId)
+            
+            return (
+              <motion.button
+                key={playerId}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => toggleCaptain(playerId)}
+                className={`
+                  p-3 rounded-xl border text-center transition-all
+                  ${isSelected 
+                    ? 'border-yellow-500 bg-yellow-500/20' 
+                    : 'border-white/10 bg-white/5 hover:border-white/30'
+                  }
+                `}
+              >
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
+                  style={{ backgroundColor: player.color }}
+                >
+                  {player.name.charAt(0)}
+                </div>
+                <div className="text-xs truncate">{player.name}</div>
+                <div className="text-xs text-gray-500">{player.position}</div>
+                {isSelected && (
+                  <div className="mt-1">
+                    <Crown className="w-4 h-4 mx-auto text-yellow-400" />
+                  </div>
+                )}
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="space-y-3">
+        <button
+          onClick={onAutoSelectCaptains}
+          className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center gap-2"
+        >
+          <Sparkles className="w-4 h-4" />
+          Auto-Select Captains
+        </button>
+
+        {captains.length === captainsNeeded && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={onStartDraft}
+            className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"
+          >
+            <Crown className="w-5 h-5" />
+            Start Draft
+          </motion.button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============== DRAFTING PHASE COMPONENT ==============
+function DraftingPhase({
+  draftSession,
+  availablePlayerIds,
+  picks,
+  captains,
+  isCurrentCaptain,
+  isCaptain,
+  canPick,
+  timeLeft,
+  myTeamNumber,
+  onPick,
+  shareDraft,
+}: {
+  draftSession: DraftSession
+  availablePlayerIds: string[]
+  picks: DraftPick[]
+  captains: DraftCaptain[]
+  isCurrentCaptain: boolean
+  isCaptain: boolean
+  canPick: boolean
+  timeLeft: number
+  myTeamNumber: number | null
+  onPick: (playerId: string, wasAuto?: boolean) => void
+  shareDraft: () => void
+}) {
+  const numTeams = draftSession.num_teams
+  const currentTeam = draftSession.current_turn_team
+  
+  // Get current captain name
+  const currentCaptain = captains.find(c => c.team_number === currentTeam)
+  const currentCaptainPlayer = currentCaptain ? getPlayerById(currentCaptain.player_id) : null
+
+  return (
+    <div className="space-y-4">
+      {/* Share Button */}
+      <button
+        onClick={shareDraft}
+        className="w-full py-2 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2 text-sm"
+      >
+        <Share2 className="w-4 h-4" />
+        Share
+      </button>
+
+      {/* Team Columns */}
+      <div className={`grid gap-2 ${numTeams === 2 ? 'grid-cols-2' : numTeams === 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
+        {Array.from({ length: numTeams }, (_, i) => i + 1).map((teamNum) => {
           const teamPicks = picks.filter(p => p.team_number === teamNum)
+          const teamCaptain = captains.find(c => c.team_number === teamNum)
+          const captain = teamCaptain ? getPlayerById(teamCaptain.player_id) : null
+          const isMyTeam = teamNum === myTeamNumber
+          const isTurn = teamNum === currentTeam
+
           return (
-            <motion.div
+            <div
               key={teamNum}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="rounded-2xl border overflow-hidden"
-              style={{
-                borderColor: teamColors[teamNum - 1],
-                background: teamColors[teamNum - 1] + '15',
+              className={`
+                rounded-xl p-3 border
+                ${isTurn ? 'border-yellow-500 animate-pulse' : 'border-white/10'}
+              `}
+              style={{ 
+                backgroundColor: (TEAM_COLORS[teamNum - 1] + '10'),
               }}
             >
-              <div 
-                className="px-4 py-2 flex justify-between items-center"
-                style={{ backgroundColor: teamColors[teamNum - 1] }}
-              >
-                <span className="font-bold text-black">
-                  {teamNames[teamNum - 1]} Team
-                </span>
-                <span className="text-xs text-black/70">
-                  {teamPicks.length} picked
-                </span>
+              {/* Team Header */}
+              <div className="text-center mb-3">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
+                  style={{ backgroundColor: TEAM_COLORS[teamNum - 1] }}
+                >
+                  {TEAM_NAMES[teamNum - 1].charAt(0)}
+                </div>
+                <div className="font-bold text-sm">{TEAM_NAMES[teamNum - 1]} Team</div>
+                {captain && (
+                  <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                    <Crown className="w-3 h-3 text-yellow-400" />
+                    {captain.name}
+                  </div>
+                )}
+                {isMyTeam && (
+                  <div className="text-xs text-blue-400">(You)</div>
+                )}
               </div>
-              <div className="p-3 space-y-2">
-                {teamPicks.map((pick: any, idx: number) => {
+
+              {/* Players Picked */}
+              <div className="space-y-1">
+                {teamPicks.length === 0 && (
+                  <div className="text-xs text-gray-500 text-center py-2">
+                    No picks yet
+                  </div>
+                )}
+                {teamPicks.map((pick, idx) => {
                   const player = getPlayerById(pick.picked_player_id)
                   return player ? (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div 
+                      key={pick.id}
+                      className="flex items-center gap-2 text-xs bg-black/20 rounded p-1"
+                    >
                       <div 
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                        className="w-5 h-5 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: player.color }}
                       >
-                        {player.name.slice(0, 1)}
+                        {player.name.charAt(0)}
                       </div>
-                      <span className="text-sm">{player.name}</span>
+                      <span className="truncate">{player.name}</span>
                     </div>
                   ) : null
                 })}
               </div>
-            </motion.div>
+            </div>
           )
         })}
       </div>
 
-      {isMyTurn && (
-        <div className="space-y-3">
-          <h3 className="font-bold">Pick a player:</h3>
+      {/* Current Turn Indicator */}
+      <div className={`
+        rounded-xl p-4 text-center border
+        ${isCurrentCaptain ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10 bg-white/5'}
+      `}>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          {isCurrentCaptain ? (
+            <>
+              <Zap className="w-5 h-5 text-yellow-400 animate-pulse" />
+              <span className="font-bold text-yellow-400">YOUR TURN!</span>
+            </>
+          ) : (
+            <>
+              <Clock className="w-5 h-5 text-gray-400" />
+              <span className="text-gray-400">
+                Waiting for {currentCaptainPlayer?.name || 'captain'} to pick...
+              </span>
+            </>
+          )}
+        </div>
+        
+        {isCurrentCaptain && (
+          <div className="text-2xl font-bold mt-2" style={{ color: TEAM_COLORS[(myTeamNumber || 1) - 1] }}>
+            {timeLeft}s
+          </div>
+        )}
+      </div>
+
+      {/* Available Players for Picking */}
+      {canPick && availablePlayerIds.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-bold text-sm flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Pick a player:
+          </h3>
           <div className="grid grid-cols-3 gap-2">
-            {availablePlayers.map((playerId: string) => {
+            {availablePlayerIds.map((playerId) => {
               const player = getPlayerById(playerId)
               if (!player) return null
               
@@ -578,14 +790,14 @@ function LiveDraftContent() {
                 <motion.button
                   key={playerId}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handlePick(playerId)}
-                  className="p-3 rounded-xl border border-white/10 hover:border-green-500 bg-white/5 text-center"
+                  onClick={() => onPick(playerId)}
+                  className="p-2 rounded-xl border border-green-500/50 bg-green-500/10 hover:bg-green-500/20 text-center"
                 >
                   <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs mx-auto mb-1"
                     style={{ backgroundColor: player.color }}
                   >
-                    {player.name.slice(0, 2).toUpperCase()}
+                    {player.name.charAt(0)}
                   </div>
                   <div className="text-xs">{player.name}</div>
                   <div className="text-xs text-gray-500">{player.position}</div>
@@ -596,17 +808,24 @@ function LiveDraftContent() {
         </div>
       )}
 
-      {!isMyTurn && draftState?.status === 'drafting' && (
-        <div className="text-center p-4 rounded-xl bg-white/5">
-          <Zap className="w-6 h-6 mx-auto mb-2 text-yellow-400 animate-pulse" />
-          <p className="text-gray-400">
-            Waiting for {teamNames[(draftState.current_turn_team || 1) - 1]} captain to pick...
-          </p>
+      {/* Spectator View */}
+      {!isCaptain && (
+        <div className="text-center p-3 rounded-xl bg-white/5">
+          <Eye className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+          <p className="text-sm text-gray-400">Spectating the draft</p>
         </div>
       )}
 
-      {/* Draft Complete - Show Teams Complete message */}
-      {draftState?.status === 'drafting' && picks.length >= (draftState.num_teams * draftState.team_size) && (
+      {/* Waiting View (captain but not my turn) */}
+      {isCaptain && !canPick && (
+        <div className="text-center p-3 rounded-xl bg-white/5">
+          <Clock className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+          <p className="text-sm text-gray-400">Waiting for your turn...</p>
+        </div>
+      )}
+
+      {/* Check ifDraft Complete */}
+      {picks.length >= (draftSession.num_teams * draftSession.team_size) && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -614,38 +833,140 @@ function LiveDraftContent() {
         >
           <Trophy className="w-12 h-12 mx-auto mb-2 text-green-400" />
           <h2 className="text-2xl font-bold text-green-400 mb-2">Teams Complete!</h2>
-          <p className="text-gray-400 mb-4">All {draftState.num_teams} teams have {draftState.team_size} players each</p>
-          <button 
-            onClick={() => router.push('/match-day/submit')}
-            className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
-          >
-            <Check className="w-5 h-5" />
-            Confirm Teams & Start Match
-          </button>
+          <p className="text-gray-400 mb-4">
+            All {draftSession.num_teams} teams have {draftSession.team_size} players each
+          </p>
         </motion.div>
-      )}
-
-      {!isCaptain && (
-        <div className="text-center p-4 rounded-xl bg-white/5">
-          <p className="text-gray-400">You're spectating the draft</p>
-        </div>
       )}
     </div>
   )
 }
 
+// ============== COMPLETED PHASE COMPONENT ==============
+function CompletedPhase({
+  draftSession,
+  picks,
+  captains,
+  onConfirm,
+  shareDraft,
+}: {
+  draftSession: DraftSession
+  picks: DraftPick[]
+  captains: DraftCaptain[]
+  onConfirm: () => void
+  shareDraft: () => void
+}) {
+  const numTeams = draftSession.num_teams
+
+  return (
+    <div className="space-y-6">
+      {/* Success Banner */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass rounded-2xl p-6 border border-green-500/30 text-center"
+      >
+        <Trophy className="w-16 h-16 mx-auto mb-2 text-green-400" />
+        <h2 className="text-3xl font-bold text-green-400 mb-2">Teams Complete!</h2>
+        <p className="text-gray-400">
+          All {numTeams} teams are ready for match day
+        </p>
+      </motion.div>
+
+      {/* Share Button */}
+      <button
+        onClick={shareDraft}
+        className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
+      >
+        <Share2 className="w-4 h-4" />
+        Share Draft Results
+      </button>
+
+      {/* Final Team Rosters */}
+      <div className={`grid gap-4 ${numTeams === 2 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-4'}`}>
+        {Array.from({ length: numTeams }, (_, i) => i + 1).map((teamNum) => {
+          const teamPicks = picks.filter(p => p.team_number === teamNum)
+          const teamCaptain = captains.find(c => c.team_number === teamNum)
+          const captain = teamCaptain ? getPlayerById(teamCaptain.player_id) : null
+
+          return (
+            <div
+              key={teamNum}
+              className="rounded-xl p-4 border border-white/10"
+              style={{ 
+                backgroundColor: (TEAM_COLORS[teamNum - 1] + '20'),
+              }}
+            >
+              {/* Team Header */}
+              <div className="text-center mb-4 pb-3 border-b border-white/10">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-2"
+                  style={{ backgroundColor: TEAM_COLORS[teamNum - 1] }}
+                >
+                  {TEAM_NAMES[teamNum - 1].charAt(0)}
+                </div>
+                <div className="font-bold text-lg">{TEAM_NAMES[teamNum - 1]} Team</div>
+                {captain && (
+                  <div className="flex items-center justify-center gap-1 text-sm text-gray-400">
+                    <Crown className="w-4 h-4 text-yellow-400" />
+                    {captain.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Roster */}
+              <div className="space-y-2">
+                {teamPicks.map((pick, idx) => {
+                  const player = getPlayerById(pick.picked_player_id)
+                  return player ? (
+                    <div 
+                      key={pick.id}
+                      className="flex items-center gap-3 bg-black/20 rounded-lg p-2"
+                    >
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: player.color }}
+                      >
+                        {player.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{player.name}</div>
+                        <div className="text-xs text-gray-400">{player.position}</div>
+                      </div>
+                    </div>
+                  ) : null
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Confirm Button */}
+      <button 
+        onClick={onConfirm}
+        className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+      >
+        <Check className="w-5 h-5" />
+        Confirm Teams & Start Match
+      </button>
+    </div>
+  )
+}
+
+// ============== MAIN PAGE EXPORT ==============
 export default function LiveDraftPage() {
   return (
     <div className="min-h-screen pb-20">
-      <Header title="Live Team Selection by Captains" />
+      <Header title="Live Team Selection" />
       
       <main className="max-w-md mx-auto px-4 py-6">
         <Suspense fallback={
           <div className="text-center p-8">
-            <div className="animate-pulse">Loading draft...</div>
+            <div className="animate-pulse">Loading...</div>
           </div>
         }>
-          <LiveDraftContent />
+          <DraftContent />
         </Suspense>
       </main>
 
