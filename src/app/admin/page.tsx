@@ -103,7 +103,9 @@ function AdminContent() {
       lastThursday.setDate(today.getDate() - daysSinceThursday)
       
       const cutoffDate = lastThursday.toISOString().split('T')[0]
+      console.log('Loading matches up to:', cutoffDate)
       
+      // First load existing matches up to last Thursday
       const { data } = await supabase
         .from('matches')
         .select('*')
@@ -111,9 +113,51 @@ function AdminContent() {
         .order('match_date', { ascending: false })
         .limit(20)
       
-      if (data && data.length > 0) {
-        setMatches(data)
-        setSelectedMatch(data[0].id)
+      // Also check if there's a NEXT Thursday game (for new stats entry)
+      let nextThursdayMatch = null
+      const daysUntilNextThursday = (4 - dayOfWeek + 7) % 7 || 7
+      let nextThursday = new Date(today)
+      nextThursday.setDate(today.getDate() + daysUntilNextThursday)
+      
+      // Check if we're past Thursday 8pm - can create next game stats
+      const hour = now.getHours()
+      const canCreateNext = dayOfWeek === 4 && hour >= 20 // Thursday after 8pm
+      
+      if (canCreateNext) {
+        const nextDate = nextThursday.toISOString().split('T')[0]
+        // Check if match exists for next Thursday
+        const { data: nextMatch } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('match_date', nextDate)
+          .single()
+        
+        if (nextMatch) {
+          nextThursdayMatch = nextMatch
+        } else {
+          // Create a placeholder match for next Thursday
+          const { data: newMatch } = await supabase
+            .from('matches')
+            .insert({
+              match_date: nextDate,
+              team_size: 7,
+              num_teams: 2,
+            })
+            .select()
+            .single()
+          if (newMatch) nextThursdayMatch = newMatch
+        }
+      }
+      
+      // Combine past matches with next Thursday (if applicable)
+      const allMatches = nextThursdayMatch 
+        ? [nextThursdayMatch, ...(data || [])]
+        : (data || [])
+      
+      if (allMatches.length > 0) {
+        setMatches(allMatches)
+        // Select the most recent (first in sorted list)
+        setSelectedMatch(allMatches[0].id)
       } else {
         setMatches([])
         setSelectedMatch(null)
