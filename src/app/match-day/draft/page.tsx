@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { PLAYERS } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
-import { 
-  Crown, Clock, Trophy, Users, UserPlus, Zap, 
+import {
+  Crown, Clock, Trophy, Users, UserPlus, Zap,
   ArrowRight, Check, X, Sparkles, Eye, EyeOff,
   ChevronDown, ChevronUp, Share2, RefreshCw
 } from 'lucide-react'
@@ -63,7 +63,7 @@ function generateSnakeOrder(numTeams: number, totalPicks: number): number[] {
   for (let i = 0; i < totalPicks; i++) {
     const round = Math.floor(i / numTeams)
     const positionInRound = i % numTeams
-    
+
     // Snake: forward on odd rounds, backward on even rounds
     if (round % 2 === 0) {
       order.push(positionInRound + 1) // 1,2,3,4...
@@ -80,27 +80,27 @@ function DraftContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session')
   const { user, profile, loading: authLoading } = useAuth()
-  
+
   // Game state
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null)
   const [captains, setCaptains] = useState<DraftCaptain[]>([])
   const [picks, setPicks] = useState<DraftPick[]>([])
   const [availablePlayerIds, setAvailablePlayerIds] = useState<string[]>([])
-  
+
   // Identity
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null)
   const [myTeamNumber, setMyTeamNumber] = useState<number | null>(null)
   const [isCaptain, setIsCaptain] = useState(false)
   const [isCurrentCaptain, setIsCurrentCaptain] = useState(false)
-  
+
   // Timer
   const [timeLeft, setTimeLeft] = useState(PICK_TIME_LIMIT)
   const [canPick, setCanPick] = useState(false)
-  
+
   // Setup phase
   const [selectedCaptainIds, setSelectedCaptainIds] = useState<string[]>([])
   const [captainSelectMode, setCaptainSelectMode] = useState(false)
-  
+
   // View state
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -109,17 +109,17 @@ function DraftContent() {
   // ============== SYNC CAPTAINS TO DB ==============
   useEffect(() => {
     if (!sessionId || draftSession?.status !== 'setup') return
-    if (selectedCaptainIds.length === lastSyncedCaptains.length && 
+    if (selectedCaptainIds.length === lastSyncedCaptains.length &&
         selectedCaptainIds.every(id => lastSyncedCaptains.includes(id))) {
       return // No change
     }
-    
+
     const syncCaptains = async () => {
       console.log('Syncing captains to DB:', selectedCaptainIds)
-      
+
       // Delete all existing captains first
       await supabase.from('draft_captains').delete().eq('draft_session_id', sessionId)
-      
+
       // Insert new captains
       for (let i = 0; i < selectedCaptainIds.length; i++) {
         await supabase.from('draft_captains').insert({
@@ -129,20 +129,20 @@ function DraftContent() {
           was_auto_selected: false,
         })
       }
-      
+
       setLastSyncedCaptains([...selectedCaptainIds])
     }
-    
+
     syncCaptains()
   }, [selectedCaptainIds, sessionId, draftSession])
 
   // ============== LOAD DRAFT SESSION ==============
   const loadDraftSession = useCallback(async () => {
     if (!sessionId) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
       // Load draft session
       const { data: session, error: sessionError } = await supabase
@@ -150,15 +150,15 @@ function DraftContent() {
         .select('*')
         .eq('id', sessionId)
         .single()
-      
+
       if (sessionError || !session) {
         setError('Draft session not found')
         setIsLoading(false)
         return
       }
-      
+
       setDraftSession(session)
-      
+
       // Get attending player IDs from session or localStorage
       let playerIds: string[] = session.attending_player_ids || []
       if (playerIds.length === 0) {
@@ -170,50 +170,50 @@ function DraftContent() {
         }
       }
       setAvailablePlayerIds(playerIds)
-      
+
       // Load captains
       const { data: captainsData } = await supabase
         .from('draft_captains')
         .select('*')
         .eq('draft_session_id', sessionId)
-      
+
       if (captainsData) {
         setCaptains(captainsData)
         setSelectedCaptainIds(captainsData.map(c => c.player_id))
       }
-      
+
       // Load picks
       const { data: picksData } = await supabase
         .from('draft_picks')
         .select('*')
         .eq('draft_session_id', sessionId)
         .order('pick_number')
-      
+
       if (picksData) {
         setPicks(picksData)
-        
+
         // Remove picked players from available
         const pickedIds = picksData.map(p => p.picked_player_id)
         setAvailablePlayerIds(prev => prev.filter(id => !pickedIds.includes(id)))
       }
-      
+
     } catch (err) {
       console.error('Error loading draft:', err)
       setError('Failed to load draft session')
     }
-    
+
     setIsLoading(false)
   }, [sessionId])
 
   // ============== SETUP AUTH & LOAD ==============
   useEffect(() => {
     if (authLoading) return
-    
+
     // Get my player ID from profile
     if (profile?.player_id) {
       setMyPlayerId(profile.player_id)
     }
-    
+
     if (sessionId) {
       loadDraftSession()
     }
@@ -222,7 +222,7 @@ function DraftContent() {
   // ============== CHECK CAPTAIN IDENTITY ==============
   useEffect(() => {
     if (!draftSession || !myPlayerId || captains.length === 0) return
-    
+
     const myCaptain = captains.find(c => c.player_id === myPlayerId)
     if (myCaptain) {
       setIsCaptain(true)
@@ -233,13 +233,13 @@ function DraftContent() {
   // ============== CHECK IF IT'S MY TURN ==============
   useEffect(() => {
     if (!draftSession || !isCaptain || !myTeamNumber) return
-    
-    const isMyTurn = draftSession.status === 'drafting' && 
+
+    const isMyTurn = draftSession.status === 'drafting' &&
                     draftSession.current_turn_team === myTeamNumber
-    
+
     setIsCurrentCaptain(isMyTurn)
     setCanPick(isMyTurn)
-    
+
     if (isMyTurn) {
       setTimeLeft(PICK_TIME_LIMIT)
     }
@@ -248,7 +248,7 @@ function DraftContent() {
   // ============== TIMER ==============
   useEffect(() => {
     if (!isCurrentCaptain || !draftSession || draftSession.status !== 'drafting') return
-    
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -259,21 +259,21 @@ function DraftContent() {
         return prev - 1
       })
     }, 1000)
-    
+
     return () => clearInterval(timer)
   }, [isCurrentCaptain, draftSession])
 
   // ============== AUTO-PICK ==============
   const handleAutoPick = async () => {
     if (!draftSession || !canPick || availablePlayerIds.length === 0) return
-    
+
     // Get available players excluding captains
     const availableForPick = availablePlayerIds.filter(
       id => !captains.some(c => c.player_id === id)
     )
-    
+
     if (availableForPick.length === 0) return
-    
+
     // Pick the first available (could be smarter with ratings)
     const pickPlayerId = availableForPick[0]
     if (pickPlayerId) {
@@ -284,10 +284,10 @@ function DraftContent() {
   // ============== MAKE A PICK ==============
   const makePick = async (pickPlayerId: string, wasAuto: boolean = false) => {
     if (!draftSession || !myPlayerId || !canPick) return
-    
+
     const nextPickNum = (draftSession.current_pick_number || 0) + 1
     const currentTeam = draftSession.current_turn_team
-    
+
     try {
       // Insert pick
       const { error: pickError } = await supabase
@@ -300,18 +300,18 @@ function DraftContent() {
           picked_player_id: pickPlayerId,
           was_auto_pick: wasAuto,
         })
-      
+
       if (pickError) throw pickError
-      
+
       // Calculate next team (snake draft)
       const numTeams = draftSession.num_teams
       const totalPicks = numTeams * draftSession.team_size
       const snakeOrder = generateSnakeOrder(numTeams, totalPicks)
       const nextTeamIndex = nextPickNum // 0-indexed
-      const nextTeam = nextTeamIndex < snakeOrder.length 
-        ? snakeOrder[nextPickNum] 
+      const nextTeam = nextTeamIndex < snakeOrder.length
+        ? snakeOrder[nextPickNum]
         : ((nextPickNum - 1) % numTeams) + 1
-      
+
       // Update draft session
       const { error: updateError } = await supabase
         .from('draft_sessions')
@@ -320,12 +320,24 @@ function DraftContent() {
           current_turn_team: nextTeam,
         })
         .eq('id', sessionId)
-      
+
       if (updateError) throw updateError
+
+      // Check if draft is complete
+      const totalPicksNeeded = draftSession.num_teams * draftSession.team_size
+      const newPickCount = nextPickNum
       
+      if (newPickCount >= totalPicksNeeded) {
+        // All players picked - mark as completed
+        await supabase
+          .from('draft_sessions')
+          .update({ status: 'completed' })
+          .eq('id', sessionId)
+      }
+
       // Reload to get latest state
       await loadDraftSession()
-      
+
     } catch (err) {
       console.error('Error making pick:', err)
     }
@@ -335,9 +347,9 @@ function DraftContent() {
   // ============== REALTIME SUBSCRIPTION ==============
   useEffect(() => {
     if (!sessionId) return
-    
+
     console.log('Setting up realtime for session:', sessionId)
-    
+
     const channel = supabase
       .channel(`draft:${sessionId}`)
       .on('postgres_changes', {
@@ -389,7 +401,7 @@ function DraftContent() {
         } : null)
       })
       .subscribe()
-    
+
     return () => {
       console.log('Cleaning up realtime channel')
       supabase.removeChannel(channel)
@@ -417,7 +429,7 @@ function DraftContent() {
     return (
       <div className="text-center p-8">
         <p className="text-gray-400 mb-4">No draft session specified</p>
-        <button 
+        <button
           onClick={() => router.push('/match-day')}
           className="px-6 py-3 bg-blue-500 rounded-xl"
         >
@@ -441,7 +453,7 @@ function DraftContent() {
     return (
       <div className="text-center p-8">
         <p className="text-red-400 mb-4">{error}</p>
-        <button 
+        <button
           onClick={() => router.push('/match-day')}
           className="px-6 py-3 bg-blue-500 rounded-xl"
         >
@@ -466,20 +478,20 @@ function DraftContent() {
             .from('draft_sessions')
             .update({ status: 'drafting' })
             .eq('id', sessionId)
-          
+
           await loadDraftSession()
         }}
         onAutoSelectCaptains={async () => {
           const numTeams = draftSession.num_teams
           // Get top N rated players as captains
           const topPlayers = availablePlayerIds.slice(0, numTeams)
-          
+
           // Delete existing captains
           await supabase
             .from('draft_captains')
             .delete()
             .eq('draft_session_id', sessionId)
-          
+
           // Insert new captains
           for (let i = 0; i < topPlayers.length; i++) {
             await supabase
@@ -491,7 +503,7 @@ function DraftContent() {
                 was_auto_selected: true,
               })
           }
-          
+
           await loadDraftSession()
         }}
         shareDraft={shareDraft}
@@ -568,7 +580,7 @@ function SetupPhase({
   // Simply toggle locally - DB sync handled by parent via onCaptainToggle callback
   const toggleCaptain = (playerId: string) => {
     console.log('Tapped player:', playerId, getPlayerById(playerId)?.name)
-    
+
     if (selectedCaptainIds.includes(playerId)) {
       setSelectedCaptainIds(selectedCaptainIds.filter(id => id !== playerId))
     } else if (selectedCaptainIds.length < captainsNeeded) {
@@ -615,12 +627,12 @@ function SetupPhase({
                 <div
                   key={c.player_id}
                   className="flex items-center gap-2 p-2 rounded-lg border"
-                  style={{ 
+                  style={{
                     backgroundColor: teamColor + '20',
                     borderColor: teamColor
                   }}
                 >
-                  <div 
+                  <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ backgroundColor: player.color }}
                   >
@@ -647,9 +659,9 @@ function SetupPhase({
           {availablePlayerIds.filter(id => !selectedCaptainIds.includes(id)).map((playerId) => {
             const player = getPlayerById(playerId)
             if (!player) return null
-            
+
             const isSelected = selectedCaptainIds.includes(playerId)
-            
+
             return (
               <motion.button
                 key={playerId}
@@ -660,13 +672,13 @@ function SetupPhase({
                 }}
                 className={`
                   p-3 rounded-xl border text-center transition-all
-                  ${isSelected 
-                    ? 'border-yellow-500 bg-yellow-500/20' 
+                  ${isSelected
+                    ? 'border-yellow-500 bg-yellow-500/20'
                     : 'border-white/10 bg-white/5 hover:border-white/30'
                   }
                 `}
               >
-                <div 
+                <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
                   style={{ backgroundColor: player.color }}
                 >
@@ -743,7 +755,7 @@ function DraftingPhase({
 }) {
   const numTeams = draftSession.num_teams
   const currentTeam = draftSession.current_turn_team
-  
+
   // Get current captain name
   const currentCaptain = captains.find(c => c.team_number === currentTeam)
   const currentCaptainPlayer = currentCaptain ? getPlayerById(currentCaptain.player_id) : null
@@ -775,13 +787,13 @@ function DraftingPhase({
                 rounded-xl p-3 border
                 ${isTurn ? 'border-yellow-500 animate-pulse' : 'border-white/10'}
               `}
-              style={{ 
+              style={{
                 backgroundColor: (TEAM_COLORS[teamNum - 1] + '10'),
               }}
             >
               {/* Team Header */}
               <div className="text-center mb-3">
-                <div 
+                <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto mb-1"
                   style={{ backgroundColor: TEAM_COLORS[teamNum - 1] }}
                 >
@@ -809,11 +821,11 @@ function DraftingPhase({
                 {teamPicks.map((pick, idx) => {
                   const player = getPlayerById(pick.picked_player_id)
                   return player ? (
-                    <div 
+                    <div
                       key={pick.id}
                       className="flex items-center gap-2 text-xs bg-black/20 rounded p-1"
                     >
-                      <div 
+                      <div
                         className="w-5 h-5 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: player.color }}
                       >
@@ -849,7 +861,7 @@ function DraftingPhase({
             </>
           )}
         </div>
-        
+
         {isCurrentCaptain && (
           <div className="text-2xl font-bold mt-2" style={{ color: TEAM_COLORS[(myTeamNumber || 1) - 1] }}>
             {timeLeft}s
@@ -867,13 +879,16 @@ function DraftingPhase({
           <div className="grid grid-cols-3 gap-2">
             {availablePlayerIds
               .filter(id => {
-                // Exclude players who are captains
-                return !captains.some(c => c.player_id === id)
+                // Exclude captains (already on teams)
+                if (captains.some(c => c.player_id === id)) return false
+                // Exclude already-picked players
+                if (picks.some(p => p.picked_player_id === id)) return false
+                return true
               })
               .map((playerId) => {
               const player = getPlayerById(playerId)
               if (!player) return null
-              
+
               return (
                 <motion.button
                   key={playerId}
@@ -881,7 +896,7 @@ function DraftingPhase({
                   onClick={() => onPick(playerId)}
                   className="p-2 rounded-xl border border-green-500/50 bg-green-500/10 hover:bg-green-500/20 text-center"
                 >
-                  <div 
+                  <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs mx-auto mb-1"
                     style={{ backgroundColor: player.color }}
                   >
@@ -912,9 +927,9 @@ function DraftingPhase({
         </div>
       )}
 
-      {/* Check ifDraft Complete */}
-      {picks.length >= (draftSession.num_teams * draftSession.team_size) && (
-        <motion.div 
+      {/* Show Teams Complete when all picked (only in drafting state) */}
+      {draftSession?.status === 'drafting' && picks.length >= (draftSession.num_teams * draftSession.team_size) && (
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="glass rounded-2xl p-6 border border-green-500/30 text-center"
@@ -949,7 +964,7 @@ function CompletedPhase({
   return (
     <div className="space-y-6">
       {/* Success Banner */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="glass rounded-2xl p-6 border border-green-500/30 text-center"
@@ -981,13 +996,13 @@ function CompletedPhase({
             <div
               key={teamNum}
               className="rounded-xl p-4 border border-white/10"
-              style={{ 
+              style={{
                 backgroundColor: (TEAM_COLORS[teamNum - 1] + '20'),
               }}
             >
               {/* Team Header */}
               <div className="text-center mb-4 pb-3 border-b border-white/10">
-                <div 
+                <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-2"
                   style={{ backgroundColor: TEAM_COLORS[teamNum - 1] }}
                 >
@@ -1007,11 +1022,11 @@ function CompletedPhase({
                 {teamPicks.map((pick, idx) => {
                   const player = getPlayerById(pick.picked_player_id)
                   return player ? (
-                    <div 
+                    <div
                       key={pick.id}
                       className="flex items-center gap-3 bg-black/20 rounded-lg p-2"
                     >
-                      <div 
+                      <div
                         className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: player.color }}
                       >
@@ -1031,13 +1046,41 @@ function CompletedPhase({
       </div>
 
       {/* Confirm Button */}
-      <button 
-        onClick={onConfirm}
-        className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
-      >
-        <Check className="w-5 h-5" />
-        Confirm Teams & Start Match
-      </button>
+      <div className="space-y-3">
+        <button
+          onClick={onConfirm}
+          className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+        >
+          <Check className="w-5 h-5" />
+          Confirm Teams & Start Match
+        </button>
+        
+        <button
+          onClick={() => {
+            if (confirm('Restart draft? This will clear all picks.')) {
+              // Reset draft session to setup
+              supabase
+                .from('draft_sessions')
+                .update({ status: 'setup', current_pick_number: 0, current_turn_team: 1 })
+                .eq('id', draftSession.id)
+              .then(() => {
+                // Delete all picks
+                supabase.from('draft_picks').delete().eq('draft_session_id', draftSession.id)
+              })
+              .then(() => {
+                // Delete all captains
+                supabase.from('draft_captains').delete().eq('draft_session_id', draftSession.id)
+              })
+              .then(() => {
+                window.location.reload()
+              })
+            }
+          }}
+          className="w-full py-3 rounded-xl border border-white/20 text-gray-400"
+        >
+          Restart Draft
+        </button>
+      </div>
     </div>
   )
 }
@@ -1047,7 +1090,7 @@ export default function LiveDraftPage() {
   return (
     <div className="min-h-screen pb-20">
       <Header title="Live Team Selection" />
-      
+
       <main className="max-w-md mx-auto px-4 py-6">
         <Suspense fallback={
           <div className="text-center p-8">
