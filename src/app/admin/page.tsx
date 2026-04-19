@@ -110,7 +110,11 @@ function AdminContent() {
     // Load only ONE Thursday - the most recent past one
     const loadMatches = async () => {
       const prevThursday = getPreviousThursday()
-      const matchDate = prevThursday.toISOString().split('T')[0]
+      // Use local date formatting to avoid UTC shift
+      const year = prevThursday.getFullYear()
+      const month = String(prevThursday.getMonth() + 1).padStart(2, '0')
+      const day = String(prevThursday.getDate()).padStart(2, '0')
+      const matchDate = `${year}-${month}-${day}`
       
       // Try to find existing match for this date
       const { data: existing } = await supabase
