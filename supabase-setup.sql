@@ -248,10 +248,16 @@ CREATE POLICY "Players can mark own attendance" ON attendance FOR INSERT WITH CH
 -- Man of the Match votes: authenticated users
 CREATE POLICY "Auth users can vote for MOTM" ON man_of_the_match_votes FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
--- Player ratings: authenticated players only
+-- Player ratings: authenticated players can insert
 CREATE POLICY "Players can submit ratings" ON player_ratings FOR INSERT WITH CHECK (
   auth.uid()::TEXT IN (SELECT google_id FROM user_profiles WHERE player_id = player_ratings.rater_id AND role = 'player')
 );
+
+-- Player ratings: allow update (for admin)
+CREATE POLICY "Anyone can update player ratings" ON player_ratings FOR UPDATE USING (true);
+
+-- Player ratings: allow delete (for admin)
+CREATE POLICY "Anyone can delete player ratings" ON player_ratings FOR DELETE USING (true);
 
 -- User profiles: allow insert for new users
 CREATE POLICY "Anyone can create user profile" ON user_profiles FOR INSERT WITH CHECK (true);

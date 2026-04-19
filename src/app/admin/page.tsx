@@ -247,6 +247,7 @@ function AdminContent() {
       const rating = playerRatings.find(r => r.rated_player_id === editingRating)
       
       if (rating) {
+        // Update existing rating
         await supabase.from('player_ratings').update({
           forward_rating: editForm.forward,
           midfielder_rating: editForm.midfielder,
@@ -254,9 +255,17 @@ function AdminContent() {
           goalkeeper_rating: editForm.goalkeeper,
         }).eq('id', rating.id)
       } else {
+        // For new rating, delete any existing first (to handle UNIQUE constraint)
+        await supabase.from('player_ratings')
+          .delete()
+          .eq('rated_player_id', editingRating)
+          .eq('rating_month', currentMonth)
+          .eq('rating_year', currentYear)
+        
+        // Insert as system rater (use a fixed UUID for admin/system)
         await supabase.from('player_ratings').insert({
           rated_player_id: editingRating,
-          rater_id: editingRating,
+          rater_id: '00000000-0000-0000-0000-000000000000', // system rater
           rating_month: currentMonth,
           rating_year: currentYear,
           forward_rating: editForm.forward,
