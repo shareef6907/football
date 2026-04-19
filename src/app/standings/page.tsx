@@ -177,7 +177,28 @@ export default function StandingsPage() {
 
         {/* Standings Table */}
         {loading ? (
-          <div className="text-center p-8">Loading...</div>
+          <div className="space-y-2">
+            {[...Array(10)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.03 }}
+                className="glass rounded-xl p-3 border border-white/10 flex items-center animate-pulse"
+              >
+                <div className="w-8 h-8 rounded-lg bg-white/10 mr-3" />
+                <div className="w-10 h-10 rounded-full bg-white/10 mr-3" />
+                <div className="flex-1">
+                  <div className="h-4 w-24 rounded bg-white/10 mb-2" />
+                  <div className="h-3 w-32 rounded bg-white/10" />
+                </div>
+                <div className="text-right">
+                  <div className="h-6 w-12 rounded bg-white/10 mb-1" />
+                  <div className="h-3 w-16 rounded bg-white/10" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
         ) : (
           <div className="space-y-2">
             {sorted.map((player, index) => {

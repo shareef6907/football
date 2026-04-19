@@ -29,6 +29,7 @@ function SeasonsContent() {
   const [seasons, setSeasons] = useState<Season[]>([])
   const [currentSeason, setCurrentSeason] = useState<Season | null>(null)
   const [awards, setAwards] = useState<Record<string, AwardWinner>>({})
+  const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [newSeason, setNewSeason] = useState({ name: '', start: '', end: '' })
   const [isCreating, setIsCreating] = useState(false)
@@ -41,6 +42,7 @@ function SeasonsContent() {
 
   useEffect(() => {
     const fetchSeasons = async () => {
+      setLoading(true)
       const { data } = await supabase
         .from('seasons')
         .select('*')
@@ -50,6 +52,7 @@ function SeasonsContent() {
         setSeasons(data)
         setCurrentSeason(data.find(s => s.is_active) || null)
       }
+      setLoading(false)
     }
 
     fetchSeasons()
@@ -59,25 +62,21 @@ function SeasonsContent() {
     if (!currentSeason) return
 
     const calculateAwards = async () => {
-      // Get all matches
-      const { data: matches } = await supabase.from('matches').select('id')
-      if (!matches) return
+      setLoading(true)
+      // Parallel queries for speed
+      const [matchesRes, allStatsRes, motmRes, ratingsRes] = await Promise.all([
+        supabase.from('matches').select('id'),
+        supabase.from('match_stats').select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet'),
+        supabase.from('man_of_the_match_winners').select('player_id, match_id'),
+        supabase.from('player_ratings').select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating'),
+      ])
+      
+      const matches = matchesRes.data
+      if (!matches) { setLoading(false); return }
       const matchIds = matches.map(m => m.id)
-      
-      // Get all stats for these matches
-      const { data: allStats } = await supabase
-        .from('match_stats')
-        .select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet')
-      
-      // Get all MOTM winners
-      const { data: motmWinners } = await supabase
-        .from('man_of_the_match_winners')
-        .select('player_id, match_id')
-      
-      // Get all ratings
-      const { data: allRatings } = await supabase
-        .from('player_ratings')
-        .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating')
+      const allStats = allStatsRes.data || []
+      const motmWinners = motmRes.data || []
+      const allRatings = ratingsRes.data || []
       
       if (!allStats) return
       
@@ -190,7 +189,7 @@ function SeasonsContent() {
       }
     }
 
-    calculateAwards()
+    calculateAwards().finally(() => setLoading(false))
   }, [currentSeason])
 
   const handleCreateSeason = async () => {
@@ -318,10 +317,49 @@ export default function SeasonsPage() {
       <Header title="Seasons" />
       
       <main className="max-w-md mx-auto px-4 py-6">
-        <Suspense fallback={<div className="text-center p-8"><div className="animate-pulse">Loading...</div></div>}><SeasonsContent /></Suspense>
+        <Suspense fallback={<SeasonsSkeleton />}><SeasonsContent /></Suspense>
       </main>
 
       <Navigation activePath="/seasons" />
+    </div>
+  )
+}
+
+function SeasonsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+        <Calendar className="w-12 h-12 mx-auto mb-2 text-purple-400" />
+        <h1 className="text-2xl font-bold">Seasons</h1>
+      </motion.div>
+      
+      {/* Skeleton for current season awards */}
+      <div className="glass rounded-2xl p-6 border border-yellow-500/30 animate-pulse">
+        <div className="h-6 w-40 rounded bg-white/10 mb-4" />
+        <div className="space-y-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/5">
+              <div className="w-8 h-8 rounded-lg bg-white/10" />
+              <div className="flex-1">
+                <div className="h-4 w-24 rounded bg-white/10 mb-1" />
+                <div className="h-3 w-16 rounded bg-white/10" />
+              </div>
+              <div className="h-6 w-12 rounded bg-white/10" />
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Skeleton for seasons list */}
+      <div className="space-y-3">
+        <div className="h-5 w-24 rounded bg-white/10 mb-2" />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="glass rounded-xl p-4 border border-white/10 animate-pulse">
+            <div className="h-4 w-32 rounded bg-white/10 mb-2" />
+            <div className="h-3 w-40 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

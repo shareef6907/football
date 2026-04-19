@@ -17,6 +17,44 @@ interface Transaction {
   created_at: string
 }
 
+function CoinsSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Balance skeleton */}
+      <div className="glass rounded-2xl p-8 border border-yellow-500/30">
+        <div className="w-12 h-12 rounded-full bg-white/10 mx-auto mb-2" />
+        <div className="h-4 w-32 mx-auto mb-2 rounded bg-white/10" />
+        <div className="h-12 w-32 mx-auto rounded bg-white/10" />
+        <div className="h-3 w-24 mx-auto mt-2 rounded bg-white/10" />
+      </div>
+      
+      {/* Transactions skeleton */}
+      <div className="space-y-3">
+        <div className="h-5 w-32 rounded bg-white/10 mb-2" />
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="glass rounded-xl p-3 border border-white/10">
+            <div className="h-4 w-40 rounded bg-white/10 mb-2" />
+            <div className="h-3 w-20 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
+      
+      {/* Leaderboard skeleton */}
+      <div className="space-y-3">
+        <div className="h-5 w-32 rounded bg-white/10 mb-2" />
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="glass rounded-xl p-3 border border-white/10 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white/10" />
+            <div className="w-8 h-8 rounded-full bg-white/10" />
+            <div className="flex-1 h-4 w-24 rounded bg-white/10" />
+            <div className="h-6 w-12 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CoinsContent() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
@@ -24,6 +62,7 @@ function CoinsContent() {
   const [balance, setBalance] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [leaderboard, setLeaderboard] = useState<{player_id: string, total: number}[]>([])
+  const [loading, setLoading] = useState(true)
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false)
 
   useEffect(() => {
@@ -35,48 +74,40 @@ function CoinsContent() {
   useEffect(() => {
     if (!profile?.player_id) return
 
-    // Get my balance
-    const fetchBalance = async () => {
-      const { data } = await supabase
-        .from('coins_ledger')
-        .select('amount')
-        .eq('player_id', profile.player_id)
+    // Get my balance AND transactions in parallel
+    const fetchBalanceAndTransactions = async () => {
+      setLoading(true)
+      const [balanceRes, txRes] = await Promise.all([
+        supabase.from('coins_ledger').select('amount').eq('player_id', profile.player_id),
+        supabase.from('coins_ledger').select('*').eq('player_id', profile.player_id).order('created_at', { ascending: false }).limit(20),
+      ])
       
-      if (data) {
-        const total = data.reduce((sum, t) => sum + t.amount, 0)
+      if (balanceRes.data) {
+        const total = balanceRes.data.reduce((sum, t) => sum + t.amount, 0)
         setBalance(total)
       }
+      if (txRes.data) setTransactions(txRes.data)
+      setLoading(false)
     }
 
-    // Get my transactions
-    const fetchTransactions = async () => {
-      const { data } = await supabase
-        .from('coins_ledger')
-        .select('*')
-        .eq('player_id', profile.player_id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-      
-      if (data) setTransactions(data)
-    }
-
-    fetchBalance()
-    fetchTransactions()
+    fetchBalanceAndTransactions()
   }, [profile])
 
   // Get leaderboard - calculate from match_stats + MOTM (like standings)
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      // Get all matches
-      const { data: matches } = await supabase.from('matches').select('id')
+      // Parallel queries for speed
+      const [matchesRes, statsRes, motmRes] = await Promise.all([
+        supabase.from('matches').select('id'),
+        supabase.from('match_stats').select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet'),
+        supabase.from('man_of_the_match_winners').select('player_id, match_id'),
+      ])
+      
+      const matches = matchesRes.data
       if (!matches) return
       const matchIds = matches.map(m => m.id)
-      
-      // Get all stats for these matches
-      const { data: allStats } = await supabase.from('match_stats').select('player_id, match_id, goals, assists, is_winner, played_as_gk, clean_sheet')
-      
-      // Get all MOTM winners
-      const { data: motmWinners } = await supabase.from('man_of_the_match_winners').select('player_id, match_id')
+      const allStats = statsRes.data || []
+      const motmWinners = motmRes.data || []
       
       // Calculate coins for each player
       const coinsMap: Record<string, number> = {}
@@ -237,11 +268,7 @@ export default function CoinsPage() {
       <Header title="Coins" />
       
       <main className="max-w-md mx-auto px-4 py-6">
-        <Suspense fallback={
-          <div className="text-center p-8">
-            <div className="animate-pulse">Loading...</div>
-          </div>
-        }>
+        <Suspense fallback={<CoinsSkeleton />}>
           <CoinsContent />
         </Suspense>
       </main>

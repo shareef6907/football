@@ -55,7 +55,7 @@ function LiveDraftContent() {
   
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [picks, setPicks] = useState<DraftPick[]>([])
-  const [availablePlayers, setAvailPlayers] = useState<string[]>([])
+  const [availablePlayers, setAvailablePlayers] = useState<string[]>([])
   const [captains, setCaptains] = useState<Captain[]>([])
   const [selectedCaptains, setSelectedCaptains] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(30)
@@ -81,6 +81,22 @@ function LiveDraftContent() {
       if (draft) {
         setDraftState(draft)
         
+        // Try URL params first, then localStorage fallback
+        let playerIds: string[] = []
+        const params = new URLSearchParams(window.location.search)
+        playerIds = params.get('players')?.split(',') || []
+        
+        // Fallback to localStorage
+        if (playerIds.length === 0) {
+          try {
+            const stored = localStorage.getItem('draft_players')
+            if (stored) {
+              playerIds = JSON.parse(stored)
+            }
+          } catch {}
+        }
+        
+        // Check existing picks
         const { data: existingPicks } = await supabase
           .from('draft_picks')
           .select('*')
@@ -90,27 +106,22 @@ function LiveDraftContent() {
         if (existingPicks) {
           setPicks(existingPicks)
           const pickedIds = existingPicks.map((p: any) => p.picked_player_id)
-          setAvailPlayers(prev => prev.filter((id: any) => !pickedIds.includes(id)))
+          if (playerIds.length > 0) {
+            setAvailablePlayers(playerIds.filter((id: string) => !pickedIds.includes(id)))
+          }
         } else if (!draft.current_pick_number) {
-          // Try to load from attendance first
-          const { data: attendance } = await supabase
-            .from('attendance')
-            .select('player_id')
-            .eq('match_id', draft.match_id)
-          
-          if (attendance && attendance.length > 0) {
-            setAvailPlayers(attendance.map((a: any) => a.player_id))
+          // Try attendance if still no players
+          if (playerIds.length > 0) {
+            setAvailablePlayers(playerIds)
           } else {
-            // Fall back to localStorage if no attendance
-            try {
-              const stored = localStorage.getItem('draft_players')
-              if (stored) {
-                const localPlayers = JSON.parse(stored)
-                setAvailPlayers(localPlayers)
-                // Clear after use
-                localStorage.removeItem('draft_players')
-              }
-            } catch {}
+            const { data: attendance } = await supabase
+              .from('attendance')
+              .select('player_id')
+              .eq('match_id', draft.match_id)
+            
+            if (attendance && attendance.length > 0) {
+              setAvailablePlayers(attendance.map((a: any) => a.player_id))
+            }
           }
         }
         
@@ -168,7 +179,7 @@ function LiveDraftContent() {
         if (payload.eventType === 'INSERT') {
           const newPick = payload.new
           setPicks(prev => [...prev, newPick])
-          setAvailPlayers(prev => 
+          setAvailablePlayers(prev => 
             prev.filter(id => id !== newPick.picked_player_id)
           )
         }
@@ -207,7 +218,7 @@ function LiveDraftContent() {
       })
       .eq('id', sessionId)
 
-    setAvailPlayers(prev => prev.filter(id => id !== playerId))
+    setAvailablePlayers(prev => prev.filter(id => id !== playerId))
   }
 
   const teamNames = ['Red', 'Blue', 'Green', 'Yellow']

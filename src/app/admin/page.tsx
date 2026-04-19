@@ -37,7 +37,7 @@ interface MatchStats {
 
 function AdminContent() {
   const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null = checking
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -46,11 +46,13 @@ function AdminContent() {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   
-  // Check localStorage on mount
+  // Check localStorage on mount BEFORE initial render
   useEffect(() => {
     const savedAuth = localStorage.getItem('admin_auth')
     if (savedAuth === 'true') {
       setIsAuthenticated(true)
+    } else {
+      setIsAuthenticated(false)
     }
   }, [])
   
@@ -337,6 +339,17 @@ function AdminContent() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Show loading while checking localStorage
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen">
+        <main className="max-w-md mx-auto px-4 py-6">
+          <div className="text-center p-8 text-gray-400">Loading...</div>
+        </main>
+      </div>
+    )
   }
 
   // Login screen
