@@ -500,33 +500,14 @@ function SetupPhase({
   const captainsNeeded = numTeams
   const hasCaptains = captains.length > 0
 
-  const toggleCaptain = async (playerId: string) => {
+  // Simply toggle locally - DB sync handled by parent via onCaptainToggle callback
+  const toggleCaptain = (playerId: string) => {
     console.log('Tapped player:', playerId, getPlayerById(playerId)?.name)
     
     if (selectedCaptainIds.includes(playerId)) {
-      // Remove from captains
-      console.log('Removing captain:', playerId)
       setSelectedCaptainIds(selectedCaptainIds.filter(id => id !== playerId))
-      // Remove from database
-      await supabase
-        .from('draft_captains')
-        .delete()
-        .eq('draft_session_id', sessionId)
-        .eq('player_id', playerId)
     } else if (selectedCaptainIds.length < captainsNeeded) {
-      // Add as captain
-      console.log('Adding captain:', playerId)
-      const newTeamNumber = selectedCaptainIds.length + 1
       setSelectedCaptainIds([...selectedCaptainIds, playerId])
-      // Save to database
-      await supabase
-        .from('draft_captains')
-        .insert({
-          draft_session_id: sessionId,
-          player_id: playerId,
-          team_number: newTeamNumber,
-          was_auto_selected: false,
-        })
     }
   }
 
