@@ -104,6 +104,37 @@ function DraftContent() {
   // View state
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastSyncedCaptains, setLastSyncedCaptains] = useState<string[]>([])
+
+  // ============== SYNC CAPTAINS TO DB ==============
+  useEffect(() => {
+    if (!sessionId || draftSession?.status !== 'setup') return
+    if (selectedCaptainIds.length === lastSyncedCaptains.length && 
+        selectedCaptainIds.every(id => lastSyncedCaptains.includes(id))) {
+      return // No change
+    }
+    
+    const syncCaptains = async () => {
+      console.log('Syncing captains to DB:', selectedCaptainIds)
+      
+      // Delete all existing captains first
+      await supabase.from('draft_captains').delete().eq('draft_session_id', sessionId)
+      
+      // Insert new captains
+      for (let i = 0; i < selectedCaptainIds.length; i++) {
+        await supabase.from('draft_captains').insert({
+          draft_session_id: sessionId,
+          player_id: selectedCaptainIds[i],
+          team_number: i + 1,
+          was_auto_selected: false,
+        })
+      }
+      
+      setLastSyncedCaptains([...selectedCaptainIds])
+    }
+    
+    syncCaptains()
+  }, [selectedCaptainIds, sessionId, draftSession])
 
   // ============== LOAD DRAFT SESSION ==============
   const loadDraftSession = useCallback(async () => {
