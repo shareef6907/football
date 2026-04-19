@@ -267,16 +267,21 @@ function DraftContent() {
   const handleAutoPick = async () => {
     if (!draftSession || !canPick || availablePlayerIds.length === 0) return
 
-    // Get available players excluding captains
+    // Get available players excluding captains AND already-picked
     const availableForPick = availablePlayerIds.filter(
-      id => !captains.some(c => c.player_id === id)
+      id => !captains.some(c => c.player_id === id) &&
+      !picks.some(p => p.picked_player_id === id)
     )
 
-    if (availableForPick.length === 0) return
+    if (availableForPick.length === 0) {
+      console.log('No available players for auto-pick')
+      return
+    }
 
-    // Pick the first available (could be smarter with ratings)
+    // Pick the first available
     const pickPlayerId = availableForPick[0]
     if (pickPlayerId) {
+      console.log('Auto-picking:', pickPlayerId)
       await makePick(pickPlayerId, true)
     }
   }
@@ -323,11 +328,11 @@ function DraftContent() {
 
       if (updateError) throw updateError
 
-      // Check if draft is complete
-      const totalPicksNeeded = draftSession.num_teams * draftSession.team_size
-      const newPickCount = nextPickNum
+      // Check if draft is complete (captains + picks = total slots)
+      const totalSlots = draftSession.num_teams * draftSession.team_size
+      const totalPicked = captains.length + nextPickNum
       
-      if (newPickCount >= totalPicksNeeded) {
+      if (totalPicked >= totalSlots) {
         // All players picked - mark as completed
         await supabase
           .from('draft_sessions')
@@ -389,9 +394,15 @@ function DraftContent() {
         filter: `draft_session_id=eq.${sessionId}`,
       }, (payload) => {
         console.log('New pick:', payload)
-        // Add pick to local state immediately
+        // Add pick to local state if not already present
         const newPick = payload.new as DraftPick
-        setPicks(prev => [...prev, newPick])
+        setPicks(prev => {
+          // Prevent duplicates
+          if (prev.some(p => p.id === newPick.id || p.pick_number === newPick.pick_number)) {
+            return prev
+          }
+          return [...prev, newPick]
+        })
         // Remove picked player from available
         setAvailablePlayerIds(prev => prev.filter(id => id !== newPick.picked_player_id))
         // Also update draft session turn
@@ -927,8 +938,8 @@ function DraftingPhase({
         </div>
       )}
 
-      {/* Show Teams Complete when all picked (only in drafting state) */}
-      {draftSession?.status === 'drafting' && picks.length >= (draftSession.num_teams * draftSession.team_size) && (
+      {/* Show Teams Complete when all slots filled (captains + picks) */}
+      {draftSession?.status === 'drafting' && (captains.length + picks.length) >= (draftSession.num_teams * draftSession.team_size) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
