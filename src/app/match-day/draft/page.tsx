@@ -146,6 +146,12 @@ function LiveDraftContent() {
         if (captain) {
           setIsCaptain(true)
           setMyTeam(captain.team_number)
+          
+          // IMMEDIATELY check if it's my turn after setting captain info
+          if (draft && draft.status === 'drafting') {
+            const myTurnNow = captain.team_number === draft.current_turn_team
+            setIsMyTurn(myTurnNow)
+          }
         }
       }
     }
@@ -191,25 +197,37 @@ function LiveDraftContent() {
     }
   }, [sessionId])
 
+  // Check turn whenever draftState changes (immediate reaction)
   useEffect(() => {
-    if (!draftState || !isCaptain) return
-    setIsMyTurn(isCaptain && draftState.current_turn_team === myTeam)
-  }, [draftState, isCaptain, myTeam])
+    if (!draftState || !isCaptain || !myTeam) return
+    const myTurnNow = draftState.current_turn_team === myTeam
+    setIsMyTurn(myTurnNow)
+    
+    // Reset timer when turn changes to this captain
+    if (myTurnNow) {
+      setTimeLeft(30)
+    }
+  }, [draftState?.current_turn_team, isCaptain, myTeam])
 
   const handlePick = async (playerId: string) => {
     if (!isMyTurn || !draftState || !profile?.player_id) return
 
     const nextPickNum = draftState.current_pick_number + 1
+    const currentTeam = draftState.current_turn_team
     
+    // Insert the pick
     await supabase.from('draft_picks').insert({
       draft_session_id: sessionId,
       pick_number: nextPickNum,
-      team_number: draftState.current_turn_team,
+      team_number: currentTeam,
       captain_id: profile.player_id,
       picked_player_id: playerId,
     })
 
-    const nextTeam = draftState.current_turn_team % draftState.num_teams + 1
+    // Calculate next team (snake draft: 1,2,3,1,2,3...)
+    const nextTeam = currentTeam % draftState.num_teams + 1
+    
+    // Update draft session
     await supabase
       .from('draft_sessions')
       .update({
@@ -218,7 +236,33 @@ function LiveDraftContent() {
       })
       .eq('id', sessionId)
 
+    // Update local state IMMEDIATELY
     setAvailablePlayers(prev => prev.filter(id => id !== playerId))
+    
+    // Update picks from DB to ensure sync
+    const { data: updatedPicks } = await supabase
+      .from('draft_picks')
+      .select('*')
+      .eq('draft_session_id', sessionId)
+      .order('pick_number')
+    
+    if (updatedPicks) {
+      setPicks(updatedPicks)
+    }
+    
+    // Update the draft state locally
+    setDraftState(prev => prev ? {
+      ...prev,
+      current_pick_number: nextPickNum,
+      current_turn_team: nextTeam,
+    } : null)
+    
+    // Turn switches immediately
+    const isNowMyTurn = nextTeam === myTeam
+    setIsMyTurn(isNowMyTurn)
+    if (isNowMyTurn) {
+      setTimeLeft(30)
+    }
   }
 
   const teamNames = ['Red', 'Blue', 'Green', 'Yellow']
@@ -561,15 +605,24 @@ function LiveDraftContent() {
         </div>
       )}
 
-      {/* Draft Complete - Show Confirm Button */}
+      {/* Draft Complete - Show Teams Complete message */}
       {draftState?.status === 'drafting' && picks.length >= (draftState.num_teams * draftState.team_size) && (
-        <button 
-          onClick={() => router.push('/match-day/submit')}
-          className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass rounded-2xl p-6 border border-green-500/30 text-center"
         >
-          <Check className="w-5 h-5" />
-          Confirm Teams & Start Match
-        </button>
+          <Trophy className="w-12 h-12 mx-auto mb-2 text-green-400" />
+          <h2 className="text-2xl font-bold text-green-400 mb-2">Teams Complete!</h2>
+          <p className="text-gray-400 mb-4">All {draftState.num_teams} teams have {draftState.team_size} players each</p>
+          <button 
+            onClick={() => router.push('/match-day/submit')}
+            className="w-full py-4 rounded-2xl bg-green-500 text-black font-bold flex items-center justify-center gap-2"
+          >
+            <Check className="w-5 h-5" />
+            Confirm Teams & Start Match
+          </button>
+        </motion.div>
       )}
 
       {!isCaptain && (
