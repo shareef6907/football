@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { PLAYERS } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
-import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown, Sparkles } from 'lucide-react'
+import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown, Sparkles, Share2 } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
 
 interface DraftState {
@@ -31,6 +31,23 @@ interface Captain {
   player_id: string
   team_number: number
   was_auto_selected: boolean
+}
+
+// ============== SHARE MENU COMPONENT ==============
+function ShareMenu({ show, onCopy, onWhatsApp }: { show: boolean, onCopy: () => void, onWhatsApp: () => void }) {
+  if (!show) return null
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#1e293b] overflow-hidden mt-2">
+      <button onClick={onCopy} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 border-b border-white/10">
+        <span className="text-lg">📋</span>
+        <span className="font-medium">Copy Link</span>
+      </button>
+      <button onClick={onWhatsApp} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5">
+        <span className="text-lg">💬</span>
+        <span className="font-medium text-green-400">Share via WhatsApp</span>
+      </button>
+    </div>
+  )
 }
 
 function LiveDraftContent() {
@@ -63,6 +80,30 @@ function LiveDraftContent() {
   const [myTeam, setMyTeam] = useState<number | null>(null)
   const [isCaptain, setIsCaptain] = useState(false)
   const [localPlayersLoaded, setLocalPlayersLoaded] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+
+  const getDraftUrl = () => `${window.location.origin}/match-day/draft?session=${sessionId}`
+
+  const copyDraftLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getDraftUrl())
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = getDraftUrl()
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setShowShareMenu(false)
+    alert('Link copied!')
+  }
+
+  const shareWhatsApp = () => {
+    const text = `Join the Thursday Football draft! ⚽🏆\n${getDraftUrl()}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+    setShowShareMenu(false)
+  }
 
   // Initial load
   useEffect(() => {
@@ -347,6 +388,18 @@ function LiveDraftContent() {
             Select {captainsNeeded} captains for {numTeams} teams
           </p>
         </motion.div>
+
+        {/* Share Button */}
+        <div>
+          <button
+            onClick={() => setShowShareMenu(prev => !prev)}
+            className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-4 h-4" />
+            Share Draft Link
+          </button>
+          <ShareMenu show={showShareMenu} onCopy={copyDraftLink} onWhatsApp={shareWhatsApp} />
+        </div>
 
         {/* Selected Captains */}
         <div className="glass rounded-xl p-4 border border-yellow-500/30">
