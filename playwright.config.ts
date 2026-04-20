@@ -1,18 +1,26 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
-  retries: 0,
-  reporter: 'list',
+  timeout: 30000,
+  retries: 1,
   use: {
-    baseURL: 'http://localhost:3009',
-    trace: 'on-first-retry',
+    baseURL: 'http://localhost:3000',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npm run dev',
+    port: 3000,
+    reuseExistingServer: true,
+    timeout: 60000,
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'Mobile Chrome',
+      use: {
+        ...({ viewport: { width: 390, height: 844 } }),
+      },
     },
   ],
 })
