@@ -280,6 +280,20 @@ function LiveDraftContent() {
     }
   }, [draftState?.current_turn_team, isCaptain, myTeam])
 
+  // Re-check captain identity when captains list or draft state changes
+  useEffect(() => {
+    if (!profile?.player_id || captains.length === 0) return
+    const myCaptain = captains.find((c: any) => c.player_id === profile.player_id)
+    if (myCaptain) {
+      setIsCaptain(true)
+      setMyTeam(myCaptain.team_number)
+      // Check turn immediately
+      if (draftState?.status === 'drafting') {
+        setIsMyTurn(myCaptain.team_number === draftState.current_turn_team)
+      }
+    }
+  }, [captains, draftState?.status, profile?.player_id])
+
   const handlePick = async (playerId: string) => {
     if (!isMyTurn || !draftState || !profile?.player_id) return
 
@@ -702,7 +716,14 @@ function LiveDraftContent() {
         <div className="text-center p-4 rounded-xl bg-white/5">
           <Zap className="w-6 h-6 mx-auto mb-2 text-yellow-400 animate-pulse" />
           <p className="text-gray-400">
-            Waiting for {teamNames[(draftState.current_turn_team || 1) - 1]} captain to pick...
+            Waiting for {(() => {
+              const captain = captains.find((c: any) => c.team_number === draftState.current_turn_team)
+              if (captain) {
+                const player = getPlayerById(captain.player_id)
+                return player?.name || teamNames[(draftState.current_turn_team || 1) - 1]
+              }
+              return teamNames[(draftState.current_turn_team || 1) - 1]
+            })()} to pick...
           </p>
         </div>
       )}
