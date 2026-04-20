@@ -348,7 +348,7 @@ function LiveDraftContent() {
     const hasCaptains = captains.length > 0
 
     // If already have captains, go straight to drafting view
-    if (hasCaptains && draftState.status === 'setup') {
+    if (captains.length >= captainsNeeded && draftState.status === 'setup') {
       // Update status to drafting
       return (
         <div className="space-y-6">
