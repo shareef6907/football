@@ -617,7 +617,7 @@ function LiveDraftContent() {
       </motion.div>
 
       <AnimatePresence>
-        {isMyTurn && (
+        {isMyTurn && picks.length < ((draftState?.num_teams || 2) * (draftState?.team_size || 5)) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -662,6 +662,24 @@ function LiveDraftContent() {
                 </span>
               </div>
               <div className="p-3 space-y-2">
+                {/* Captain shown first */}
+                {(() => {
+                  const captain = captains.find((c: any) => c.team_number === teamNum)
+                  const player = captain ? getPlayerById(captain.player_id) : null
+                  return player ? (
+                    <div className="flex items-center gap-2 pb-1 mb-1 border-b border-white/10">
+                      <div 
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                        style={{ backgroundColor: player.color }}
+                      >
+                        {player.name.slice(0, 1)}
+                      </div>
+                      <span className="text-sm font-bold">{player.name}</span>
+                      <Crown className="w-3 h-3 text-yellow-400" />
+                    </div>
+                  ) : null
+                })()}
+                {/* Picked players */}
                 {teamPicks.map((pick: any, idx: number) => {
                   const player = getPlayerById(pick.picked_player_id)
                   return player ? (
@@ -682,11 +700,11 @@ function LiveDraftContent() {
         })}
       </div>
 
-      {isMyTurn && (
+      {isMyTurn && picks.length < ((draftState?.num_teams || 2) * (draftState?.team_size || 5)) && (
         <div className="space-y-3">
           <h3 className="font-bold">Pick a player:</h3>
           <div className="grid grid-cols-3 gap-2">
-            {availablePlayers.map((playerId: string) => {
+            {availablePlayers.filter(id => !captains.some((c: any) => c.player_id === id)).map((playerId: string) => {
               const player = getPlayerById(playerId)
               if (!player) return null
               
@@ -712,7 +730,7 @@ function LiveDraftContent() {
         </div>
       )}
 
-      {!isMyTurn && draftState?.status === 'drafting' && (
+      {!isMyTurn && draftState?.status === 'drafting' && picks.length < (draftState.num_teams * draftState.team_size) && (
         <div className="text-center p-4 rounded-xl bg-white/5">
           <Zap className="w-6 h-6 mx-auto mb-2 text-yellow-400 animate-pulse" />
           <p className="text-gray-400">
