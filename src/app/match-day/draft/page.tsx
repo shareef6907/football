@@ -629,7 +629,7 @@ function LiveDraftContent() {
       </motion.div>
 
       <AnimatePresence>
-        {isMyTurn && picks.length < ((draftState?.num_teams || 2) * (draftState?.team_size || 5)) && (
+        {isMyTurn && picks.length < ((draftState?.num_teams || 2) * ((draftState?.team_size || 5) - 1)) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -712,7 +712,7 @@ function LiveDraftContent() {
         })}
       </div>
 
-      {isMyTurn && picks.length < ((draftState?.num_teams || 2) * (draftState?.team_size || 5)) && (
+      {isMyTurn && picks.length < ((draftState?.num_teams || 2) * ((draftState?.team_size || 5) - 1)) && (
         <div className="space-y-3">
           <h3 className="font-bold">Pick a player:</h3>
           <div className="grid grid-cols-3 gap-2">
@@ -742,7 +742,7 @@ function LiveDraftContent() {
         </div>
       )}
 
-      {!isMyTurn && draftState?.status === 'drafting' && picks.length < (draftState.num_teams * draftState.team_size) && (
+      {!isMyTurn && draftState?.status === 'drafting' && picks.length < (draftState.num_teams * (draftState.team_size - 1)) && (
         <div className="text-center p-4 rounded-xl bg-white/5">
           <Zap className="w-6 h-6 mx-auto mb-2 text-yellow-400 animate-pulse" />
           <p className="text-gray-400">
@@ -759,7 +759,7 @@ function LiveDraftContent() {
       )}
 
       {/* Draft Complete - Show Teams Complete message */}
-      {draftState?.status === 'drafting' && picks.length >= (draftState.num_teams * draftState.team_size) && (
+      {draftState?.status === 'drafting' && picks.length >= (draftState.num_teams * (draftState.team_size - 1)) && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
