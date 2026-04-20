@@ -37,80 +37,118 @@ function AutoBalanceContent() {
 
   const balanceTeams = async () => {
     setIsBalancing(true)
-    
-    // Get player objects with ratings from player_ratings table
+
     const playersWithRating = playerIds
       .map(id => PLAYERS.find(p => p.id === id))
       .filter((p): p is typeof PLAYERS[number] => p !== undefined)
-    
+
     if (playersWithRating.length < 2) {
       setIsBalancing(false)
       return
     }
-    
-    // Get ratings from database
-    const { data: dbRatings, error: ratingsError } = await supabase
+
+    const { data: dbRatings } = await supabase
       .from('player_ratings')
       .select('rated_player_id, forward_rating, midfielder_rating, defender_rating, goalkeeper_rating, rating_year, rating_month')
       .order('rating_year', { ascending: false })
       .order('rating_month', { ascending: false })
-    
-    if (ratingsError) {
-      console.error('Error fetching ratings:', ratingsError)
-    }
-    
-    // Calculate AVERAGE overall rating per player (across ALL raters)
-    // This matches what players page shows: avg of all 4 positions
+
     const playerRatingSums: Record<string, { sum: number, count: number }> = {}
     dbRatings?.forEach(r => {
       if (!playerRatingSums[r.rated_player_id]) {
         playerRatingSums[r.rated_player_id] = { sum: 0, count: 0 }
       }
-      // Average of all 4 positions for this rater
-      const overallForThisRater = (r.forward_rating + r.midfielder_rating + r.defender_rating + r.goalkeeper_rating) / 4
-      playerRatingSums[r.rated_player_id].sum += overallForThisRater
+      const avg = (r.forward_rating + r.midfielder_rating + r.defender_rating + r.goalkeeper_rating) / 4
+      playerRatingSums[r.rated_player_id].sum += avg
       playerRatingSums[r.rated_player_id].count += 1
     })
-    
-    // Calculate final average (across all raters)
+
     const overallRatings: Record<string, number> = {}
-    Object.entries(playerRatingSums).forEach(([playerId, data]) => {
-      overallRatings[playerId] = Math.round((data.sum / data.count) * 10) / 10
+    Object.entries(playerRatingSums).forEach(([id, data]) => {
+      overallRatings[id] = Math.round((data.sum / data.count) * 10) / 10
     })
-    
-    console.log('Overall ratings (averaged across all raters):', overallRatings)
-    
-    // Assign ratings to players - use AVERAGE overall from DB
-    const withRatings = playersWithRating.map(player => {
-      const dbOverall = overallRatings[player.id]
-      const defaultRating = 5 // Default overall
-      
-      console.log(`${player.name}: DB overall = ${dbOverall}, using = ${dbOverall || defaultRating}`)
-      
-      return {
-        ...player,
-        rating: dbOverall || defaultRating
+
+    const withRatings: PlayerWithRating[] = playersWithRating.map(player => ({
+      ...player,
+      rating: overallRatings[player.id] || 5
+    }))
+
+    // Fisher-Yates shuffle
+    const shuffle = (arr: PlayerWithRating[]): PlayerWithRating[] => {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]]
       }
-    })
-    
-    // Shuffle players randomly for jumbled distribution
-    for (let i = withRatings.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [withRatings[i], withRatings[j]] = [withRatings[j], withRatings[i]]
+      return a
     }
 
-    // Sort by rating (highest first)
-    withRatings.sort((a, b) => b.rating - a.rating)
+    // Calculate team imbalance (max avg - min avg)
+    const getImbalance = (teams: PlayerWithRating[][]): number => {
+      const avgs = teams.map(t => t.reduce((s, p) => s + p.rating, 0) / t.length)
+      return Math.max(...avgs) - Math.min(...avgs)
+    }
 
-    // Snake draft distribution for balance - fixed sequential assignment
-    const newTeams: PlayerWithRating[][] = Array.from({ length: numTeams }, () => [])
-    
-    withRatings.forEach((player, index) => {
-      const teamIndex = index % numTeams
-      newTeams[teamIndex].push(player)
-    })
-    
-    setTeams(newTeams)
+    // Try 200 random distributions, keep the best one
+    let bestTeams: PlayerWithRating[][] = []
+    let bestImbalance = Infinity
+
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const shuffled = shuffle(withRatings)
+
+      // Sort by rating descending
+      shuffled.sort((a, b) => b.rating - a.rating)
+
+      // Snake draft: 1,2,3,3,2,1,1,2,3,3,2,1...
+      const teams: PlayerWithRating[][] = Array.from({ length: numTeams }, () => [])
+      shuffled.forEach((player, index) => {
+        const round = Math.floor(index / numTeams)
+        const pos = index % numTeams
+        const teamIndex = round % 2 === 0 ? pos : (numTeams - 1 - pos)
+        teams[teamIndex].push(player)
+      })
+
+      const imbalance = getImbalance(teams)
+      if (imbalance < bestImbalance) {
+        bestImbalance = imbalance
+        bestTeams = teams
+      }
+
+      // Perfect balance found, stop early
+      if (imbalance < 0.05) break
+    }
+
+    // If still not great, try swap optimization on the best result
+    if (bestImbalance > 0.2) {
+      for (let swapAttempt = 0; swapAttempt < 500; swapAttempt++) {
+        // Pick two random teams
+        const t1 = Math.floor(Math.random() * numTeams)
+        let t2 = Math.floor(Math.random() * numTeams)
+        while (t2 === t1) t2 = Math.floor(Math.random() * numTeams)
+
+        if (bestTeams[t1].length === 0 || bestTeams[t2].length === 0) continue
+
+        // Pick random player from each team
+        const p1 = Math.floor(Math.random() * bestTeams[t1].length)
+        const p2 = Math.floor(Math.random() * bestTeams[t2].length)
+
+        // Try swapping
+        const newTeams = bestTeams.map(t => [...t])
+        const temp = newTeams[t1][p1]
+        newTeams[t1][p1] = newTeams[t2][p2]
+        newTeams[t2][p2] = temp
+
+        const newImbalance = getImbalance(newTeams)
+        if (newImbalance < bestImbalance) {
+          bestImbalance = newImbalance
+          bestTeams = newTeams
+        }
+
+        if (bestImbalance < 0.05) break
+      }
+    }
+
+    setTeams(bestTeams)
     setIsBalancing(false)
   }
 
