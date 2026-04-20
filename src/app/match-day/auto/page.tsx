@@ -93,9 +93,15 @@ function AutoBalanceContent() {
       }
     })
     
+    // Shuffle players randomly for jumbled distribution
+    for (let i = withRatings.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [withRatings[i], withRatings[j]] = [withRatings[j], withRatings[i]]
+    }
+
     // Sort by rating (highest first)
     withRatings.sort((a, b) => b.rating - a.rating)
-    
+
     // Snake draft distribution for balance - fixed sequential assignment
     const newTeams: PlayerWithRating[][] = Array.from({ length: numTeams }, () => [])
     

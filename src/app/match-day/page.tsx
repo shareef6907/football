@@ -193,6 +193,7 @@ function MatchDayContent() {
         status: 'setup',
         pick_time_limit: 30,
         created_by: profile?.player_id,
+        attending_player_ids: setup.attending,
       })
       .select()
       .single()

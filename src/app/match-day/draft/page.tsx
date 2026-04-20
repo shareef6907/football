@@ -122,11 +122,15 @@ function LiveDraftContent() {
       if (draft) {
         setDraftState(draft)
         
-        // Try URL params first, then localStorage fallback
-        let playerIds: string[] = []
-        const params = new URLSearchParams(window.location.search)
-        playerIds = params.get('players')?.split(',') || []
-        
+        // Priority: 1) draft session DB, 2) URL params, 3) localStorage
+        let playerIds: string[] = draft.attending_player_ids || []
+
+        // Fallback to URL params
+        if (playerIds.length === 0) {
+          const params = new URLSearchParams(window.location.search)
+          playerIds = params.get('players')?.split(',').filter(Boolean) || []
+        }
+
         // Fallback to localStorage
         if (playerIds.length === 0) {
           try {
