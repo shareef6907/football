@@ -60,6 +60,7 @@ function AdminContent() {
   const [playerRatings, setPlayerRatings] = useState<PlayerRating[]>([])
   const [editingRating, setEditingRating] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ forward: 5, midfielder: 5, defender: 5, goalkeeper: 5 })
+  const [ratingCount, setRatingCount] = useState<{ rated: number, total: number, raters: string[] }>({ rated: 0, total: 21, raters: [] })
   
   // Stats data
   const [matches, setMatches] = useState<Match[]>([])
@@ -90,6 +91,30 @@ function AdminContent() {
       }
     }
     loadRatings()
+    
+    // Count how many players have rated this month
+    const loadRatingCount = async () => {
+      const now = new Date()
+      const month = now.getMonth() + 1
+      const year = now.getFullYear()
+
+      const { data } = await supabase
+        .from('player_ratings')
+        .select('rater_id')
+        .eq('rating_month', month)
+        .eq('rating_year', year)
+
+      if (data) {
+        // Get unique rater IDs (excluding admin/system rater)
+        const uniqueRaters = [...new Set(data.map(r => r.rater_id))].filter(id => id !== '00000000-0000-0000-0000-000000000000')
+        const raterNames = uniqueRaters.map(id => {
+          const player = PLAYERS.find(p => p.id === id)
+          return player ? player.name : 'Unknown'
+        })
+        setRatingCount({ rated: uniqueRaters.length, total: 21, raters: raterNames })
+      }
+    }
+    loadRatingCount()
     
     // Load only PAST matches (before or on last Thursday)
     const loadMatches = async () => {
@@ -412,6 +437,30 @@ function AdminContent() {
         {/* RATINGS TAB */}
         {activeTab === 'ratings' && (
           <div className="space-y-4">
+            {/* Rating count for current month */}
+            <div className="glass rounded-xl p-4 border border-purple-500/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-400 text-sm">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Ratings</span>
+                <span className="font-bold text-purple-400">{ratingCount.rated} / {ratingCount.total}</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-white/5 mb-3">
+                <div
+                  className="h-2 rounded-full bg-purple-500 transition-all"
+                  style={{ width: `${(ratingCount.rated / ratingCount.total) * 100}%` }}
+                />
+              </div>
+              {ratingCount.raters.length > 0 ? (
+                <div className="text-xs text-gray-500">
+                  Rated: {ratingCount.raters.join(', ')}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">No one has rated yet this month</div>
+              )}
+              <div className="text-xs text-gray-600 mt-1">
+                Not rated: {PLAYERS.filter(p => !ratingCount.raters.includes(p.name)).map(p => p.name).join(', ')}
+              </div>
+            </div>
+            
             <button onClick={handleResetRatings} disabled={saving} className="w-full py-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold flex items-center justify-center gap-2">
               <RotateCcw className="w-5 h-5" /> Reset All Ratings to 5/5/5/5
             </button>
