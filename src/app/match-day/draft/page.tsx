@@ -414,6 +414,18 @@ function LiveDraftContent() {
             </div>
           </div>
 
+          {/* Share Button */}
+          <div>
+            <button
+              onClick={() => setShowShareMenu(prev => !prev)}
+              className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
+            >
+              <Share2 className="w-4 h-4" />
+              Share Draft Link
+            </button>
+            <ShareMenu show={showShareMenu} onCopy={copyDraftLink} onWhatsApp={shareWhatsApp} />
+          </div>
+
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -628,6 +640,18 @@ function LiveDraftContent() {
         </p>
       </motion.div>
 
+      {/* Share Button */}
+      <div>
+        <button
+          onClick={() => setShowShareMenu(prev => !prev)}
+          className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2"
+        >
+          <Share2 className="w-4 h-4" />
+          Share Draft Link
+        </button>
+        <ShareMenu show={showShareMenu} onCopy={copyDraftLink} onWhatsApp={shareWhatsApp} />
+      </div>
+
       <AnimatePresence>
         {isMyTurn && picks.length < ((draftState?.num_teams || 2) * ((draftState?.team_size || 5) - 1)) && (
           <motion.div
@@ -716,7 +740,7 @@ function LiveDraftContent() {
         <div className="space-y-3">
           <h3 className="font-bold">Pick a player:</h3>
           <div className="grid grid-cols-3 gap-2">
-            {availablePlayers.filter(id => !captains.some((c: any) => c.player_id === id)).map((playerId: string) => {
+            {availablePlayers.filter(id => !captains.some((c: any) => c.player_id === id) && !picks.some((p: any) => p.picked_player_id === id)).map((playerId: string) => {
               const player = getPlayerById(playerId)
               if (!player) return null
               
