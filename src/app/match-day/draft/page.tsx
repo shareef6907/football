@@ -240,9 +240,21 @@ function LiveDraftContent() {
         schema: 'public',
         table: 'draft_sessions',
         filter: 'id=eq.' + sessionId,
-      }, (payload: any) => {
+      }, async (payload: any) => {
         const updated = payload.new
         setDraftState(prev => prev ? { ...prev, ...updated } : null)
+
+        // When status changes to 'drafting', reload captains to ensure they're available
+        if (updated.status === 'drafting') {
+          const { data: draftCaptains } = await supabase
+            .from('draft_captains')
+            .select('*')
+            .eq('draft_session_id', sessionId)
+          if (draftCaptains && draftCaptains.length > 0) {
+            setCaptains(draftCaptains)
+            setSelectedCaptains(draftCaptains.map((c: any) => c.player_id))
+          }
+        }
       })
       // Listen for captain changes
       .on('postgres_changes', {
@@ -679,8 +691,8 @@ function LiveDraftContent() {
                     </div>
                   ) : null
                 })()}
-                {/* Picked players */}
-                {teamPicks.map((pick: any, idx: number) => {
+                {/* Picked players - exclude captain to prevent duplicate */}
+                {teamPicks.filter((pick: any) => !captains.some((c: any) => c.player_id === pick.picked_player_id)).map((pick: any, idx: number) => {
                   const player = getPlayerById(pick.picked_player_id)
                   return player ? (
                     <div key={idx} className="flex items-center gap-2">
