@@ -157,8 +157,8 @@ function RatingsContent() {
           className="glass rounded-2xl p-6 border border-green-500/30 text-center"
         >
           <Check className="w-12 h-12 mx-auto mb-2 text-green-400" />
-          <h2 className="text-xl font-bold">Ratings submitted for {currentMonth}/{currentYear}!</h2>
-          <p className="text-gray-400 mt-2">You've already rated for this month. Next rating opens {nextMonth}.</p>
+          <h2 className="text-xl font-bold">You have already rated this month</h2>
+          <p className="text-gray-400 mt-2">New ratings open on 1st of {nextMonth}</p>
         </motion.div>
       )}
 
