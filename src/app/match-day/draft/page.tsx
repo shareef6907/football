@@ -217,18 +217,48 @@ function LiveDraftContent() {
 
     const channel = supabase
       .channel('draft:' + sessionId)
+      // Listen for new picks
       .on('postgres_changes', {
-        event: '*',
+        event: 'INSERT',
         schema: 'public',
         table: 'draft_picks',
         filter: 'draft_session_id=eq.' + sessionId,
       }, (payload: any) => {
-        if (payload.eventType === 'INSERT') {
-          const newPick = payload.new
-          setPicks(prev => [...prev, newPick])
-          setAvailablePlayers(prev => 
-            prev.filter(id => id !== newPick.picked_player_id)
-          )
+        const newPick = payload.new
+        setPicks(prev => {
+          // Prevent duplicates
+          if (prev.some(p => p.pick_number === newPick.pick_number)) return prev
+          return [...prev, newPick]
+        })
+        setAvailablePlayers(prev =>
+          prev.filter(id => id !== newPick.picked_player_id)
+        )
+      })
+      // Listen for session updates (turn changes, status changes)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'draft_sessions',
+        filter: 'id=eq.' + sessionId,
+      }, (payload: any) => {
+        const updated = payload.new
+        setDraftState(prev => prev ? { ...prev, ...updated } : null)
+      })
+      // Listen for captain changes
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'draft_captains',
+        filter: 'draft_session_id=eq.' + sessionId,
+      }, async () => {
+        // Reload captains from DB
+        const { data: draftCaptains } = await supabase
+          .from('draft_captains')
+          .select('*')
+          .eq('draft_session_id', sessionId)
+        if (draftCaptains) {
+          setCaptains(draftCaptains)
+          setSelectedCaptains(draftCaptains.map((c: any) => c.player_id))
         }
       })
       .subscribe()
