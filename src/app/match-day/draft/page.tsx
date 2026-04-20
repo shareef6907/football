@@ -465,7 +465,20 @@ function LiveDraftContent() {
 
         {/* Auto-select button */}
         <button
-          onClick={() => setSelectedCaptains(availablePlayers.slice(0, numTeams))}
+          onClick={async () => {
+            const selected = availablePlayers.slice(0, numTeams)
+            setSelectedCaptains(selected)
+            // Save to database
+            const captainRecords = selected.map((playerId, index) => ({
+              draft_session_id: sessionId,
+              player_id: playerId,
+              team_number: index + 1,
+              was_auto_selected: true,
+            }))
+            // Clear existing and insert new
+            await supabase.from('draft_captains').delete().eq('draft_session_id', sessionId)
+            await supabase.from('draft_captains').insert(captainRecords)
+          }}
           className="w-full py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center gap-2"
         >
           <Sparkles className="w-5 h-5 text-yellow-400" />
@@ -488,11 +501,26 @@ function LiveDraftContent() {
                 <motion.button
                   key={playerId}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    if (selectedCaptains.includes(playerId)) {
-                      setSelectedCaptains(prev => prev.filter(id => id !== playerId))
-                    } else if (selectedCaptains.length < numTeams) {
-                      setSelectedCaptains(prev => [...prev, playerId])
+                  onClick={async () => {
+                    const isSelected = selectedCaptains.includes(player.id)
+
+                    if (isSelected) {
+                      // Remove captain
+                      setSelectedCaptains(prev => prev.filter(id => id !== player.id))
+                      await supabase.from('draft_captains').delete()
+                        .eq('draft_session_id', sessionId)
+                        .eq('player_id', player.id)
+                    } else {
+                      if (selectedCaptains.length >= captainsNeeded) return
+                      // Add captain
+                      const teamNumber = selectedCaptains.length + 1
+                      setSelectedCaptains(prev => [...prev, player.id])
+                      await supabase.from('draft_captains').insert({
+                        draft_session_id: sessionId,
+                        player_id: player.id,
+                        team_number: teamNumber,
+                        was_auto_selected: false,
+                      })
                     }
                   }}
                   className={`p-3 rounded-xl border text-center transition-all ${
@@ -524,16 +552,7 @@ function LiveDraftContent() {
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.95 }}
             onClick={async () => {
-              // Save captains to database
-              const captainRecords = selectedCaptains.map((playerId, index) => ({
-                draft_session_id: sessionId,
-                player_id: playerId,
-                team_number: index + 1,
-                was_auto_selected: false,
-              }))
-              await supabase.from('draft_captains').insert(captainRecords)
-              setCaptains(captainRecords)
-              // Update draft status to drafting
+              // Update draft status to drafting (captains already saved on tap)
               await supabase.from('draft_sessions').update({ status: 'drafting' }).eq('id', sessionId)
               setDraftState(prev => prev ? { ...prev, status: 'drafting' } : null)
             }}
