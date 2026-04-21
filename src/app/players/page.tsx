@@ -192,7 +192,7 @@ export default function PlayersPage() {
                 return (
                   <Link 
                     key={player.id} 
-                    href={playerUsernames[player.id] ? `/${playerUsernames[player.id]}` : `/players/${player.id}`}
+                    href={`/${playerUsernames[player.id] || player.name.toLowerCase()}`}
                     className="block"
                   >
                   <motion.div

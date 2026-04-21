@@ -66,34 +66,52 @@ export default function PublicProfilePage() {
  const loadProfile = async () => {
  setLoading(true)
 
- // Find user_profile by username
- const { data: profile } = await supabase
+ // Step 1: Find the player — by custom username OR by name
+ let profileDataFromDb: any = null
+ let foundPlayer: typeof PLAYERS[number] | null = null
+
+ // Try custom username in DB
+ const { data: byUsername } = await supabase
  .from('user_profiles')
  .select('*')
  .eq('username', username)
  .single()
 
- if (!profile || !profile.player_id) {
- setNotFound(true)
- setLoading(false)
- return
+ if (byUsername && byUsername.player_id) {
+ profileDataFromDb = byUsername
+ foundPlayer = PLAYERS.find(p => p.id === byUsername.player_id) || null
  }
 
- setProfileData(profile)
- const foundPlayer = PLAYERS.find(p => p.id === profile.player_id)
+ // Fallback: match by player name (case-insensitive)
+ if (!foundPlayer) {
+ const nameMatch = PLAYERS.find(p => p.name.toLowerCase() === username.toLowerCase())
+ if (nameMatch) {
+ foundPlayer = nameMatch
+ // Try to load their profile data
+ const { data: byPlayer } = await supabase
+ .from('user_profiles')
+ .select('*')
+ .eq('player_id', nameMatch.id)
+ .single()
+ if (byPlayer) profileDataFromDb = byPlayer
+ }
+ }
+
  if (!foundPlayer) {
  setNotFound(true)
  setLoading(false)
  return
  }
- setPlayer(foundPlayer)
 
- // Load stats in parallel
+ setPlayer(foundPlayer)
+ setProfileData(profileDataFromDb)
+
+ // Step 2: Load stats using foundPlayer.id
  const [matchesRes, statsRes, motmRes, ratingsRes] = await Promise.all([
  supabase.from('matches').select('id'),
- supabase.from('match_stats').select('*').eq('player_id', profile.player_id),
- supabase.from('man_of_the_match_winners').select('match_id').eq('player_id', profile.player_id),
- supabase.from('player_ratings').select('forward_rating, midfielder_rating, defender_rating, goalkeeper_rating').eq('rated_player_id', profile.player_id),
+ supabase.from('match_stats').select('*').eq('player_id', foundPlayer.id),
+ supabase.from('man_of_the_match_winners').select('match_id').eq('player_id', foundPlayer.id),
+ supabase.from('player_ratings').select('forward_rating, midfielder_rating, defender_rating, goalkeeper_rating').eq('rated_player_id', foundPlayer.id),
  ])
 
  const matchIds = (matchesRes.data || []).map(m => m.id)
