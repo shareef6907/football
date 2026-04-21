@@ -10,7 +10,7 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: 'NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy npm run dev',
+    command: 'npm run dev',
     port: 3000,
     reuseExistingServer: true,
     timeout: 120000,
