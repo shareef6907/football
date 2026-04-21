@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PLAYERS, POINTS_SYSTEM, Position } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
-import { Trophy, Target, Shield, Star, Instagram, Heart, ArrowLeft } from 'lucide-react'
+import { Trophy, Target, Shield, Star, Instagram, Heart, ArrowLeft, Edit2 } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import Link from 'next/link'
 
@@ -198,6 +198,12 @@ export default function PublicProfilePage() {
  <ArrowLeft className="w-4 h-4" /> All Players
  </Link>
 
+ {/* Edit Profile */}
+ <Link href="/profile/edit" className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2 text-sm">
+ <Edit2 className="w-4 h-4" />
+ Edit My Profile
+ </Link>
+
  {/* Header Card */}
  <motion.div
  initial={{ opacity: 0, y: 20 }}
@@ -212,8 +218,8 @@ export default function PublicProfilePage() {
  {player.name.slice(0, 2).toUpperCase()}
  </div>
  <h1 className="text-3xl font-bold">{player.name}</h1>
- <p className={`text-sm font-semibold ${getPositionColor(player.position)}`}>
- {getPositionLabel(player.position)}
+ <p className={`text-sm font-semibold ${getPositionColor((profileData?.preferred_position || player.position) as Position)}`}>
+ {getPositionLabel((profileData?.preferred_position || player.position) as Position)}
  </p>
 
  {/* Fitness */}

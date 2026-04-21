@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { PLAYERS } from '@/lib/constants'
+import { PLAYERS, Position } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
 import { Star, Check, Lock, Clock, AlertCircle } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
+import { loadPlayerPositions } from '@/lib/getPlayerPosition'
 
 interface PlayerRating {
   forward: number
@@ -19,6 +20,7 @@ interface PlayerRating {
 function RatingsContent() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
+  const [playerPositions, setPlayerPositions] = useState<Record<string, Position>>({})
   
   // Initialize ratings for all players with default value 5
   const defaultRatings: Record<string, PlayerRating> = {}
@@ -62,6 +64,10 @@ function RatingsContent() {
           .single()
         
         if (data) setSubmitted(true)
+        
+        // Load player positions
+        const positions = await loadPlayerPositions()
+        setPlayerPositions(positions)
       }
       checkRating()
     }
@@ -178,7 +184,7 @@ function RatingsContent() {
               {player.name.slice(0, 2).toUpperCase()}
             </div>
             <span className="font-bold">{player.name}</span>
-            <span className="text-xs text-gray-500">({player.position})</span>
+            <span className="text-xs text-gray-500">({playerPositions[player.id] || player.position})</span>
           </div>
           
           <div className="grid grid-cols-4 gap-2 text-center">

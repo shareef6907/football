@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { PLAYERS } from '@/lib/constants'
+import { PLAYERS, Position } from '@/lib/constants'
 import { supabase } from '@/lib/supabase/client'
 import { Users, Clock, Trophy, Lock, ArrowRight, Check, User, Zap, Crown, Sparkles, Share2 } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
+import { loadPlayerPositions } from '@/lib/getPlayerPosition'
 
 interface DraftState {
   id: string
@@ -81,6 +82,7 @@ function LiveDraftContent() {
   const [isCaptain, setIsCaptain] = useState(false)
   const [localPlayersLoaded, setLocalPlayersLoaded] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const [playerPositions, setPlayerPositions] = useState<Record<string, Position>>({})
 
   const getDraftUrl = () => `${window.location.origin}/match-day/draft?session=${sessionId}`
 
@@ -113,6 +115,10 @@ function LiveDraftContent() {
     }
     
     const loadDraft = async () => {
+      // Load player positions
+      const positions = await loadPlayerPositions()
+      setPlayerPositions(positions)
+
       const { data: draft } = await supabase
         .from('draft_sessions')
         .select('*')
@@ -762,7 +768,7 @@ function LiveDraftContent() {
                     {player.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="text-xs">{player.name}</div>
-                  <div className="text-xs text-gray-500">{player.position}</div>
+                  <div className="text-xs text-gray-500">{playerPositions[player.id] || player.position}</div>
                 </motion.button>
               )
             })}

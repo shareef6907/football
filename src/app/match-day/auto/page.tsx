@@ -7,6 +7,7 @@ import { PLAYERS, Position, type PlayerId, type PlayerName } from '@/lib/constan
 import { supabase } from '@/lib/supabase/client'
 import { Users, Shuffle, ArrowLeft, Trophy, Check } from 'lucide-react'
 import { Navigation, Header } from '@/components/Navigation'
+import { loadPlayerPositions } from '@/lib/getPlayerPosition'
 
 interface PlayerWithRating {
   id: string
@@ -27,6 +28,7 @@ function AutoBalanceContent() {
   const [teams, setTeams] = useState<PlayerWithRating[][]>([])
   const [isBalancing, setIsBalancing] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [playerPositions, setPlayerPositions] = useState<Record<string, Position>>({})
 
   useEffect(() => {
     setMounted(true)
@@ -37,6 +39,10 @@ function AutoBalanceContent() {
 
   const balanceTeams = async () => {
     setIsBalancing(true)
+
+    // Load player positions
+    const positions = await loadPlayerPositions()
+    setPlayerPositions(positions)
 
     const playersWithRating = playerIds
       .map(id => PLAYERS.find(p => p.id === id))
@@ -245,7 +251,7 @@ function AutoBalanceContent() {
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold text-sm">{player.name}</div>
-                      <div className="text-xs text-gray-500 capitalize">{player.position}</div>
+                      <div className="text-xs text-gray-500 capitalize">{playerPositions[player.id] || player.position}</div>
                     </div>
                     <div className="text-sm font-bold" style={{ color: player.color }}>
                       {player.rating}

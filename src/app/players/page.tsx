@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { PLAYERS, Position, POINTS_SYSTEM } from '../../lib/constants'
 import { supabase } from '@/lib/supabase/client'
 import { Navigation, Header } from '../../components/Navigation'
+import { loadPlayerPositions } from '@/lib/getPlayerPosition'
 
 interface PlayerStats {
   goals: number
@@ -39,6 +40,7 @@ export default function PlayersPage() {
   const [playerStats, setPlayerStats] = useState<Record<string, PlayerStats>>({})
   const [playerRatings, setPlayerRatings] = useState<Record<string, { forward: number, midfielder: number, defender: number, goalkeeper: number, count: number }>>({})
   const [playerUsernames, setPlayerUsernames] = useState<Record<string, string>>({})
+  const [playerPositions, setPlayerPositions] = useState<Record<string, Position>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -137,6 +139,10 @@ export default function PlayersPage() {
       })
       setPlayerUsernames(usernameMap)
       
+      // Load positions from DB
+      const positions = await loadPlayerPositions()
+      setPlayerPositions(positions)
+      
       setLoading(false)
     }
     
@@ -224,8 +230,8 @@ export default function PlayersPage() {
                         </div>
                         <div>
                           <h3 className="font-bold text-lg">{player.name}</h3>
-                          <span className={`text-xs font-semibold ${getPositionColor(player.position)}`}>
-                            {getPositionAbbrev(player.position)}
+                          <span className={`text-xs font-semibold ${getPositionColor(playerPositions[player.id] || player.position)}`}>
+                            {getPositionAbbrev(playerPositions[player.id] || player.position)}
                           </span>
                         </div>
                       </div>
