@@ -323,13 +323,47 @@ function AdminContent() {
     if (!editingStats || !selectedMatch) return
     setSaving(true)
     setSaveMessage('')
-    
-    // Find the current stats entry being edited
-    const currentStats = matchStats.find(s => s.player_id === editingStats)
-    const existingId = currentStats?.id
-    
+
+    // Handle new match creation if needed
+    let actualMatchId = selectedMatch
+
+    if (selectedMatch.startsWith('new_')) {
+      const matchDate = selectedMatch.replace('new_', '')
+      const { data: newMatch, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          match_date: matchDate,
+          team_size: 7,
+          num_teams: 2,
+        })
+        .select()
+        .single()
+
+      if (matchError) {
+        setSaveMessage('Error creating match: ' + matchError.message)
+        setSaving(false)
+        return
+      }
+      actualMatchId = newMatch.id
+      setMatches(prev => {
+        const updated = [...prev]
+        const idx = updated.findIndex(m => m.id === selectedMatch)
+        if (idx >= 0) updated[idx] = { ...updated[idx], id: newMatch.id }
+        return updated
+      })
+      setSelectedMatch(newMatch.id)
+    }
+
     try {
-      if (existingId) {
+      // Always check DB for existing row by match_id + player_id (not by cached id)
+      const { data: existing } = await supabase
+        .from('match_stats')
+        .select('id')
+        .eq('match_id', actualMatchId)
+        .eq('player_id', editingStats)
+        .single()
+
+      if (existing) {
         // UPDATE existing row
         const { error } = await supabase.from('match_stats').update({
           goals: statsForm.goals,
@@ -337,14 +371,13 @@ function AdminContent() {
           is_winner: statsForm.isWinner,
           played_as_gk: statsForm.playedAsGK,
           clean_sheet: statsForm.cleanSheet,
-        }).eq('id', existingId)
-        
+        }).eq('id', existing.id)
+
         if (error) throw error
-        setSaveMessage('Stats saved!')
       } else {
-        // INSERT new row
+        // INSERT new row — only when no row exists at all
         const { error } = await supabase.from('match_stats').insert({
-          match_id: selectedMatch,
+          match_id: actualMatchId,
           player_id: editingStats,
           goals: statsForm.goals,
           assists: statsForm.assists,
@@ -352,19 +385,20 @@ function AdminContent() {
           played_as_gk: statsForm.playedAsGK,
           clean_sheet: statsForm.cleanSheet,
         })
-        
+
         if (error) throw error
-        setSaveMessage('Stats saved!')
       }
-      
+
+      setSaveMessage('Stats saved!')
       setEditingStats(null)
-      // Reload stats
-      const { data } = await supabase.from('match_stats').select('*').eq('match_id', selectedMatch)
+
+      // Reload stats from DB
+      const { data } = await supabase.from('match_stats').select('*').eq('match_id', actualMatchId)
       if (data) {
         const statsMap = new Map(data.map(s => [s.player_id, s]))
         const fullStats = PLAYERS.map(player => ({
           id: statsMap.get(player.id)?.id || '',
-          match_id: selectedMatch,
+          match_id: actualMatchId,
           player_id: player.id,
           goals: statsMap.get(player.id)?.goals || 0,
           assists: statsMap.get(player.id)?.assists || 0,
