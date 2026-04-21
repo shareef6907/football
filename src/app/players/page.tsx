@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PLAYERS, Position, POINTS_SYSTEM } from '../../lib/constants'
@@ -37,6 +38,7 @@ function getPositionAbbrev(position: Position) {
 export default function PlayersPage() {
   const [playerStats, setPlayerStats] = useState<Record<string, PlayerStats>>({})
   const [playerRatings, setPlayerRatings] = useState<Record<string, { forward: number, midfielder: number, defender: number, goalkeeper: number, count: number }>>({})
+  const [playerUsernames, setPlayerUsernames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,11 +46,12 @@ export default function PlayersPage() {
       setLoading(true)
       
       // Parallel queries for speed
-      const [matchesRes, statsRes, motmRes, ratingsRes] = await Promise.all([
+      const [matchesRes, statsRes, motmRes, ratingsRes, usernamesRes] = await Promise.all([
         supabase.from('matches').select('id').order('match_date', { ascending: false }),
         supabase.from('match_stats').select('*'),
         supabase.from('man_of_the_match_winners').select('player_id, match_id'),
         supabase.from('player_ratings').select('*').order('rating_year', { ascending: false }).order('rating_month', { ascending: false }),
+        supabase.from('user_profiles').select('player_id, username').not('username', 'is', null),
       ])
       
       const matches = matchesRes.data
@@ -125,6 +128,15 @@ export default function PlayersPage() {
       
       setPlayerStats(statsMap)
       setPlayerRatings(ratingsMap)
+      
+      // Map player_id to username
+      const usernamesData = usernamesRes?.data || []
+      const usernameMap: Record<string, string> = {}
+      usernamesData.forEach((u: any) => {
+        if (u.player_id && u.username) usernameMap[u.player_id] = u.username
+      })
+      setPlayerUsernames(usernameMap)
+      
       setLoading(false)
     }
     
@@ -178,8 +190,12 @@ export default function PlayersPage() {
                 const gkRating = getPositionRating(player.id, 'goalkeeper')
                 
                 return (
+                  <Link 
+                    key={player.id} 
+                    href={playerUsernames[player.id] ? `/${playerUsernames[player.id]}` : `/players/${player.id}`}
+                    className="block"
+                  >
                   <motion.div
-                    key={player.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.03 }}
@@ -255,6 +271,7 @@ export default function PlayersPage() {
                       </div>
                     </div>
                   </motion.div>
+                  </Link>
                 )
               })}
             </div>

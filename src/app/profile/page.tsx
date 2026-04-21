@@ -1,9 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { PLAYERS } from '@/lib/constants'
-import { User, LogOut, Shield, Check, ChevronRight } from 'lucide-react'
+import { User, LogOut, Shield, Check, ChevronRight, Edit2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
@@ -109,6 +110,14 @@ export default function ProfilePage() {
           <LogOut className="w-5 h-5" />
           Sign Out
         </button>
+
+        {/* Edit Profile */}
+        {profile?.player_id && (
+          <Link href="/profile/edit" className="w-full py-3 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center gap-2">
+            <Edit2 className="w-4 h-4" />
+            Edit Profile
+          </Link>
+        )}
       </main>
     </div>
   )
