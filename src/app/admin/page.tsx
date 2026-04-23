@@ -35,6 +35,13 @@ interface MatchStats {
   clean_sheet: boolean
 }
 
+interface PlayerCumulativeStats {
+  totalGoals: number
+  totalAssists: number
+  totalWins: number
+  totalMotm: number
+}
+
 function AdminContent() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null = checking
@@ -45,7 +52,7 @@ function AdminContent() {
   const [activeTab, setActiveTab] = useState<'ratings' | 'stats' | 'reset'>('ratings')
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
-  
+
   // Check localStorage on mount BEFORE initial render
   useEffect(() => {
     const savedAuth = localStorage.getItem('admin_auth')
@@ -55,23 +62,24 @@ function AdminContent() {
       setIsAuthenticated(false)
     }
   }, [])
-  
+
   // Ratings data
   const [playerRatings, setPlayerRatings] = useState<PlayerRating[]>([])
   const [editingRating, setEditingRating] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ forward: 5, midfielder: 5, defender: 5, goalkeeper: 5 })
   const [ratingCount, setRatingCount] = useState<{ rated: number, total: number, raters: string[] }>({ rated: 0, total: 21, raters: [] })
-  
+
   // Stats data
   const [matches, setMatches] = useState<Match[]>([])
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
   const [matchStats, setMatchStats] = useState<MatchStats[]>([])
   const [editingStats, setEditingStats] = useState<string | null>(null)
   const [statsForm, setStatsForm] = useState({ goals: 0, assists: 0, isWinner: false, playedAsGK: false, cleanSheet: false })
+  const [playerTotals, setPlayerTotals] = useState<Record<string, PlayerCumulativeStats>>({})
 
   useEffect(() => {
     if (!isAuthenticated) return
-    
+
     // Load player ratings
     const loadRatings = async () => {
       const { data } = await supabase
@@ -79,7 +87,7 @@ function AdminContent() {
         .select('*')
         .order('rating_year', { ascending: false })
         .order('rating_month', { ascending: false })
-      
+
       if (data) {
         const latestByPlayer = new Map<string, PlayerRating>()
         data.forEach((r: any) => {
@@ -91,7 +99,7 @@ function AdminContent() {
       }
     }
     loadRatings()
-    
+
     // Count how many players have rated this month
     const loadRatingCount = async () => {
       const now = new Date()
@@ -115,7 +123,37 @@ function AdminContent() {
       }
     }
     loadRatingCount()
-    
+
+    // Load cumulative player stats for all-time totals (wins + MOTM)
+    const loadPlayerTotals = async () => {
+      const [allStatsRes, motmRes] = await Promise.all([
+        supabase.from('match_stats').select('*'),
+        supabase.from('man_of_the_match_winners').select('*'),
+      ])
+      
+      const allStats = allStatsRes.data || []
+      const allMotm = motmRes.data || []
+      
+      const totals: Record<string, PlayerCumulativeStats> = {}
+      PLAYERS.forEach(p => {
+        totals[p.id] = { totalGoals: 0, totalAssists: 0, totalWins: 0, totalMotm: 0 }
+      })
+      
+      allStats.forEach(s => {
+        if (totals[s.player_id]) {
+          totals[s.player_id].totalGoals += s.goals || 0
+          totals[s.player_id].totalAssists += s.assists || 0
+          if (s.is_winner) totals[s.player_id].totalWins += 1
+        }
+      })
+      
+      allMotm.forEach(m => {
+        if (totals[m.player_id]) totals[m.player_id].totalMotm += 1
+      })
+      
+      setPlayerTotals(totals)
+    }
+
     // Load only PAST matches (before or on last Thursday)
     const loadMatches = async () => {
       // Calculate last Thursday
@@ -126,16 +164,16 @@ function AdminContent() {
       const daysSinceThursday = (dayOfWeek + 6) % 7
       let lastThursday = new Date(today)
       lastThursday.setDate(today.getDate() - daysSinceThursday)
-      
+
       const cutoffDate = lastThursday.toISOString().split('T')[0]
-      
+
       const { data } = await supabase
         .from('matches')
         .select('*')
         .lte('match_date', cutoffDate)
         .order('match_date', { ascending: false })
         .limit(20)
-      
+
       if (data && data.length > 0) {
         setMatches(data)
         setSelectedMatch(data[0].id)
@@ -145,22 +183,22 @@ function AdminContent() {
       }
     }
     loadMatches()
+    loadPlayerTotals()
   }, [isAuthenticated])
 
-  // Load match stats when match selected - get ALL 21 players
   useEffect(() => {
     if (!selectedMatch) return
-    
+
     const loadStats = async () => {
       // Get existing stats for this match
       const { data: existingStats } = await supabase
         .from('match_stats')
         .select('*')
         .eq('match_id', selectedMatch)
-      
+
       // Build stats for ALL 21 players (not just attendees)
       const statsMap = new Map((existingStats || []).map(s => [s.player_id, s]))
-      
+
       const fullStats = PLAYERS.map(player => ({
         id: statsMap.get(player.id)?.id || '',
         match_id: selectedMatch,
@@ -171,7 +209,7 @@ function AdminContent() {
         played_as_gk: statsMap.get(player.id)?.played_as_gk || false,
         clean_sheet: statsMap.get(player.id)?.clean_sheet || false,
       }))
-      
+
       setMatchStats(fullStats)
     }
     loadStats()
@@ -235,14 +273,14 @@ function AdminContent() {
     try {
       // Delete all from each table - use select('id') then delete by IDs
       const tables = ['draft_picks', 'draft_captains', 'draft_sessions', 'man_of_the_match_votes', 'man_of_the_match_winners', 'match_stats', 'attendance', 'match_team_players', 'match_teams', 'matches', 'coins_ledger', 'player_ratings']
-      
+
       for (const table of tables) {
         const { data } = await supabase.from(table).select('id')
         if (data && data.length > 0) {
           await supabase.from(table).delete().in('id', data.map((r: any) => r.id))
         }
       }
-      
+
       setSaveMessage('✅ All data cleared!')
     } catch (err: any) {
       setSaveMessage('Error: ' + err.message)
@@ -270,7 +308,7 @@ function AdminContent() {
       const currentMonth = new Date().getMonth() + 1
       const currentYear = new Date().getFullYear()
       const rating = playerRatings.find(r => r.rated_player_id === editingRating)
-      
+
       if (rating) {
         await supabase.from('player_ratings').update({
           forward_rating: editForm.forward,
@@ -354,8 +392,12 @@ function AdminContent() {
       setSelectedMatch(newMatch.id)
     }
 
+    // Find the current stats entry being edited
+    const currentStats = matchStats.find(s => s.player_id === editingStats)
+    const existingId = currentStats?.id
+
     try {
-      // Always check DB for existing row by match_id + player_id (not by cached id)
+      // Always check DB for existing row by match_id + player_id
       const { data: existing } = await supabase
         .from('match_stats')
         .select('id')
@@ -371,11 +413,10 @@ function AdminContent() {
           is_winner: statsForm.isWinner,
           played_as_gk: statsForm.playedAsGK,
           clean_sheet: statsForm.cleanSheet,
-        }).eq('id', existing.id)
+        }).eq('id', existing.id || existingId)
 
         if (error) throw error
       } else {
-        // INSERT new row — only when no row exists at all
         const { error } = await supabase.from('match_stats').insert({
           match_id: actualMatchId,
           player_id: editingStats,
@@ -408,6 +449,25 @@ function AdminContent() {
         }))
         setMatchStats(fullStats)
       }
+
+      // Reload cumulative player totals
+      const [allStatsRes, motmRes] = await Promise.all([
+        supabase.from('match_stats').select('*'),
+        supabase.from('man_of_the_match_winners').select('*'),
+      ])
+      const allStats = allStatsRes.data || []
+      const allMotm = motmRes.data || []
+      const totals: Record<string, PlayerCumulativeStats> = {}
+      PLAYERS.forEach(p => { totals[p.id] = { totalGoals: 0, totalAssists: 0, totalWins: 0, totalMotm: 0 } })
+      allStats.forEach(s => {
+        if (totals[s.player_id]) {
+          totals[s.player_id].totalGoals += s.goals || 0
+          totals[s.player_id].totalAssists += s.assists || 0
+          if (s.is_winner) totals[s.player_id].totalWins += 1
+        }
+      })
+      allMotm.forEach(m => { if (totals[m.player_id]) totals[m.player_id].totalMotm += 1 })
+      setPlayerTotals(totals)
     } catch (err: any) {
       setSaveMessage('Error: ' + err.message)
     } finally {
@@ -494,7 +554,7 @@ function AdminContent() {
                 Not rated: {PLAYERS.filter(p => !ratingCount.raters.includes(p.name)).map(p => p.name).join(', ')}
               </div>
             </div>
-            
+
             <button onClick={handleResetRatings} disabled={saving} className="w-full py-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold flex items-center justify-center gap-2">
               <RotateCcw className="w-5 h-5" /> Reset All Ratings to 5/5/5/5
             </button>
@@ -573,6 +633,7 @@ function AdminContent() {
                 matchStats.map(stats => {
                   const player = getPlayerById(stats.player_id)
                   if (!player) return null
+                  const totals = playerTotals[stats.player_id] || { totalGoals: 0, totalAssists: 0, totalWins: 0, totalMotm: 0 }
                   const isEditing = editingStats === stats.player_id
                   return (
                     <motion.div key={stats.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-xl p-3 border border-white/10">
@@ -620,6 +681,7 @@ function AdminContent() {
                             <div>
                               <div className="font-bold">{player.name}</div>
                               <div className="text-xs text-gray-400">{stats.goals}G {stats.assists}A • <span className={stats.is_winner ? 'text-green-400' : 'text-gray-500'}>{stats.is_winner ? 'W' : 'L'}</span> • {stats.played_as_gk ? '🧤' : ''} • {stats.clean_sheet ? '🛡️' : ''}</div>
+                              <div className="text-xs text-gray-500 mt-0.5">Cumulative: {totals.totalGoals}G • {totals.totalAssists}A • {totals.totalWins}W • ⭐{totals.totalMotm}MOTM</div>
                             </div>
                           </div>
                           <button onClick={() => startEditStats(stats)} className="p-2 rounded-lg bg-white/10"><Edit2 className="w-4 h-4" /></button>
@@ -639,8 +701,8 @@ function AdminContent() {
             <div className="glass rounded-2xl p-6 border border-red-500/30">
               <h3 className="text-xl font-bold text-red-400 mb-4">⚠️ Danger Zone</h3>
               <p className="text-gray-400 mb-4">This will permanently delete all match stats, coins, and MOTM data.</p>
-              
-              <button 
+
+              <button
                 onClick={handleResetAllStats}
                 disabled={saving}
                 className="w-full py-4 rounded-xl bg-red-500 text-white font-bold flex items-center justify-center gap-2"
